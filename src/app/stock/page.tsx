@@ -573,6 +573,7 @@ function StockContent() {
       <Modal
         isOpen={modalOpen}
         onClose={closeModal}
+        size="lg"
         title={
           editing
             ? `Edit Barang: ${editing.nama}`
@@ -600,15 +601,21 @@ function StockContent() {
       >
         {error && <div className="alert alert-error mb-16">{error}</div>}
         <form onSubmit={handleSave}>
-          <div className="form-grid" style={{ gridTemplateColumns: '1fr' }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+              gap: 16,
+            }}
+          >
             {/* Barcode Section */}
             <div className="form-group">
               <label className="form-label">Barcode / Kode Produk *</label>
-              <div style={{ display: 'flex', gap: 8 }}>
+              <div style={{ display: 'flex', gap: 6 }}>
                 <input
                   type="text"
                   className="form-control font-mono"
-                  placeholder="Scan barcode atau masukkan kode..."
+                  placeholder="Scan barcode..."
                   value={form.barcode}
                   onChange={e => setForm(f => ({ ...f, barcode: e.target.value }))}
                   required
@@ -616,7 +623,8 @@ function StockContent() {
                 />
                 <button
                   type="button"
-                  className="btn btn-outline"
+                  className="btn btn-outline btn-sm"
+                  style={{ whiteSpace: 'nowrap', padding: '0 10px' }}
                   onClick={() => setScannerOpen(true)}
                   title="Scan Barcode via Kamera"
                 >
@@ -624,7 +632,8 @@ function StockContent() {
                 </button>
                 <button
                   type="button"
-                  className="btn btn-outline"
+                  className="btn btn-outline btn-sm"
+                  style={{ whiteSpace: 'nowrap', padding: '0 10px' }}
                   onClick={generateBarcode}
                   title="Buat barcode unik otomatis"
                 >
@@ -639,7 +648,7 @@ function StockContent() {
               <input
                 type="text"
                 className="form-control"
-                placeholder="Contoh: Beras Rojo Lele 5kg / Kaos Polos Combed 30s..."
+                placeholder="Contoh: Beras Rojo Lele 5kg / Kaos Combed 30s..."
                 value={form.nama}
                 onChange={e => setForm(f => ({ ...f, nama: e.target.value }))}
                 required
@@ -647,123 +656,97 @@ function StockContent() {
               />
             </div>
 
-            {/* Kategori & Satuan */}
-            <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 12 }}>
-              <div className="form-group">
-                <label className="form-label">Kategori Stock *</label>
-                <select
-                  className="form-control"
-                  value={form.kategori}
-                  onChange={e => handleKategoriFormChange(e.target.value)}
-                  required
-                  id="input-kategori-barang"
-                >
-                  {categories.map(k => (
-                    <option key={k.id} value={k.nama}>
-                      {k.nama} ({k.jenis_toko === 'kelontong' ? 'Kelontong' : k.jenis_toko === 'baju' ? 'Baju' : 'Umum'})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Satuan</label>
-                <select
-                  className="form-control"
-                  value={form.satuan}
-                  onChange={e => setForm(f => ({ ...f, satuan: e.target.value }))}
-                  id="input-satuan-barang"
-                >
-                  {SATUAN_LIST.map(s => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            {/* Kategori */}
+            <div className="form-group">
+              <label className="form-label">Kategori Stock *</label>
+              <select
+                className="form-control"
+                value={form.kategori}
+                onChange={e => handleKategoriFormChange(e.target.value)}
+                required
+                id="input-kategori-barang"
+              >
+                {categories.map(k => (
+                  <option key={k.id} value={k.nama}>
+                    {k.nama} ({k.jenis_toko === 'kelontong' ? 'Kelontong' : k.jenis_toko === 'baju' ? 'Baju' : 'Umum'})
+                  </option>
+                ))}
+              </select>
             </div>
 
-            {/* Merk & Supplier */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <div className="form-group">
-                <label className="form-label">Merk / Brand</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="Contoh: Indofood, Bimoli, Erigo..."
-                  value={form.merk}
-                  onChange={e => setForm(f => ({ ...f, merk: e.target.value }))}
-                  list="merk-suggestions"
-                  id="input-merk-barang"
-                />
-                <datalist id="merk-suggestions">
-                  {merks.map(m => (
-                    <option key={m.id} value={m.nama} />
-                  ))}
-                </datalist>
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Supplier / Distributor</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="Contoh: Distributor Sembako Jaya..."
-                  value={form.supplier}
-                  onChange={e => setForm(f => ({ ...f, supplier: e.target.value }))}
-                  list="supplier-suggestions"
-                  id="input-supplier-barang"
-                />
-                <datalist id="supplier-suggestions">
-                  {suppliers.map(s => (
-                    <option key={s.id} value={s.nama} />
-                  ))}
-                </datalist>
-              </div>
+            {/* Satuan */}
+            <div className="form-group">
+              <label className="form-label">Satuan Standar</label>
+              <select
+                className="form-control"
+                value={form.satuan}
+                onChange={e => setForm(f => ({ ...f, satuan: e.target.value }))}
+                id="input-satuan-barang"
+              >
+                {SATUAN_LIST.map(s => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
             </div>
 
-            {/* Ukuran & Warna (Khusus Toko Baju / Fashion) */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <div className="form-group">
-                <label className="form-label">Ukuran / Size (Opsional)</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="Contoh: S, M, L, XL, 32, 2L, 5kg..."
-                  value={form.ukuran}
-                  onChange={e => setForm(f => ({ ...f, ukuran: e.target.value }))}
-                />
-              </div>
-
-              <div className="form-group">
-                <label className="form-label">Warna / Varian (Opsional)</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="Contoh: Hitam, Navy, Putih, Pedas Manis..."
-                  value={form.warna}
-                  onChange={e => setForm(f => ({ ...f, warna: e.target.value }))}
-                />
-              </div>
+            {/* Merk */}
+            <div className="form-group">
+              <label className="form-label">Merk / Brand</label>
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Contoh: Indofood, Bimoli, Erigo..."
+                value={form.merk}
+                onChange={e => setForm(f => ({ ...f, merk: e.target.value }))}
+                list="merk-suggestions"
+                id="input-merk-barang"
+              />
+              <datalist id="merk-suggestions">
+                {merks.map(m => (
+                  <option key={m.id} value={m.nama} />
+                ))}
+              </datalist>
             </div>
 
-            {/* Qty, Harga Modal, Harga Jual */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr 1.5fr', gap: 12 }}>
-              <div className="form-group">
-                <label className="form-label">Jumlah Stok *</label>
-                <input
-                  type="number"
-                  min="0"
-                  className="form-control"
-                  value={form.qty}
-                  onChange={e => setForm(f => ({ ...f, qty: Math.max(0, parseInt(e.target.value) || 0) }))}
-                  required
-                  id="input-qty-barang"
-                />
-              </div>
+            {/* Supplier */}
+            <div className="form-group">
+              <label className="form-label">Supplier / Distributor</label>
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Contoh: Distributor Sembako Jaya..."
+                value={form.supplier}
+                onChange={e => setForm(f => ({ ...f, supplier: e.target.value }))}
+                list="supplier-suggestions"
+                id="input-supplier-barang"
+              />
+              <datalist id="supplier-suggestions">
+                {suppliers.map(s => (
+                  <option key={s.id} value={s.nama} />
+                ))}
+              </datalist>
+            </div>
 
+            {/* Qty */}
+            <div className="form-group">
+              <label className="form-label">Jumlah Stok Fisik *</label>
+              <input
+                type="number"
+                min="0"
+                className="form-control"
+                value={form.qty}
+                onChange={e => setForm(f => ({ ...f, qty: Math.max(0, parseInt(e.target.value) || 0) }))}
+                required
+                id="input-qty-barang"
+              />
+            </div>
+
+            {/* Harga Modal & Harga Jual */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
               <div className="form-group">
-                <label className="form-label">Harga Modal (Rp) *</label>
+                <label className="form-label">Harga Modal *</label>
                 <NumericInput
                   value={form.harga_modal}
                   onChange={val => setForm(f => ({ ...f, harga_modal: val }))}
@@ -774,7 +757,7 @@ function StockContent() {
               </div>
 
               <div className="form-group">
-                <label className="form-label">Harga Jual (Rp) *</label>
+                <label className="form-label">Harga Jual *</label>
                 <NumericInput
                   value={form.harga_jual}
                   onChange={val => setForm(f => ({ ...f, harga_jual: val }))}
@@ -785,8 +768,31 @@ function StockContent() {
               </div>
             </div>
 
-            {/* Keterangan */}
+            {/* Ukuran & Warna */}
             <div className="form-group">
+              <label className="form-label">Ukuran / Size (Opsional)</label>
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Contoh: S, M, L, XL, 32, 2L, 5kg..."
+                value={form.ukuran}
+                onChange={e => setForm(f => ({ ...f, ukuran: e.target.value }))}
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Warna / Varian (Opsional)</label>
+              <input
+                type="text"
+                className="form-control"
+                placeholder="Contoh: Hitam, Navy, Putih, Pedas Manis..."
+                value={form.warna}
+                onChange={e => setForm(f => ({ ...f, warna: e.target.value }))}
+              />
+            </div>
+
+            {/* Keterangan (Spans full width) */}
+            <div className="form-group" style={{ gridColumn: '1 / -1' }}>
               <label className="form-label">Keterangan / Catatan Tambahan</label>
               <textarea
                 className="form-control"

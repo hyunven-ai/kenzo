@@ -208,10 +208,7 @@ export default function Sidebar({ user, collapsed, mobileOpen, onCloseMobile }: 
             </div>
 
             {(!collapsed || mobileOpen) && (
-              <div
-                className={`sidebar-group-items${openGroups[group.label] ? ' open' : ''}`}
-                style={group.label === 'Stock' && group.items.length > 7 ? { maxHeight: 320, overflowY: 'auto' } : undefined}
-              >
+              <div className={`sidebar-group-items${openGroups[group.label] ? ' open' : ''}`}>
                 {group.items
                   .filter(item => {
                     if (item.href === '/transaksi/barang-terjual') {
