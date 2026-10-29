@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { 
   getPrinterSettings, 
   savePrinterSettings, 
@@ -21,6 +21,7 @@ export default function PrinterSettingsPage() {
   const [activeTab, setActiveTab] = useState<'devices' | 'receipt'>('devices');
   const [savedSuccess, setSavedSuccess] = useState<string | null>(null);
   const [testPrintActive, setTestPrintActive] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   // Modal Tambah Printer
   const [modalOpen, setModalOpen] = useState(false);
@@ -62,6 +63,66 @@ export default function PrinterSettingsPage() {
       const def = resetPrinterSettings();
       setSettings(def);
       setSavedSuccess('Pengaturan berhasil direset ke default!');
+      setTimeout(() => setSavedSuccess(null), 3000);
+    }
+  };
+
+  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      alert('File harus berupa gambar (PNG, JPG, WEBP).');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const maxDim = 300;
+        let width = img.width;
+        let height = img.height;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL('image/png', 0.9);
+          setSettings(prev => ({ ...prev, logoUrl: dataUrl, showLogo: true }));
+          savePrinterSettings({ logoUrl: dataUrl, showLogo: true });
+          setSavedSuccess('Logo struk berhasil diupload!');
+          setTimeout(() => setSavedSuccess(null), 3000);
+        }
+      };
+      img.src = event.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleResetLogoToDefault = () => {
+    setSettings(prev => ({ ...prev, logoUrl: '/logo-struk.png' }));
+    savePrinterSettings({ logoUrl: '/logo-struk.png' });
+    setSavedSuccess('Logo dikembalikan ke bawaan standar!');
+    setTimeout(() => setSavedSuccess(null), 3000);
+  };
+
+  const handleRemoveLogo = () => {
+    if (confirm('Hapus logo dari struk dan sembunyikan tampilan logo?')) {
+      setSettings(prev => ({ ...prev, logoUrl: '', showLogo: false }));
+      savePrinterSettings({ logoUrl: '', showLogo: false });
+      setSavedSuccess('Logo struk berhasil dihapus!');
       setTimeout(() => setSavedSuccess(null), 3000);
     }
   };
@@ -576,21 +637,145 @@ export default function PrinterSettingsPage() {
               </div>
             </div>
 
-            {/* Identitas Toko */}
+            {/* Identitas Toko & Logo Struk */}
             <div className="card">
               <div className="card-header">
-                <span className="card-title">🏪 Identitas Toko di Struk</span>
+                <span className="card-title">🏪 Identitas Toko & Logo di Struk</span>
               </div>
-              <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                  <input 
-                    type="checkbox" 
-                    checked={settings.showLogo}
-                    onChange={e => handleChange('showLogo', e.target.checked)}
-                    style={{ width: 18, height: 18, cursor: 'pointer' }}
-                  />
-                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Tampilkan Logo SP SERIES di bagian atas struk</span>
-                </label>
+              <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                
+                {/* Opsi Tampilkan Logo & Box CRUD Logo */}
+                <div style={{
+                  background: 'var(--bg-elevated, #24242c)',
+                  border: '1px solid var(--border-light, #2e2e36)',
+                  borderRadius: 8,
+                  padding: 14,
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 12
+                }}>
+                  {/* Toggle Tampilkan Logo */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', margin: 0 }}>
+                      <input 
+                        type="checkbox" 
+                        checked={settings.showLogo}
+                        onChange={e => handleChange('showLogo', e.target.checked)}
+                        style={{ width: 18, height: 18, cursor: 'pointer' }}
+                        id="checkbox-show-logo"
+                      />
+                      <div>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
+                          Tampilkan Logo di Bagian Atas Struk
+                        </span>
+                        <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>
+                          {settings.showLogo ? 'Logo aktif dan akan dicetak pada struk' : 'Logo disembunyikan (struk hanya menampilkan teks nama toko)'}
+                        </div>
+                      </div>
+                    </label>
+
+                    <span className={`badge ${settings.showLogo ? 'badge-success' : 'badge-gray'}`} style={{ fontSize: 10 }}>
+                      {settings.showLogo ? 'Aktif' : 'Nonaktif'}
+                    </span>
+                  </div>
+
+                  {/* Panel Kelola (CRUD) Logo */}
+                  <div style={{ 
+                    borderTop: '1px solid var(--border-light, #2a2a32)', 
+                    paddingTop: 12, 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    gap: 16,
+                    flexWrap: 'wrap'
+                  }}>
+                    {/* Thumbnail Preview */}
+                    <div style={{
+                      width: 76,
+                      height: 76,
+                      borderRadius: 8,
+                      background: '#ffffff',
+                      border: '2px solid var(--border-light, #3f3f46)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: 4,
+                      flexShrink: 0,
+                      position: 'relative',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+                    }}>
+                      {(settings.logoUrl || '/logo-struk.png') ? (
+                        <img 
+                          src={settings.logoUrl || '/logo-struk.png'} 
+                          alt="Logo Preview" 
+                          style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} 
+                        />
+                      ) : (
+                        <span style={{ fontSize: 10, color: '#999', textAlign: 'center' }}>Tanpa Logo</span>
+                      )}
+                    </div>
+
+                    {/* Controls & Status */}
+                    <div style={{ flex: 1, minWidth: 220, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>Status Logo:</span>
+                        <span className={`badge badge-sm ${settings.logoUrl && settings.logoUrl !== '/logo-struk.png' ? 'badge-primary' : 'badge-info'}`} style={{ fontSize: 9 }}>
+                          {settings.logoUrl && settings.logoUrl !== '/logo-struk.png' ? '🎨 Custom Logo Toko' : '🏷️ Logo Standar'}
+                        </span>
+                      </div>
+
+                      {/* Action buttons (CRUD) */}
+                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
+                        <input 
+                          type="file" 
+                          ref={logoInputRef}
+                          accept="image/png, image/jpeg, image/jpg, image/webp"
+                          style={{ display: 'none' }}
+                          onChange={handleLogoUpload}
+                          id="file-input-logo"
+                        />
+                        <button
+                          type="button"
+                          className="btn btn-primary btn-sm"
+                          onClick={() => logoInputRef.current?.click()}
+                          style={{ fontSize: 11, padding: '5px 12px', display: 'flex', alignItems: 'center', gap: 5 }}
+                          id="btn-upload-logo"
+                        >
+                          📷 {settings.logoUrl && settings.logoUrl !== '/logo-struk.png' ? 'Ganti Logo' : 'Upload Logo Baru'}
+                        </button>
+
+                        {settings.logoUrl && settings.logoUrl !== '/logo-struk.png' && (
+                          <button
+                            type="button"
+                            className="btn btn-secondary btn-sm"
+                            onClick={handleResetLogoToDefault}
+                            style={{ fontSize: 11, padding: '5px 10px' }}
+                            title="Kembalikan ke logo standar"
+                            id="btn-reset-logo"
+                          >
+                            🔄 Reset Logo Standar
+                          </button>
+                        )}
+
+                        {settings.logoUrl && (
+                          <button
+                            type="button"
+                            className="btn btn-outline btn-sm"
+                            onClick={handleRemoveLogo}
+                            style={{ fontSize: 11, padding: '5px 10px', color: '#ef5350', borderColor: '#ef5350' }}
+                            title="Hapus logo dari struk"
+                            id="btn-remove-logo"
+                          >
+                            🗑️ Hapus Logo
+                          </button>
+                        )}
+                      </div>
+
+                      <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 2 }}>
+                        Format disarankan: PNG transparan atau JPG monokrom (rasio persegi, otomatis dioptimasi).
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
                 <div className="form-group">
                   <label className="form-label">Nama Toko</label>
@@ -599,7 +784,7 @@ export default function PrinterSettingsPage() {
                     className="form-control"
                     value={settings.shopName}
                     onChange={e => handleChange('shopName', e.target.value)}
-                    placeholder="SERIES PONSEL"
+                    placeholder="Kenzo / Nama Toko Anda"
                   />
                 </div>
 
@@ -767,9 +952,13 @@ export default function PrinterSettingsPage() {
                   lineHeight: 1.35,
                   boxSizing: 'border-box'
                 }}>
-                  {settings.showLogo && (
+                  {settings.showLogo && Boolean(settings.logoUrl || '/logo-struk.png') && (
                     <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 4 }}>
-                      <img src="/logo-struk.png" alt="Logo" style={{ width: 50, height: 50, objectFit: 'contain' }} />
+                      <img 
+                        src={settings.logoUrl || '/logo-struk.png'} 
+                        alt="Logo Struk" 
+                        style={{ maxWidth: settings.paperWidth === '80mm' ? 65 : 52, maxHeight: settings.paperWidth === '80mm' ? 65 : 52, objectFit: 'contain' }} 
+                      />
                     </div>
                   )}
 

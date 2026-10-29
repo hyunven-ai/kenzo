@@ -67,8 +67,13 @@ export default function PrintReceipt({
     <div className={`print-receipt-container ${settings.paperWidth === '80mm' ? 'paper-80mm' : 'paper-58mm'}`}>
       {/* Logo & Header */}
       <div className="receipt-header">
-        {settings.showLogo && (
-          <img src="/logo-struk.png" alt="Logo Series" className="receipt-logo" style={{ width: '60px', height: '60px', objectFit: 'contain', marginBottom: '4px' }} />
+        {settings.showLogo && Boolean(settings.logoUrl || '/logo-struk.png') && (
+          <img 
+            src={settings.logoUrl || '/logo-struk.png'} 
+            alt="Logo Struk" 
+            className="receipt-logo" 
+            style={{ maxWidth: '65px', maxHeight: '65px', objectFit: 'contain', marginBottom: '4px' }} 
+          />
         )}
         
         <h1 className="receipt-shop-name">{settings.shopName || 'SERIES PONSEL'}</h1>

@@ -23,6 +23,7 @@ export interface PrinterSettings {
   addressLine2: string;
   whatsappNumber: string;
   showLogo: boolean;
+  logoUrl?: string;
   showSocialMedia: boolean;
   facebookName: string;
   instagramName: string;
@@ -42,6 +43,7 @@ export const DEFAULT_PRINTER_SETTINGS: PrinterSettings = {
   addressLine2: 'SUNGAI PINYUH',
   whatsappNumber: '0812-5866-6628',
   showLogo: true,
+  logoUrl: '/logo-struk.png',
   showSocialMedia: true,
   facebookName: 'MArr LinDa\nVierry Kien\'z',
   instagramName: 'Series_ponsel',
