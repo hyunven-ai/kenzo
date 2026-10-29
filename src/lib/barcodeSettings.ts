@@ -64,3 +64,4 @@ export function saveBarcodeLabelSettings(settings: Partial<BarcodeLabelSettings>
   window.dispatchEvent(new Event('barcode-settings-updated'));
   return updated;
 }
+

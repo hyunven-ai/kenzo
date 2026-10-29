@@ -204,3 +204,4 @@ export default function PrintBarcodeLabel({
 
   return createPortal(content, document.body);
 }
+

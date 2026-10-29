@@ -31,7 +31,6 @@ export default function BarcodePage() {
 
   // Label Settings state
   const [settings, setSettings] = useState<BarcodeLabelSettings>(DEFAULT_BARCODE_LABEL_SETTINGS);
-  const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [singlePrintItem, setSinglePrintItem] = useState<MsBarang | null>(null);
 
@@ -217,7 +216,10 @@ export default function BarcodePage() {
           <button
             type="button"
             className="btn btn-secondary"
-            onClick={() => setSettingsModalOpen(true)}
+            onClick={() => {
+              setSinglePrintItem(null);
+              setPreviewModalOpen(true);
+            }}
             id="btn-label-settings"
             style={{ display: 'flex', alignItems: 'center', gap: 6 }}
           >
@@ -561,240 +563,275 @@ export default function BarcodePage() {
         </div>
       )}
 
-      {/* Modal Format & Ukuran Label Barcode */}
-      <Modal
-        isOpen={settingsModalOpen}
-        onClose={() => setSettingsModalOpen(false)}
-        title="⚙️ Pengaturan Format & Ukuran Label Barcode Thermal"
-        footer={
-          <button
-            type="button"
-            className="btn btn-primary"
-            onClick={() => setSettingsModalOpen(false)}
-          >
-            Selesai & Simpan
-          </button>
-        }
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          {/* Preset Buttons */}
-          <div>
-            <label className="form-label" style={{ fontWeight: 700, marginBottom: 8, display: 'block' }}>
-              Pilih Ukuran Stiker Thermal Roll:
-            </label>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 8 }}>
-              {BARCODE_LABEL_PRESETS.map(preset => {
-                const isActive = settings.presetId === preset.id;
-                return (
-                  <button
-                    key={preset.id}
-                    type="button"
-                    onClick={() => handleApplyPreset(preset.id)}
-                    style={{
-                      padding: '10px 12px',
-                      borderRadius: 8,
-                      border: `1.5px solid ${isActive ? '#22c55e' : 'var(--border-medium)'}`,
-                      background: isActive ? 'rgba(34, 197, 94, 0.1)' : 'var(--bg-card)',
-                      color: isActive ? '#4ade80' : 'var(--text-primary)',
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      transition: 'all 0.15s',
-                    }}
-                  >
-                    <div style={{ fontWeight: 700, fontSize: 13 }}>{preset.name}</div>
-                    <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 2 }}>{preset.description}</div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Custom Dimension Inputs */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <div className="form-group">
-              <label className="form-label">Lebar Label (mm)</label>
-              <input
-                type="number"
-                className="form-control"
-                value={settings.widthMm}
-                onChange={e => {
-                  const w = parseInt(e.target.value) || 10;
-                  handleUpdateSetting('widthMm', w);
-                  handleUpdateSetting('presetId', 'custom');
-                }}
-                min={20}
-                max={110}
-              />
-            </div>
-            <div className="form-group">
-              <label className="form-label">Tinggi Label (mm)</label>
-              <input
-                type="number"
-                className="form-control"
-                value={settings.heightMm}
-                onChange={e => {
-                  const h = parseInt(e.target.value) || 10;
-                  handleUpdateSetting('heightMm', h);
-                  handleUpdateSetting('presetId', 'custom');
-                }}
-                min={15}
-                max={150}
-              />
-            </div>
-          </div>
-
-          {/* Nama Toko */}
-          <div className="form-group">
-            <label className="form-label">Nama Toko di Label</label>
-            <input
-              type="text"
-              className="form-control"
-              value={settings.shopName}
-              onChange={e => handleUpdateSetting('shopName', e.target.value)}
-              placeholder="Contoh: Kenzo Store"
-            />
-          </div>
-
-          {/* Opsi Tampilan Elemen */}
-          <div>
-            <label className="form-label" style={{ fontWeight: 700, marginBottom: 8, display: 'block' }}>
-              Elemen yang Ditampilkan pada Stiker:
-            </label>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, background: 'var(--bg-elevated)', padding: 12, borderRadius: 8 }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13 }}>
-                <input
-                  type="checkbox"
-                  checked={settings.showShopName}
-                  onChange={e => handleUpdateSetting('showShopName', e.target.checked)}
-                />
-                <span>Tampilkan Nama Toko ({settings.shopName || 'Nama Toko'})</span>
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13 }}>
-                <input
-                  type="checkbox"
-                  checked={settings.showItemName}
-                  onChange={e => handleUpdateSetting('showItemName', e.target.checked)}
-                />
-                <span>Tampilkan Nama Produk & Varian (Warna/Ukuran)</span>
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13 }}>
-                <input
-                  type="checkbox"
-                  checked={settings.showBarcodeText}
-                  onChange={e => handleUpdateSetting('showBarcodeText', e.target.checked)}
-                />
-                <span>Tampilkan Teks Kode Barcode di bawah garis barcode</span>
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 13 }}>
-                <input
-                  type="checkbox"
-                  checked={settings.showPrice}
-                  onChange={e => handleUpdateSetting('showPrice', e.target.checked)}
-                />
-                <span>Tampilkan Harga Jual (Rp xx.xxx)</span>
-              </label>
-            </div>
-          </div>
-        </div>
-      </Modal>
-
-      {/* Modal Preview & Cetak Thermal Label */}
+      {/* Modal Terpadu: Live Preview & Format Label Barcode Thermal */}
       <Modal
         isOpen={previewModalOpen}
         onClose={() => setPreviewModalOpen(false)}
-        title="🖨️ Preview Label Barcode Sebelum Cetak"
+        title="🖨️ Preview & Pengaturan Cetak Label Barcode Thermal"
+        size="lg"
         footer={
-          <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
             <button
               type="button"
               className="btn btn-secondary"
               onClick={() => setPreviewModalOpen(false)}
             >
-              Batal
+              Tutup
             </button>
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
               <button
                 type="button"
-                className="btn btn-outline"
-                onClick={() => setSettingsModalOpen(true)}
+                className="btn btn-primary"
+                onClick={() => {
+                  saveBarcodeLabelSettings(settings);
+                  alert('Format label tersimpan otomatis!');
+                }}
               >
-                ⚙️ Ubah Ukuran ({settings.widthMm}×{settings.heightMm}mm)
+                💾 Simpan Format
               </button>
-              <button
-                type="button"
-                className="btn btn-success"
-                onClick={executeThermalPrint}
-                style={{ fontWeight: 700, padding: '8px 18px', display: 'flex', alignItems: 'center', gap: 6 }}
-                id="btn-confirm-print-thermal"
-              >
-                <span>🖨️</span>
-                <span>Cetak ke Printer Thermal</span>
-              </button>
+              {printQueue.length > 0 ? (
+                <button
+                  type="button"
+                  className="btn btn-success"
+                  onClick={executeThermalPrint}
+                  style={{ fontWeight: 700, padding: '9px 20px', display: 'flex', alignItems: 'center', gap: 8 }}
+                  id="btn-confirm-print-thermal"
+                >
+                  <span>🖨️</span>
+                  <span>Cetak ke Printer ({printQueue.reduce((acc, cur) => acc + (cur.qtyPrint || 1), 0)} Stiker)</span>
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="btn btn-success"
+                  onClick={() => {
+                    const sampleQueue: LabelPrintItem[] = [{
+                      id: previewSample.id || 0,
+                      barcode: previewSample.barcode || 'KZ-SAMPLE',
+                      nama: previewSample.nama || 'Contoh Produk',
+                      harga_jual: previewSample.harga_jual || 0,
+                      kategori: previewSample.kategori,
+                      warna: previewSample.warna,
+                      ukuran: previewSample.ukuran,
+                      qtyPrint: 1,
+                    }];
+                    setPrintQueue(sampleQueue);
+                    executeThermalPrint();
+                  }}
+                  style={{ fontWeight: 700, padding: '9px 20px', display: 'flex', alignItems: 'center', gap: 8 }}
+                >
+                  <span>🖨️</span>
+                  <span>Tes Cetak 1 Lembar</span>
+                </button>
+              )}
             </div>
           </div>
         }
       >
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-          <div style={{ fontSize: 13, color: 'var(--text-secondary)', textAlign: 'center' }}>
-            Preview tampilan stiker ukuran <strong>{settings.widthMm} × {settings.heightMm} mm</strong> (Rasio Thermal Roll):
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))', gap: 20, alignItems: 'start' }}>
+          {/* Kolom Kiri: Live Visual Sticker Preview */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, background: 'var(--bg-elevated)', padding: 16, borderRadius: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)' }}>👁️ LIVE PREVIEW STIKER</span>
+              <span style={{ fontSize: 11, background: 'rgba(34, 197, 94, 0.15)', color: '#4ade80', padding: '2px 8px', borderRadius: 6, fontWeight: 700 }}>
+                {settings.widthMm} × {settings.heightMm} mm
+              </span>
+            </div>
+
+            {/* Authentic Thermal Label Sticker Preview */}
+            <div style={{
+              background: '#ffffff',
+              color: '#000000',
+              width: `${Math.min(270, Math.max(180, settings.widthMm * 5.2))}px`,
+              minHeight: `${Math.max(120, settings.heightMm * 5.2)}px`,
+              border: '2px dashed #9ca3af',
+              borderRadius: 8,
+              boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
+              padding: '10px 12px',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              textAlign: 'center',
+              boxSizing: 'border-box',
+              transition: 'all 0.2s ease',
+            }}>
+              {settings.showShopName && settings.shopName && (
+                <div style={{ fontSize: 12, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 2 }}>
+                  {settings.shopName}
+                </div>
+              )}
+
+              {settings.showItemName && (
+                <div style={{ fontSize: 11, fontWeight: 600, lineHeight: 1.2, marginBottom: 4, maxHeight: 32, overflow: 'hidden' }}>
+                  {previewSample.nama} {previewSample.ukuran ? `(${previewSample.ukuran})` : ''}
+                </div>
+              )}
+
+              <div style={{ width: '100%', margin: '4px 0', display: 'flex', justifyContent: 'center' }}>
+                <BarcodeGenerator
+                  value={previewSample.barcode || 'KZ-SAMPLE'}
+                  format={settings.barcodeFormat}
+                  width={1.3}
+                  height={32}
+                  displayValue={false}
+                />
+              </div>
+
+              {settings.showBarcodeText && (
+                <div style={{ fontFamily: 'monospace', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', marginBottom: 2 }}>
+                  {previewSample.barcode || 'KZ-SAMPLE'}
+                </div>
+              )}
+
+              {settings.showPrice && previewSample.harga_jual > 0 && (
+                <div style={{ fontSize: 13, fontWeight: 800, color: '#000000', marginTop: 2 }}>
+                  {formatRupiah(previewSample.harga_jual)}
+                </div>
+              )}
+            </div>
+
+            {/* Print queue info / guidance */}
+            <div className="alert alert-info" style={{ width: '100%', fontSize: 12, padding: '10px 12px', lineHeight: 1.4 }}>
+              {printQueue.length > 0 ? (
+                <>
+                  ⚡ <strong>Antrean Cetak:</strong> {printQueue.length} produk terpilih, total{' '}
+                  <strong>{printQueue.reduce((acc, cur) => acc + (cur.qtyPrint || 1), 0)} lembar stiker</strong> thermal.
+                </>
+              ) : (
+                <>
+                  💡 <strong>Mode Atur Format:</strong> Menampilkan contoh stiker. Anda bisa menyimpan pengaturan ini atau melakukan tes cetak 1 lembar.
+                </>
+              )}
+              <div style={{ marginTop: 6, fontSize: 11, opacity: 0.9 }}>
+                Printer Thermal: Pastikan ukuran kertas di browser diset ke <strong>{settings.widthMm}×{settings.heightMm}mm</strong> dan Margin ke <strong>None</strong>.
+              </div>
+            </div>
           </div>
 
-          {/* Authentic Thermal Label Sticker Preview */}
-          <div style={{
-            background: '#ffffff',
-            color: '#000000',
-            width: `${Math.min(300, settings.widthMm * 5.2)}px`,
-            minHeight: `${settings.heightMm * 5.2}px`,
-            border: '2px dashed #9ca3af',
-            borderRadius: 8,
-            boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
-            padding: '10px 14px',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            textAlign: 'center',
-            boxSizing: 'border-box',
-          }}>
-            {settings.showShopName && settings.shopName && (
-              <div style={{ fontSize: 13, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 2 }}>
-                {settings.shopName}
+          {/* Kolom Kanan: Pengaturan Ukuran & Elemen */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {/* Preset Buttons */}
+            <div>
+              <label className="form-label" style={{ fontWeight: 700, marginBottom: 8, display: 'block', fontSize: 13 }}>
+                📏 Pilih Ukuran Kertas Stiker Thermal Roll:
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: 8 }}>
+                {BARCODE_LABEL_PRESETS.map(preset => {
+                  const isActive = settings.presetId === preset.id;
+                  return (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() => handleApplyPreset(preset.id)}
+                      style={{
+                        padding: '8px 10px',
+                        borderRadius: 8,
+                        border: `1.5px solid ${isActive ? '#22c55e' : 'var(--border-medium)'}`,
+                        background: isActive ? 'rgba(34, 197, 94, 0.12)' : 'var(--bg-card)',
+                        color: isActive ? '#4ade80' : 'var(--text-primary)',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        transition: 'all 0.15s ease',
+                      }}
+                    >
+                      <div style={{ fontWeight: 700, fontSize: 12 }}>{preset.name}</div>
+                      <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 2 }}>{preset.description}</div>
+                    </button>
+                  );
+                })}
               </div>
-            )}
+            </div>
 
-            {settings.showItemName && (
-              <div style={{ fontSize: 11, fontWeight: 600, lineHeight: 1.2, marginBottom: 4, maxHeight: 32, overflow: 'hidden' }}>
-                {previewSample.nama} {previewSample.ukuran ? `(${previewSample.ukuran})` : ''}
+            {/* Custom Dimension Inputs */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label" style={{ fontSize: 12 }}>Lebar Label (mm)</label>
+                <input
+                  type="number"
+                  className="form-control"
+                  style={{ height: 36, fontSize: 13 }}
+                  value={settings.widthMm}
+                  onChange={e => {
+                    const w = parseInt(e.target.value) || 10;
+                    handleUpdateSetting('widthMm', w);
+                    handleUpdateSetting('presetId', 'custom');
+                  }}
+                  min={20}
+                  max={110}
+                />
               </div>
-            )}
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label" style={{ fontSize: 12 }}>Tinggi Label (mm)</label>
+                <input
+                  type="number"
+                  className="form-control"
+                  style={{ height: 36, fontSize: 13 }}
+                  value={settings.heightMm}
+                  onChange={e => {
+                    const h = parseInt(e.target.value) || 10;
+                    handleUpdateSetting('heightMm', h);
+                    handleUpdateSetting('presetId', 'custom');
+                  }}
+                  min={15}
+                  max={150}
+                />
+              </div>
+            </div>
 
-            <div style={{ width: '100%', margin: '4px 0', display: 'flex', justifyContent: 'center' }}>
-              <BarcodeGenerator
-                value={previewSample.barcode || 'KZ-SAMPLE'}
-                format={settings.barcodeFormat}
-                width={1.4}
-                height={32}
-                displayValue={false}
+            {/* Nama Toko */}
+            <div className="form-group" style={{ marginBottom: 0 }}>
+              <label className="form-label" style={{ fontSize: 12 }}>Nama Toko pada Stiker</label>
+              <input
+                type="text"
+                className="form-control"
+                style={{ height: 36, fontSize: 13 }}
+                value={settings.shopName}
+                onChange={e => handleUpdateSetting('shopName', e.target.value)}
+                placeholder="Contoh: Kenzo Store"
               />
             </div>
 
-            {settings.showBarcodeText && (
-              <div style={{ fontFamily: 'monospace', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', marginBottom: 2 }}>
-                {previewSample.barcode || 'KZ-SAMPLE'}
+            {/* Opsi Tampilan Elemen */}
+            <div>
+              <label className="form-label" style={{ fontWeight: 700, marginBottom: 8, display: 'block', fontSize: 13 }}>
+                📋 Elemen yang Ditampilkan pada Stiker:
+              </label>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, background: 'var(--bg-elevated)', padding: 10, borderRadius: 8 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 12 }}>
+                  <input
+                    type="checkbox"
+                    checked={settings.showShopName}
+                    onChange={e => handleUpdateSetting('showShopName', e.target.checked)}
+                  />
+                  <span>Tampilkan Nama Toko ({settings.shopName || 'Nama Toko'})</span>
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 12 }}>
+                  <input
+                    type="checkbox"
+                    checked={settings.showItemName}
+                    onChange={e => handleUpdateSetting('showItemName', e.target.checked)}
+                  />
+                  <span>Tampilkan Nama Produk & Varian (Warna/Ukuran)</span>
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 12 }}>
+                  <input
+                    type="checkbox"
+                    checked={settings.showBarcodeText}
+                    onChange={e => handleUpdateSetting('showBarcodeText', e.target.checked)}
+                  />
+                  <span>Tampilkan Teks Kode Barcode di bawah garis barcode</span>
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 12 }}>
+                  <input
+                    type="checkbox"
+                    checked={settings.showPrice}
+                    onChange={e => handleUpdateSetting('showPrice', e.target.checked)}
+                  />
+                  <span>Tampilkan Harga Jual ({formatRupiah(previewSample.harga_jual || 0)})</span>
+                </label>
               </div>
-            )}
-
-            {settings.showPrice && previewSample.harga_jual > 0 && (
-              <div style={{ fontSize: 14, fontWeight: 800, color: '#000000', marginTop: 2 }}>
-                {formatRupiah(previewSample.harga_jual)}
-              </div>
-            )}
-          </div>
-
-          <div className="alert alert-info" style={{ width: '100%', fontSize: 12, padding: '10px 14px' }}>
-            💡 <strong>Rincian Antrean Cetak:</strong> {printQueue.length} produk berbeda, total{' '}
-            <strong>{printQueue.reduce((acc, cur) => acc + (cur.qtyPrint || 1), 0)} lembar stiker</strong> thermal.
-            Pada dialog cetak browser, pastikan ukuran kertas diatur ke <strong>{settings.widthMm}mm × {settings.heightMm}mm</strong> dan Margin diatur ke <strong>None</strong>.
+            </div>
           </div>
         </div>
       </Modal>
@@ -807,3 +844,4 @@ export default function BarcodePage() {
     </div>
   );
 }
+
