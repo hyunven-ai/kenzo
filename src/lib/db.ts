@@ -6,7 +6,7 @@ import { getCurrentUser } from './auth';
 // (Semua fungsi ini berinteraksi dgn Supabase)
 // ============================================
 
-import { supabase } from './supabase';
+import { supabase, isSupabaseConfigured } from './supabase';
 import type {
   MsAksesoris, MsKuota, MsSparepart, MsHpHdr, MsHpDtl,
   MsHpHdrNonPajak, MsHpDtlNonPajak, MsCctvHdr, MsCctvDtl,
@@ -1979,121 +1979,144 @@ function saveLocalGaransi(data: MsGaransi[]) {
   }
 }
 
-export async function getGaransi() {
+export async function getGaransi(): Promise<MsGaransi[]> {
   try {
-    const { data, error } = await supabase
-      .from('garansi')
-      .select('*')
-      .order('create_time', { ascending: false });
-    
-    if (error) {
-      console.warn('Supabase error, using localStorage fallback:', error);
-      return getLocalGaransi();
+    const neonData = await callNeonApi('getGaransi');
+    if (neonData && Array.isArray(neonData)) {
+      saveLocalGaransi(neonData);
+      return neonData;
     }
-    return data as MsGaransi[];
   } catch (e) {
-    console.warn('Supabase exception, using localStorage fallback:', e);
-    return getLocalGaransi();
+    console.warn('Neon DB garansi error, using fallback:', e);
   }
-}
 
-export async function createGaransi(payload: Omit<MsGaransi, 'id' | 'create_time'>) {
-  try {
-    const { data, error } = await supabase
-      .from('garansi')
-      .insert(payload)
-      .select()
-      .single();
-    
-    if (error) {
-      console.warn('Supabase error, using localStorage fallback:', error);
-      const local = getLocalGaransi();
-      const newEntry: MsGaransi = {
-        ...payload,
-        id: Date.now(),
-        create_time: new Date().toISOString(),
-      };
-      local.unshift(newEntry);
-      saveLocalGaransi(local);
-      await writeLog('INSERT', 'garansi (local)', `Tambah Garansi Local: ${payload.nama_pelanggan} - HP: ${payload.merk_tipe}`);
-      return newEntry;
-    }
-    
-    await writeLog('INSERT', 'garansi', `Tambah Garansi: ${payload.nama_pelanggan} - HP: ${payload.merk_tipe}`);
-    return data as MsGaransi;
-  } catch (e) {
-    console.warn('Supabase exception, using localStorage fallback:', e);
-    const local = getLocalGaransi();
-    const newEntry: MsGaransi = {
-      ...payload,
-      id: Date.now(),
-      create_time: new Date().toISOString(),
-    };
-    local.unshift(newEntry);
-    saveLocalGaransi(local);
-    await writeLog('INSERT', 'garansi (local)', `Tambah Garansi Local: ${payload.nama_pelanggan} - HP: ${payload.merk_tipe}`);
-    return newEntry;
-  }
-}
-
-export async function updateGaransi(id: number, payload: Partial<MsGaransi>) {
-  try {
-    const { data, error } = await supabase
-      .from('garansi')
-      .update({ ...payload, update_time: new Date().toISOString() })
-      .eq('id', id)
-      .select()
-      .single();
+  if (isSupabaseConfigured) {
+    try {
+      const { data, error } = await supabase
+        .from('garansi')
+        .select('*')
+        .order('create_time', { ascending: false });
       
-    if (error) {
-      console.warn('Supabase error, using localStorage fallback:', error);
+      if (!error && data && Array.isArray(data)) {
+        return data as MsGaransi[];
+      }
+    } catch (e) {
+      console.warn('Supabase exception, using localStorage fallback:', e);
+    }
+  }
+
+  return getLocalGaransi() || [];
+}
+
+export async function createGaransi(payload: Omit<MsGaransi, 'id' | 'create_time'>): Promise<MsGaransi> {
+  try {
+    const neonRes = await callNeonApi('createGaransi', payload, 'POST');
+    if (neonRes && neonRes.id) {
+      const local = getLocalGaransi();
+      local.unshift(neonRes);
+      saveLocalGaransi(local);
+      return neonRes;
+    }
+  } catch (e) {
+    console.warn('Neon DB createGaransi error, fallback to local:', e);
+  }
+
+  if (isSupabaseConfigured) {
+    try {
+      const { data, error } = await supabase
+        .from('garansi')
+        .insert(payload)
+        .select()
+        .single();
+      if (!error && data) {
+        await writeLog('INSERT', 'garansi', `Tambah Garansi: ${payload.nama_pelanggan} - HP: ${payload.merk_tipe}`);
+        return data as MsGaransi;
+      }
+    } catch (e) {
+      console.warn('Supabase createGaransi exception:', e);
+    }
+  }
+
+  const local = getLocalGaransi();
+  const newEntry: MsGaransi = {
+    ...payload,
+    id: Date.now(),
+    create_time: new Date().toISOString(),
+  };
+  local.unshift(newEntry);
+  saveLocalGaransi(local);
+  await writeLog('INSERT', 'garansi (local)', `Tambah Garansi Local: ${payload.nama_pelanggan} - HP: ${payload.merk_tipe}`);
+  return newEntry;
+}
+
+export async function updateGaransi(id: number, payload: Partial<MsGaransi>): Promise<MsGaransi> {
+  try {
+    const neonRes = await callNeonApi('updateGaransi', { id, ...payload }, 'POST');
+    if (neonRes && neonRes.id) {
       const local = getLocalGaransi();
       const idx = local.findIndex(item => item.id === id);
       if (idx !== -1) {
-        local[idx] = {
-          ...local[idx],
-          ...payload,
-          update_time: new Date().toISOString(),
-        };
+        local[idx] = { ...local[idx], ...neonRes };
         saveLocalGaransi(local);
-        return local[idx];
       }
-      throw new Error('Data tidak ditemukan di localStorage');
+      return neonRes;
     }
-    return data as MsGaransi;
   } catch (e) {
-    console.warn('Supabase exception, using localStorage fallback:', e);
-    const local = getLocalGaransi();
-    const idx = local.findIndex(item => item.id === id);
-    if (idx !== -1) {
-      local[idx] = {
-        ...local[idx],
-        ...payload,
-        update_time: new Date().toISOString(),
-      };
-      saveLocalGaransi(local);
-      return local[idx];
-    }
-    throw e;
+    console.warn('Neon DB updateGaransi error, fallback to local:', e);
   }
+
+  if (isSupabaseConfigured) {
+    try {
+      const { data, error } = await supabase
+        .from('garansi')
+        .update({ ...payload, update_time: new Date().toISOString() })
+        .eq('id', id)
+        .select()
+        .single();
+      if (!error && data) {
+        await writeLog('UPDATE', 'garansi', `Ubah Garansi ID ${id}: ${payload.nama_pelanggan || ''}`);
+        return data as MsGaransi;
+      }
+    } catch (e) {
+      console.warn('Supabase updateGaransi exception:', e);
+    }
+  }
+
+  const local = getLocalGaransi();
+  const idx = local.findIndex(item => item.id === id);
+  if (idx !== -1) {
+    local[idx] = {
+      ...local[idx],
+      ...payload,
+      update_time: new Date().toISOString(),
+    };
+    saveLocalGaransi(local);
+    await writeLog('UPDATE', 'garansi (local)', `Ubah Garansi Local ID ${id}: ${payload.nama_pelanggan || ''}`);
+    return local[idx];
+  }
+  return { id, ...payload } as MsGaransi;
 }
 
-export async function deleteGaransi(id: number) {
+export async function deleteGaransi(id: number): Promise<boolean> {
   try {
-    const { error } = await supabase.from('garansi').delete().eq('id', id);
-    if (error) {
-      console.warn('Supabase error, using localStorage fallback:', error);
-      const local = getLocalGaransi();
-      const filtered = local.filter(item => item.id !== id);
-      saveLocalGaransi(filtered);
-      return;
-    }
+    await callNeonApi('deleteGaransi', { id }, 'POST');
   } catch (e) {
-    console.warn('Supabase exception, using localStorage fallback:', e);
-    const local = getLocalGaransi();
-    const filtered = local.filter(item => item.id !== id);
-    saveLocalGaransi(filtered);
+    console.warn('Neon DB deleteGaransi error, fallback to local:', e);
   }
+
+  if (isSupabaseConfigured) {
+    try {
+      await supabase.from('garansi').delete().eq('id', id);
+    } catch (e) {
+      console.warn('Supabase deleteGaransi exception:', e);
+    }
+  }
+
+  const local = getLocalGaransi();
+  const filtered = local.filter(item => item.id !== id);
+  saveLocalGaransi(filtered);
+  await writeLog('DELETE', 'garansi', `Hapus Garansi ID: ${id}`);
+  return true;
 }
 
 

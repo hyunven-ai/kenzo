@@ -246,6 +246,37 @@ export async function GET(request: Request) {
       return NextResponse.json({ ok: true, data: logs });
     }
 
+    // --- GARANSI (GET) ---
+    if (action === 'getGaransi') {
+      try {
+        await sql`
+          CREATE TABLE IF NOT EXISTS public.garansi (
+            id SERIAL PRIMARY KEY,
+            id_transaksi VARCHAR(100),
+            nama_pelanggan VARCHAR(255) NOT NULL,
+            nomor_whatsapp VARCHAR(50),
+            imei1 VARCHAR(50),
+            imei2 VARCHAR(50),
+            nomor_seri VARCHAR(100),
+            merk_tipe VARCHAR(255) NOT NULL,
+            warna_kapasitas VARCHAR(100),
+            tanggal_pembelian DATE NOT NULL DEFAULT CURRENT_DATE,
+            durasi_garansi VARCHAR(50) DEFAULT '1 Tahun',
+            jenis_garansi VARCHAR(50) DEFAULT 'Resmi',
+            status_garansi VARCHAR(50) DEFAULT 'Aktif',
+            create_time TIMESTAMPTZ DEFAULT now(),
+            create_by VARCHAR(100),
+            update_time TIMESTAMPTZ,
+            update_by VARCHAR(100)
+          );
+        `;
+        const data = await sql`SELECT * FROM public.garansi ORDER BY create_time DESC;`;
+        return NextResponse.json({ ok: true, data });
+      } catch (err: any) {
+        return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
+      }
+    }
+
     return NextResponse.json({ ok: false, error: 'Aksi GET tidak dikenali' }, { status: 400 });
   } catch (err: unknown) {
     console.error('Neon API GET Error:', err);
@@ -614,6 +645,103 @@ export async function POST(request: Request) {
           role: user.role,
         },
       });
+    }
+
+    // --- GARANSI (POST) ---
+    if (action === 'createGaransi') {
+      try {
+        await sql`
+          CREATE TABLE IF NOT EXISTS public.garansi (
+            id SERIAL PRIMARY KEY,
+            id_transaksi VARCHAR(100),
+            nama_pelanggan VARCHAR(255) NOT NULL,
+            nomor_whatsapp VARCHAR(50),
+            imei1 VARCHAR(50),
+            imei2 VARCHAR(50),
+            nomor_seri VARCHAR(100),
+            merk_tipe VARCHAR(255) NOT NULL,
+            warna_kapasitas VARCHAR(100),
+            tanggal_pembelian DATE NOT NULL DEFAULT CURRENT_DATE,
+            durasi_garansi VARCHAR(50) DEFAULT '1 Tahun',
+            jenis_garansi VARCHAR(50) DEFAULT 'Resmi',
+            status_garansi VARCHAR(50) DEFAULT 'Aktif',
+            create_time TIMESTAMPTZ DEFAULT now(),
+            create_by VARCHAR(100),
+            update_time TIMESTAMPTZ,
+            update_by VARCHAR(100)
+          );
+        `;
+        const res = await sql`
+          INSERT INTO public.garansi (
+            id_transaksi, nama_pelanggan, nomor_whatsapp, imei1, imei2, nomor_seri, merk_tipe,
+            warna_kapasitas, tanggal_pembelian, durasi_garansi, jenis_garansi, status_garansi, create_by
+          ) VALUES (
+            ${payload.id_transaksi}, ${payload.nama_pelanggan}, ${payload.nomor_whatsapp || null},
+            ${payload.imei1 || null}, ${payload.imei2 || null}, ${payload.nomor_seri || null},
+            ${payload.merk_tipe}, ${payload.warna_kapasitas || null}, ${payload.tanggal_pembelian || null},
+            ${payload.durasi_garansi || '1 Tahun'}, ${payload.jenis_garansi || 'Resmi'},
+            ${payload.status_garansi || 'Aktif'}, ${payload.create_by || null}
+          )
+          RETURNING *;
+        `;
+        try {
+          await sql`
+            INSERT INTO public.log_aktivitas (username, aksi, tabel, detail, waktu)
+            VALUES (${payload.create_by || 'admin'}, 'INSERT', 'garansi', ${'Tambah Garansi: ' + payload.nama_pelanggan + ' (' + payload.merk_tipe + ')'}, now());
+          `;
+        } catch {}
+        return NextResponse.json({ ok: true, data: res[0] });
+      } catch (err: any) {
+        return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
+      }
+    }
+
+    if (action === 'updateGaransi') {
+      try {
+        const res = await sql`
+          UPDATE public.garansi
+          SET id_transaksi = ${payload.id_transaksi},
+              nama_pelanggan = ${payload.nama_pelanggan},
+              nomor_whatsapp = ${payload.nomor_whatsapp || null},
+              imei1 = ${payload.imei1 || null},
+              imei2 = ${payload.imei2 || null},
+              nomor_seri = ${payload.nomor_seri || null},
+              merk_tipe = ${payload.merk_tipe},
+              warna_kapasitas = ${payload.warna_kapasitas || null},
+              tanggal_pembelian = ${payload.tanggal_pembelian || null},
+              durasi_garansi = ${payload.durasi_garansi || '1 Tahun'},
+              jenis_garansi = ${payload.jenis_garansi || 'Resmi'},
+              status_garansi = ${payload.status_garansi || 'Aktif'},
+              update_time = now(),
+              update_by = ${payload.update_by || null}
+          WHERE id = ${payload.id}
+          RETURNING *;
+        `;
+        try {
+          await sql`
+            INSERT INTO public.log_aktivitas (username, aksi, tabel, detail, waktu)
+            VALUES (${payload.update_by || 'admin'}, 'UPDATE', 'garansi', ${'Ubah Garansi ID ' + payload.id + ' (' + payload.nama_pelanggan + ')'}, now());
+          `;
+        } catch {}
+        return NextResponse.json({ ok: true, data: res[0] });
+      } catch (err: any) {
+        return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
+      }
+    }
+
+    if (action === 'deleteGaransi') {
+      try {
+        await sql`DELETE FROM public.garansi WHERE id = ${payload.id};`;
+        try {
+          await sql`
+            INSERT INTO public.log_aktivitas (username, aksi, tabel, detail, waktu)
+            VALUES ('admin', 'DELETE', 'garansi', ${'Hapus Garansi ID: ' + payload.id}, now());
+          `;
+        } catch {}
+        return NextResponse.json({ ok: true });
+      } catch (err: any) {
+        return NextResponse.json({ ok: false, error: err.message }, { status: 500 });
+      }
     }
 
     return NextResponse.json({ ok: false, error: 'Aksi POST tidak dikenali' }, { status: 400 });

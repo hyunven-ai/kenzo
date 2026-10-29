@@ -118,9 +118,10 @@ export default function GaransiPage() {
     setLoading(true);
     try {
       const result = await getGaransi();
-      setData(result);
+      setData(Array.isArray(result) ? result : []);
     } catch {
       setError('Gagal memuat data garansi');
+      setData([]);
     } finally {
       setLoading(false);
     }
@@ -212,7 +213,7 @@ export default function GaransiPage() {
   };
 
   // Custom client-side filter
-  const filteredData = data.filter((item) => {
+  const filteredData = (data || []).filter((item) => {
     if (search) {
       const q = search.toLowerCase();
       const matchesIdTransaksi = item.id_transaksi?.toLowerCase().includes(q);
