@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import BarcodeGenerator from './BarcodeGenerator';
 import { formatRupiah } from '@/lib/utils';
-import { BarcodeLabelSettings, getBarcodeLabelSettings } from '@/lib/barcodeSettings';
+import { BarcodeLabelSettings, DEFAULT_BARCODE_LABEL_SETTINGS, getBarcodeLabelSettings } from '@/lib/barcodeSettings';
 
 export interface LabelPrintItem {
   id?: number | string;
@@ -27,24 +27,19 @@ export default function PrintBarcodeLabel({
   settingsOverride,
 }: PrintBarcodeLabelProps) {
   const [mounted, setMounted] = useState(false);
-  const [settings, setSettings] = useState<BarcodeLabelSettings>(getBarcodeLabelSettings());
 
   useEffect(() => {
     setMounted(true);
-    setSettings(prev => ({ ...getBarcodeLabelSettings(), ...settingsOverride }));
-
-    const handleUpdate = () => {
-      setSettings(prev => ({ ...getBarcodeLabelSettings(), ...settingsOverride }));
-    };
-
-    window.addEventListener('barcode-settings-updated', handleUpdate);
-    return () => {
-      setMounted(false);
-      window.removeEventListener('barcode-settings-updated', handleUpdate);
-    };
-  }, [settingsOverride]);
+    return () => setMounted(false);
+  }, []);
 
   if (!mounted || items.length === 0) return null;
+
+  const settings: BarcodeLabelSettings = {
+    ...DEFAULT_BARCODE_LABEL_SETTINGS,
+    ...getBarcodeLabelSettings(),
+    ...settingsOverride,
+  };
 
   // Flatten items by requested qtyPrint
   const flatLabels: LabelPrintItem[] = [];

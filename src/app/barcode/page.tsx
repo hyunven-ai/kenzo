@@ -127,11 +127,8 @@ export default function BarcodePage() {
   };
 
   const updateSettings = (partial: Partial<BarcodeLabelSettings>) => {
-    setSettings(prev => {
-      const updated = { ...prev, ...partial };
-      saveBarcodeLabelSettings(updated);
-      return updated;
-    });
+    setSettings(prev => ({ ...prev, ...partial }));
+    saveBarcodeLabelSettings(partial);
   };
 
   const handleApplyPreset = (presetId: string) => {

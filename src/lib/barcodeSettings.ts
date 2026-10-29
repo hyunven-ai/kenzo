@@ -68,7 +68,9 @@ export function saveBarcodeLabelSettings(settings: Partial<BarcodeLabelSettings>
   const current = getBarcodeLabelSettings();
   const updated = { ...current, ...settings };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-  window.dispatchEvent(new Event('barcode-settings-updated'));
+  setTimeout(() => {
+    window.dispatchEvent(new Event('barcode-settings-updated'));
+  }, 0);
   return updated;
 }
 
