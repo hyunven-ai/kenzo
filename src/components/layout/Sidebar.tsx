@@ -1,10 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { AuthUser } from '@/lib/types';
+import { AuthUser, MsKategori } from '@/lib/types';
 import { canAccess } from '@/lib/auth';
+import { getKategoris } from '@/lib/db';
 
 interface SidebarProps {
   user: AuthUser;
@@ -31,71 +32,125 @@ const NAV_SINGLES: NavSingle[] = [
   { label: 'Dashboard', href: '/dashboard', icon: '🏠', feature: 'dashboard' },
 ];
 
-const NAV_GROUPS: NavGroup[] = [
-  {
-    label: 'Master',
-    icon: '📂',
-    feature: 'master',
-    items: [
-      { label: 'Kategori Stock', href: '/master/kategori' },
-      { label: 'Merk', href: '/master/merk' },
-      { label: 'Operator', href: '/master/operator' },
-      { label: 'Supplier', href: '/master/supplier' },
-    ],
-  },
-  {
-    label: 'Stock',
-    icon: '📦',
-    feature: 'stock',
-    items: [
-      { label: 'Aksesoris', href: '/stock/aksesoris' },
-      { label: 'CCTV', href: '/stock/cctv' },
-      { label: 'Kuota', href: '/stock/kuota' },
-      { label: 'Sparepart', href: '/stock/sparepart' },
-      { label: 'HP', href: '/stock/hp' },
-      { label: 'HP Non Pajak', href: '/stock/hp-non-pajak' },
-    ],
-  },
-  {
-    label: 'Transaksi',
-    icon: '🛒',
-    feature: 'transaksi',
-    items: [
-      { label: 'Pembelian', href: '/transaksi/pembelian' },
-      { label: 'Kasir', href: '/transaksi/penjualan' },
-      { label: 'Detail Penjualan', href: '/transaksi/detail-penjualan' },
-      { label: 'Barang Terjual', href: '/transaksi/barang-terjual' },
-      { label: 'Garansi', href: '/transaksi/garansi' },
-    ],
-  },
-  {
-    label: 'Pengaturan',
-    icon: '⚙️',
-    feature: 'pengaturan',
-    items: [
-      { label: 'Printer', href: '/pengaturan/printer' },
-      { label: 'Pengguna', href: '/pengaturan/pengguna' },
-      { label: 'Log Aktivitas', href: '/pengaturan/log-aktivitas' },
-      { label: 'Log Barang', href: '/pengaturan/log-barang' },
-    ],
-  },
-];
-
 export default function Sidebar({ user, collapsed, mobileOpen, onCloseMobile }: SidebarProps) {
   const pathname = usePathname();
-  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
-    // Auto-open group based on current path
-    const initial: Record<string, boolean> = {};
-    NAV_GROUPS.forEach(g => {
-      if (g.items.some(item => pathname?.startsWith(item.href))) {
-        initial[g.label] = true;
+  const [categories, setCategories] = useState<MsKategori[]>([]);
+  const [currentSearch, setCurrentSearch] = useState('');
+
+  const refreshCategories = useCallback(async () => {
+    try {
+      const list = await getKategoris();
+      setCategories(list);
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  useEffect(() => {
+    refreshCategories();
+    if (typeof window !== 'undefined') {
+      setCurrentSearch(window.location.search || '');
+    }
+
+    const handleUpdate = () => {
+      refreshCategories();
+      if (typeof window !== 'undefined') {
+        setCurrentSearch(window.location.search || '');
       }
+    };
+
+    window.addEventListener('kategori_updated', handleUpdate);
+    window.addEventListener('storage', handleUpdate);
+    window.addEventListener('popstate', handleUpdate);
+
+    return () => {
+      window.removeEventListener('kategori_updated', handleUpdate);
+      window.removeEventListener('storage', handleUpdate);
+      window.removeEventListener('popstate', handleUpdate);
+    };
+  }, [refreshCategories, pathname]);
+
+  const navGroups: NavGroup[] = useMemo(() => {
+    // Dynamic Stock items derived directly from Master Kategori Stock
+    const dynamicStockItems: { label: string; href: string }[] = [
+      { label: '📦 Semua Stock', href: '/stock' },
+    ];
+
+    categories.forEach(k => {
+      const icon = k.jenis_toko === 'kelontong' ? '🏪 ' : k.jenis_toko === 'baju' ? '👕 ' : '🏷️ ';
+      dynamicStockItems.push({
+        label: `${icon}${k.nama}`,
+        href: `/stock?kategori=${encodeURIComponent(k.nama)}`,
+      });
     });
-    return initial;
+
+    return [
+      {
+        label: 'Master',
+        icon: '📂',
+        feature: 'master',
+        items: [
+          { label: 'Kategori Stock', href: '/master/kategori' },
+          { label: 'Merk', href: '/master/merk' },
+          { label: 'Operator', href: '/master/operator' },
+          { label: 'Supplier', href: '/master/supplier' },
+        ],
+      },
+      {
+        label: 'Stock',
+        icon: '📦',
+        feature: 'stock',
+        items: dynamicStockItems,
+      },
+      {
+        label: 'Transaksi',
+        icon: '🛒',
+        feature: 'transaksi',
+        items: [
+          { label: 'Pembelian', href: '/transaksi/pembelian' },
+          { label: 'Kasir', href: '/transaksi/penjualan' },
+          { label: 'Detail Penjualan', href: '/transaksi/detail-penjualan' },
+          { label: 'Barang Terjual', href: '/transaksi/barang-terjual' },
+          { label: 'Garansi', href: '/transaksi/garansi' },
+        ],
+      },
+      {
+        label: 'Pengaturan',
+        icon: '⚙️',
+        feature: 'pengaturan',
+        items: [
+          { label: 'Printer', href: '/pengaturan/printer' },
+          { label: 'Pengguna', href: '/pengaturan/pengguna' },
+          { label: 'Log Aktivitas', href: '/pengaturan/log-aktivitas' },
+          { label: 'Log Barang', href: '/pengaturan/log-barang' },
+        ],
+      },
+    ];
+  }, [categories]);
+
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
+    return {
+      Master: pathname?.startsWith('/master') ?? false,
+      Stock: pathname?.startsWith('/stock') ?? false,
+      Transaksi: pathname?.startsWith('/transaksi') ?? false,
+      Pengaturan: pathname?.startsWith('/pengaturan') ?? false,
+    };
   });
 
   const toggleGroup = (label: string) => {
     setOpenGroups(prev => ({ ...prev, [label]: !prev[label] }));
+  };
+
+  const isItemActive = (href: string) => {
+    if (href.includes('?')) {
+      const targetQuery = href.split('?')[1];
+      const targetPath = href.split('?')[0];
+      return pathname === targetPath && currentSearch.includes(targetQuery);
+    }
+    if (href === '/stock') {
+      return pathname === '/stock' && (!currentSearch || currentSearch === '' || currentSearch === '?kategori=semua');
+    }
+    return pathname === href;
   };
 
   return (
@@ -105,7 +160,7 @@ export default function Sidebar({ user, collapsed, mobileOpen, onCloseMobile }: 
         <div className="sidebar-logo-icon" style={{ background: 'none' }}>
           <img src="/logo-series.webp" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
         </div>
-        <span className="sidebar-logo-text">Series Ponsel</span>
+        <span className="sidebar-logo-text">Kasir Pintar</span>
         {/* Mobile close button */}
         <button className="sidebar-close-mobile" onClick={onCloseMobile} title="Tutup Menu">
           ✕
@@ -130,10 +185,10 @@ export default function Sidebar({ user, collapsed, mobileOpen, onCloseMobile }: 
         ))}
 
         {/* Groups */}
-        {NAV_GROUPS.filter(g => canAccess(user.role, g.feature)).map(group => (
+        {navGroups.filter(g => canAccess(user.role, g.feature)).map(group => (
           <div key={group.label} className="sidebar-group">
             <div
-              className={`sidebar-group-header${group.items.some(i => pathname?.startsWith(i.href)) ? ' active' : ''}`}
+              className={`sidebar-group-header${group.items.some(i => pathname?.startsWith(i.href.split('?')[0])) ? ' active' : ''}`}
               onClick={() => (collapsed && !mobileOpen) ? null : toggleGroup(group.label)}
               title={collapsed && !mobileOpen ? group.label : undefined}
             >
@@ -153,7 +208,10 @@ export default function Sidebar({ user, collapsed, mobileOpen, onCloseMobile }: 
             </div>
 
             {(!collapsed || mobileOpen) && (
-              <div className={`sidebar-group-items${openGroups[group.label] ? ' open' : ''}`}>
+              <div
+                className={`sidebar-group-items${openGroups[group.label] ? ' open' : ''}`}
+                style={group.label === 'Stock' && group.items.length > 7 ? { maxHeight: 320, overflowY: 'auto' } : undefined}
+              >
                 {group.items
                   .filter(item => {
                     if (item.href === '/transaksi/barang-terjual') {
@@ -170,16 +228,26 @@ export default function Sidebar({ user, collapsed, mobileOpen, onCloseMobile }: 
                     }
                     return true;
                   })
-                  .map(item => (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className={`sidebar-item${pathname?.startsWith(item.href) ? ' active' : ''}`}
-                      onClick={onCloseMobile}
-                    >
-                      <span className="sidebar-item-label">{item.label}</span>
-                    </Link>
-                  ))}
+                  .map(item => {
+                    const active = isItemActive(item.href);
+                    return (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={`sidebar-item${active ? ' active' : ''}`}
+                        onClick={() => {
+                          if (item.href.includes('?')) {
+                            setCurrentSearch(`?${item.href.split('?')[1]}`);
+                          } else {
+                            setCurrentSearch('');
+                          }
+                          onCloseMobile?.();
+                        }}
+                      >
+                        <span className="sidebar-item-label">{item.label}</span>
+                      </Link>
+                    );
+                  })}
               </div>
             )}
           </div>

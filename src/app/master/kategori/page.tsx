@@ -131,6 +131,9 @@ export default function KategoriStockPage() {
       }
       await load();
       closeModal();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('kategori_updated'));
+      }
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Gagal menyimpan kategori');
     } finally {
@@ -144,6 +147,9 @@ export default function KategoriStockPage() {
     try {
       await deleteKategori(id);
       setData(prev => prev.filter(d => d.id !== id));
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('kategori_updated'));
+      }
     } catch {
       alert('Gagal menghapus kategori');
     } finally {
@@ -157,6 +163,9 @@ export default function KategoriStockPage() {
     try {
       const updated = await seedContohKategori('semua');
       setData(updated);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('kategori_updated'));
+      }
     } catch {
       alert('Gagal memuat template kategori');
     } finally {
@@ -450,3 +459,4 @@ export default function KategoriStockPage() {
     </div>
   );
 }
+

@@ -16,6 +16,7 @@ import type {
   DashboardStats, ChartDataPoint, KategoriSales,
   MsGaransi,
   MsKategori,
+  MsBarang,
 } from './types';
 
 // ============================================
@@ -183,6 +184,136 @@ export async function seedContohKategori(preset: 'semua' | 'kelontong' | 'baju' 
   }
 
   return merged;
+}
+
+// ============================================
+// MASTER BARANG / PRODUK STOCK (KELONTONG & BAJU)
+// ============================================
+
+export const DEFAULT_BARANG_PRESETS: Omit<MsBarang, 'id' | 'create_time'>[] = [
+  // Contoh Barang Kelontong
+  { barcode: '8992753210111', nama: 'Beras Rojo Lele 5kg', kategori: 'Sembako', merk: 'Rojo Lele', supplier: 'Distributor Sembako Jaya', satuan: 'Kg', qty: 25, harga_modal: 68000, harga_jual: 75000, keterangan: 'Beras pulen super' },
+  { barcode: '8998866200222', nama: 'Minyak Goreng Bimoli 2L', kategori: 'Sembako', merk: 'Bimoli', supplier: 'Distributor Sembako Jaya', satuan: 'Pcs', qty: 40, harga_modal: 32000, harga_jual: 36000, keterangan: 'Minyak kelapa sawit murni' },
+  { barcode: '8999909001234', nama: 'Indomie Goreng Original', kategori: 'Makanan & Snack', merk: 'Indofood', supplier: 'PT Sumber Pangan', satuan: 'Bungkus', qty: 150, harga_modal: 2900, harga_jual: 3500, keterangan: 'Mie instan goreng' },
+  { barcode: '8991389221144', nama: 'Le Minerale 600ml', kategori: 'Minuman', merk: 'Mayora', supplier: 'PT Tirta Mas', satuan: 'Botol', qty: 80, harga_modal: 2500, harga_jual: 3500, keterangan: 'Air mineral pegunungan' },
+  { barcode: '8992745321100', nama: 'Kecap Bango Manis Refill 550ml', kategori: 'Bumbu & Bahan Masak', merk: 'Bango', supplier: 'PT Sumber Pangan', satuan: 'Pouch', qty: 35, harga_modal: 21000, harga_jual: 24500, keterangan: 'Kecap kedelai hitam pilihan' },
+  { barcode: '8998833110022', nama: 'Sabun Mandi Lifebuoy Total 10 85g', kategori: 'Kebersihan & Mandi', merk: 'Lifebuoy', supplier: 'PT Surya Niaga', satuan: 'Pcs', qty: 60, harga_modal: 3800, harga_jual: 5000, keterangan: 'Sabun batang antibakteri' },
+  { barcode: '8991122334455', nama: 'Sampoerna A Mild 16', kategori: 'Rokok & Tembakau', merk: 'Sampoerna', supplier: 'Grosir Tembakau', satuan: 'Bungkus', qty: 50, harga_modal: 31000, harga_jual: 34000, keterangan: 'Rokok filter premium' },
+  { barcode: '8995566778899', nama: 'Gas Elpiji 3 Kg (Isi Ulang)', kategori: 'Gas & Galon', merk: 'Pertamina', supplier: 'Pangkalan Gas Resmi', satuan: 'Tabung', qty: 20, harga_modal: 18000, harga_jual: 22000, keterangan: 'Gas melon 3kg' },
+  // Contoh Barang Baju
+  { barcode: 'BJ-KAOS-001', nama: 'Kaos Polos Cotton Combed 30s Hitam', kategori: 'Kaos & T-Shirt', merk: 'New States', supplier: 'Konveksi Bandung', satuan: 'Pcs', ukuran: 'L', warna: 'Hitam', qty: 30, harga_modal: 38000, harga_jual: 65000, keterangan: 'Bahan adem 100% cotton' },
+  { barcode: 'BJ-KMJ-002', nama: 'Kemeja Flanel Lengan Panjang Pria', kategori: 'Kemeja Pria & Wanita', merk: 'Erigo', supplier: 'Distro Garment', satuan: 'Pcs', ukuran: 'XL', warna: 'Merah Hitam', qty: 15, harga_modal: 75000, harga_jual: 125000, keterangan: 'Kemeja casual' },
+  { barcode: 'BJ-CLN-003', nama: 'Celana Chino Slim Fit Pria', kategori: 'Celana & Rok', merk: 'Cardinal', supplier: 'Distro Garment', satuan: 'Pcs', ukuran: '32', warna: 'Khaki', qty: 20, harga_modal: 90000, harga_jual: 150000, keterangan: 'Bahan katun twill stretch' },
+  { barcode: 'BJ-GMS-004', nama: 'Gamis Katun Rayon Premium Wanita', kategori: 'Gamis & Busana Muslim', merk: 'Zoya', supplier: 'Grosir Busana Muslim', satuan: 'Pcs', ukuran: 'All Size', warna: 'Sage Green', qty: 12, harga_modal: 110000, harga_jual: 175000, keterangan: 'Busana muslim wanita' },
+];
+
+export function getLocalBarangs(): MsBarang[] {
+  if (typeof window === 'undefined') return [];
+  const raw = localStorage.getItem('local_ms_barang');
+  if (!raw) {
+    const initial: MsBarang[] = DEFAULT_BARANG_PRESETS.map((p, idx) => ({
+      ...p,
+      id: idx + 1,
+      create_time: new Date().toISOString(),
+    }));
+    localStorage.setItem('local_ms_barang', JSON.stringify(initial));
+    return initial;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return [];
+  }
+}
+
+export function saveLocalBarangs(data: MsBarang[]) {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('local_ms_barang', JSON.stringify(data));
+  }
+}
+
+export async function getBarangs(kategori?: string): Promise<MsBarang[]> {
+  try {
+    let query = supabase.from('ms_barang').select('*').order('create_time', { ascending: false });
+    if (kategori && kategori !== 'semua') {
+      query = query.eq('kategori', kategori);
+    }
+    const { data, error } = await query;
+    if (error || !data || data.length === 0) {
+      const locals = getLocalBarangs();
+      return (kategori && kategori !== 'semua') ? locals.filter(b => b.kategori === kategori) : locals;
+    }
+    return data as MsBarang[];
+  } catch {
+    const locals = getLocalBarangs();
+    return (kategori && kategori !== 'semua') ? locals.filter(b => b.kategori === kategori) : locals;
+  }
+}
+
+export async function createBarang(payload: Omit<MsBarang, 'id' | 'create_time'>): Promise<MsBarang> {
+  const locals = getLocalBarangs();
+  const nextId = locals.length > 0 ? Math.max(...locals.map(b => b.id)) + 1 : 1;
+  const newRecord: MsBarang = {
+    ...payload,
+    id: nextId,
+    create_time: new Date().toISOString(),
+  };
+
+  try {
+    const { data, error } = await supabase.from('ms_barang').insert(payload).select().single();
+    if (!error && data) {
+      saveLocalBarangs([data as MsBarang, ...locals]);
+      return data as MsBarang;
+    }
+  } catch {
+    // fallback
+  }
+
+  saveLocalBarangs([newRecord, ...locals]);
+  return newRecord;
+}
+
+export async function updateBarang(id: number, payload: Partial<MsBarang>): Promise<MsBarang> {
+  const locals = getLocalBarangs();
+  const index = locals.findIndex(b => b.id === id);
+  const updatedItem: MsBarang = {
+    ...(index >= 0 ? locals[index] : ({} as MsBarang)),
+    ...payload,
+    id,
+    update_time: new Date().toISOString(),
+  };
+
+  try {
+    const { data, error } = await supabase
+      .from('ms_barang')
+      .update({ ...payload, update_time: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single();
+    if (!error && data) {
+      if (index >= 0) locals[index] = data as MsBarang;
+      saveLocalBarangs(locals);
+      return data as MsBarang;
+    }
+  } catch {
+    // fallback
+  }
+
+  if (index >= 0) {
+    locals[index] = updatedItem;
+    saveLocalBarangs(locals);
+  }
+  return updatedItem;
+}
+
+export async function deleteBarang(id: number): Promise<void> {
+  try {
+    await supabase.from('ms_barang').delete().eq('id', id);
+  } catch {
+    // fallback
+  }
+  const locals = getLocalBarangs().filter(b => b.id !== id);
+  saveLocalBarangs(locals);
 }
 
 // ============================================
@@ -748,6 +879,22 @@ async function kurangiStok(idbarang: number, kategori: string, qty: number, code
       .eq('id', idbarang);
   } else if (kategori === 'Sparepart') {
     await supabase.rpc('kurangi_qty_sparepart', { p_id: idbarang, p_qty: qty });
+  } else {
+    // ms_barang (Kelontong & Baju)
+    try {
+      const { data: b } = await supabase.from('ms_barang').select('qty').eq('id', idbarang).single();
+      if (b) {
+        await supabase.from('ms_barang').update({ qty: Math.max(0, (b.qty || 0) - qty), update_time: new Date().toISOString() }).eq('id', idbarang);
+      }
+    } catch {
+      // ignore
+    }
+    const locals = getLocalBarangs();
+    const idx = locals.findIndex(b => b.id === idbarang || b.barcode === code);
+    if (idx >= 0) {
+      locals[idx].qty = Math.max(0, locals[idx].qty - qty);
+      saveLocalBarangs(locals);
+    }
   }
   // E-Wallet and Jasa Service have no inventory – nothing to reduce
 }
@@ -922,6 +1069,22 @@ async function tambahStok(idbarang: number, kategori: string, qty: number) {
     const { data } = await supabase.from('ms_sparepart').select('qty').eq('id', idbarang).single();
     if (data) {
       await supabase.from('ms_sparepart').update({ qty: (data.qty || 0) + qty, update_time: new Date().toISOString() }).eq('id', idbarang);
+    }
+  } else {
+    // ms_barang (Kelontong & Baju)
+    try {
+      const { data } = await supabase.from('ms_barang').select('qty').eq('id', idbarang).single();
+      if (data) {
+        await supabase.from('ms_barang').update({ qty: (data.qty || 0) + qty, update_time: new Date().toISOString() }).eq('id', idbarang);
+      }
+    } catch {
+      // ignore
+    }
+    const locals = getLocalBarangs();
+    const idx = locals.findIndex(b => b.id === idbarang);
+    if (idx >= 0) {
+      locals[idx].qty += qty;
+      saveLocalBarangs(locals);
     }
   }
   // E-Wallet and Jasa Service have no inventory – nothing to restore
@@ -1111,6 +1274,46 @@ export async function getKategoriSales(from?: string, to?: string): Promise<Kate
 // ============================================
 
 export async function searchBarcode(barcode: string) {
+  // Search in ms_barang (Kelontong & Baju)
+  try {
+    const { data: brg } = await supabase
+      .from('ms_barang')
+      .select('*')
+      .eq('barcode', barcode)
+      .gt('qty', 0)
+      .single();
+    if (brg) {
+      return {
+        idbarang: brg.id,
+        kategori: brg.kategori,
+        code: brg.barcode,
+        nama_barang: `${brg.merk ? brg.merk + ' ' : ''}${brg.nama}${brg.ukuran ? ` (${brg.ukuran})` : ''}`,
+        qty: 1,
+        harga_modal: brg.harga_modal,
+        harga_jual: brg.harga_jual,
+        supplier: brg.supplier,
+        max_qty: brg.qty,
+      };
+    }
+  } catch {
+    // fallback
+  }
+
+  const localBrg = getLocalBarangs().find(b => b.barcode.toLowerCase() === barcode.toLowerCase() && b.qty > 0);
+  if (localBrg) {
+    return {
+      idbarang: localBrg.id,
+      kategori: localBrg.kategori,
+      code: localBrg.barcode,
+      nama_barang: `${localBrg.merk ? localBrg.merk + ' ' : ''}${localBrg.nama}${localBrg.ukuran ? ` (${localBrg.ukuran})` : ''}`,
+      qty: 1,
+      harga_modal: localBrg.harga_modal,
+      harga_jual: localBrg.harga_jual,
+      supplier: localBrg.supplier,
+      max_qty: localBrg.qty,
+    };
+  }
+
   // Search in aksesoris
   const { data: aks } = await supabase
     .from('ms_aksesoris')
@@ -1252,6 +1455,56 @@ export async function searchBarcode(barcode: string) {
 export async function searchProductsByName(query: string) {
   const q = `%${query}%`;
   const results: any[] = [];
+
+  // 0. ms_barang (Kelontong & Baju)
+  try {
+    const { data: brgs } = await supabase
+      .from('ms_barang')
+      .select('*')
+      .or(`nama.ilike.${q},merk.ilike.${q},barcode.ilike.${q}`)
+      .gt('qty', 0)
+      .limit(10);
+    if (brgs) {
+      brgs.forEach(b => {
+        results.push({
+          idbarang: b.id,
+          kategori: b.kategori,
+          code: b.barcode,
+          nama_barang: `${b.merk ? b.merk + ' ' : ''}${b.nama}${b.ukuran ? ` (${b.ukuran})` : ''}`,
+          qty: 1,
+          harga_modal: b.harga_modal,
+          harga_jual: b.harga_jual,
+          supplier: b.supplier,
+          max_qty: b.qty,
+        });
+      });
+    }
+  } catch {
+    // fallback
+  }
+
+  const queryLower = query.toLowerCase();
+  const localMatched = getLocalBarangs().filter(
+    b => b.qty > 0 &&
+      (b.nama.toLowerCase().includes(queryLower) ||
+       (b.merk && b.merk.toLowerCase().includes(queryLower)) ||
+       b.barcode.toLowerCase().includes(queryLower))
+  );
+  localMatched.forEach(b => {
+    if (!results.some(r => r.code === b.barcode)) {
+      results.push({
+        idbarang: b.id,
+        kategori: b.kategori,
+        code: b.barcode,
+        nama_barang: `${b.merk ? b.merk + ' ' : ''}${b.nama}${b.ukuran ? ` (${b.ukuran})` : ''}`,
+        qty: 1,
+        harga_modal: b.harga_modal,
+        harga_jual: b.harga_jual,
+        supplier: b.supplier,
+        max_qty: b.qty,
+      });
+    }
+  });
 
   // 1. Aksesoris
   const { data: aks } = await supabase
