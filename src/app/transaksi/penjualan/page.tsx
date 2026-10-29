@@ -913,17 +913,17 @@ export default function PenjualanPage() {
             </div>
 
             {/* Item summary */}
-            <div style={{ background: '#f8f9fa', borderRadius: 8, padding: 12, marginBottom: 12 }}>
+            <div style={{ background: 'var(--bg-elevated, #24242c)', border: '1px solid var(--border-light, #2e2e36)', borderRadius: 8, padding: 12, marginBottom: 12 }}>
               {cart.slice(0, 4).map((item, idx) => (
-                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '4px 0', borderBottom: idx < Math.min(cart.length, 4) - 1 ? '1px solid #eee' : 'none' }}>
-                  <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingRight: 8 }}>
-                    {item.nama_barang} ×{item.qty}
+                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '6px 0', borderBottom: idx < Math.min(cart.length, 4) - 1 ? '1px solid var(--border-light, #2a2a32)' : 'none' }}>
+                  <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingRight: 8, color: 'var(--text-primary, #ffffff)', fontWeight: 500 }}>
+                    {item.nama_barang} <span style={{ color: 'var(--text-secondary, #9ca3af)', fontSize: 11 }}>×{item.qty}</span>
                   </span>
-                  <span style={{ fontWeight: 500 }}>{formatRupiah(item.harga_jual * item.qty)}</span>
+                  <span style={{ fontWeight: 600, color: '#4ade80' }}>{formatRupiah(item.harga_jual * item.qty)}</span>
                 </div>
               ))}
               {cart.length > 4 && (
-                <div style={{ fontSize: 11, color: '#999', textAlign: 'center', paddingTop: 6 }}>
+                <div style={{ fontSize: 11, color: 'var(--text-secondary, #9ca3af)', textAlign: 'center', paddingTop: 6 }}>
                   +{cart.length - 4} item lainnya
                 </div>
               )}
@@ -1154,46 +1154,46 @@ export default function PenjualanPage() {
               <button className="modal-close" onClick={() => setCheckoutModal(false)}>✕</button>
             </div>
             <div className="modal-body">
-              <div style={{ background: '#f8f9fa', borderRadius: 10, padding: 16, marginBottom: 16 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10 }}>Detail Transaksi</div>
+              <div style={{ background: 'var(--bg-elevated, #24242c)', border: '1px solid var(--border-light, #2e2e36)', borderRadius: 10, padding: 16, marginBottom: 16 }}>
+                <div style={{ fontSize: 13, fontWeight: 600, marginBottom: 10, color: 'var(--text-primary, #ffffff)' }}>Detail Transaksi</div>
                 {cart.map((item, i) => (
-                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, padding: '5px 0' }}>
+                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, padding: '5px 0', color: 'var(--text-primary, #ffffff)' }}>
                     <span>{item.nama_barang} ×{item.qty}</span>
-                    <span style={{ fontWeight: 500 }}>{formatRupiah(item.harga_jual * item.qty)}</span>
+                    <span style={{ fontWeight: 600, color: '#4ade80' }}>{formatRupiah(item.harga_jual * item.qty)}</span>
                   </div>
                 ))}
-                <hr className="divider" />
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: 15 }}>
+                <hr className="divider" style={{ borderColor: 'var(--border-light, #2e2e36)', margin: '10px 0' }} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 700, fontSize: 15, color: 'var(--text-primary, #ffffff)' }}>
                   <span>TOTAL</span>
-                  <span style={{ color: '#1565c0' }}>{formatRupiah(total)}</span>
+                  <span style={{ color: 'var(--brand-primary, #ef4444)' }}>{formatRupiah(total)}</span>
                 </div>
               </div>
               <div className="form-grid" style={{ gridTemplateColumns: '1fr 1fr' }}>
                 <div>
-                  <div style={{ fontSize: 12, color: '#888' }}>Pelanggan</div>
-                  <div style={{ fontWeight: 600 }}>{customer}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-secondary, #9ca3af)' }}>Pelanggan</div>
+                  <div style={{ fontWeight: 600, color: 'var(--text-primary, #ffffff)' }}>{customer}</div>
                 </div>
                 <div>
-                  <div style={{ fontSize: 12, color: '#888' }}>Metode</div>
-                  <div style={{ fontWeight: 600 }}>{metode}</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-secondary, #9ca3af)' }}>Metode</div>
+                  <div style={{ fontWeight: 600, color: 'var(--text-primary, #ffffff)' }}>{metode}</div>
                 </div>
                 {metode === 'Tunai' && bayar && (
                   <>
                     <div>
-                      <div style={{ fontSize: 12, color: '#888' }}>Bayar</div>
-                      <div style={{ fontWeight: 600 }}>{formatRupiah(parseInt(bayar))}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-secondary, #9ca3af)' }}>Bayar</div>
+                      <div style={{ fontWeight: 600, color: 'var(--text-primary, #ffffff)' }}>{formatRupiah(parseInt(bayar))}</div>
                     </div>
                     <div>
-                      <div style={{ fontSize: 12, color: '#888' }}>Kembalian</div>
-                      <div style={{ fontWeight: 600, color: '#2e7d32' }}>{formatRupiah(Math.max(0, kembalian))}</div>
+                      <div style={{ fontSize: 12, color: 'var(--text-secondary, #9ca3af)' }}>Kembalian</div>
+                      <div style={{ fontWeight: 600, color: '#4ade80' }}>{formatRupiah(Math.max(0, kembalian))}</div>
                     </div>
                   </>
                 )}
               </div>
               {catatan && (
-                <div style={{ marginTop: 10, borderTop: '1px solid #eee', paddingTop: 8 }}>
-                  <div style={{ fontSize: 12, color: '#888' }}>Catatan</div>
-                  <div style={{ fontWeight: 600, fontSize: 13, color: '#333' }}>{catatan}</div>
+                <div style={{ marginTop: 10, borderTop: '1px solid var(--border-light, #2e2e36)', paddingTop: 8 }}>
+                  <div style={{ fontSize: 12, color: 'var(--text-secondary, #9ca3af)' }}>Catatan</div>
+                  <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-primary, #ffffff)' }}>{catatan}</div>
                 </div>
               )}
             </div>
