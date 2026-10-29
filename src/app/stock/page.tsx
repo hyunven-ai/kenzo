@@ -14,7 +14,9 @@ import {
   deleteBarang,
   getKategoris,
   getMerks,
+  createMerk,
   getSuppliers,
+  createSupplier,
 } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
 import { formatRupiah, formatDate } from '@/lib/utils';
@@ -104,9 +106,20 @@ function StockContent() {
     const handleKategoriChange = () => {
       getKategoris().then(setCategories).catch(() => {});
     };
+    const handleMerkChange = () => {
+      getMerks().then(setMerks).catch(() => {});
+    };
+    const handleSupplierChange = () => {
+      getSuppliers().then(setSuppliers).catch(() => {});
+    };
+
     window.addEventListener('kategori_updated', handleKategoriChange);
+    window.addEventListener('merk_updated', handleMerkChange);
+    window.addEventListener('supplier_updated', handleSupplierChange);
     return () => {
       window.removeEventListener('kategori_updated', handleKategoriChange);
+      window.removeEventListener('merk_updated', handleMerkChange);
+      window.removeEventListener('supplier_updated', handleSupplierChange);
     };
   }, []);
 
@@ -712,40 +725,138 @@ function StockContent() {
 
             {/* Merk */}
             <div className="form-group">
-              <label className="form-label">Merk / Brand</label>
-              <input
-                type="text"
-                className="form-control"
-                placeholder="Contoh: Indofood, Bimoli, Erigo..."
-                value={form.merk}
-                onChange={e => setForm(f => ({ ...f, merk: e.target.value }))}
-                list="merk-suggestions"
-                id="input-merk-barang"
-              />
-              <datalist id="merk-suggestions">
-                {merks.map(m => (
-                  <option key={m.id} value={m.nama} />
-                ))}
-              </datalist>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <label className="form-label" style={{ marginBottom: 0 }}>Merk / Brand</label>
+                <Link
+                  href="/master/merk"
+                  target="_blank"
+                  style={{ fontSize: 11, color: '#3b82f6', textDecoration: 'none', fontWeight: 600 }}
+                  title="Buka menu Master Merk"
+                >
+                  ⚙️ Master Merk
+                </Link>
+              </div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <select
+                  className="form-control"
+                  value={form.merk}
+                  onChange={e => {
+                    const val = e.target.value;
+                    if (val === '__custom__') {
+                      const newM = prompt('Ketik nama Merk baru untuk ditambahkan:')?.trim();
+                      if (newM) {
+                        setForm(f => ({ ...f, merk: newM }));
+                        if (!merks.some(m => m.nama.toLowerCase() === newM.toLowerCase())) {
+                          createMerk({ nama: newM, kategori: form.kategori || 'Umum' })
+                            .then(added => setMerks(prev => [...prev, added]))
+                            .catch(() => {});
+                        }
+                      }
+                    } else {
+                      setForm(f => ({ ...f, merk: val }));
+                    }
+                  }}
+                  id="input-merk-barang"
+                >
+                  <option value="">-- Pilih Merk / Brand (Opsional) --</option>
+                  {merks.map(m => (
+                    <option key={m.id} value={m.nama}>
+                      {m.nama} {m.kategori ? `(${m.kategori})` : ''}
+                    </option>
+                  ))}
+                  {form.merk && !merks.some(m => m.nama.toLowerCase() === form.merk.toLowerCase()) && (
+                    <option value={form.merk}>{form.merk} (Kustom)</option>
+                  )}
+                  <option value="__custom__">➕ Tambah Merk Baru...</option>
+                </select>
+                <button
+                  type="button"
+                  className="btn btn-outline btn-sm"
+                  style={{ whiteSpace: 'nowrap', padding: '0 10px' }}
+                  onClick={() => {
+                    const newM = prompt('Ketik nama Merk baru:')?.trim();
+                    if (newM) {
+                      setForm(f => ({ ...f, merk: newM }));
+                      if (!merks.some(m => m.nama.toLowerCase() === newM.toLowerCase())) {
+                        createMerk({ nama: newM, kategori: form.kategori || 'Umum' })
+                          .then(added => setMerks(prev => [...prev, added]))
+                          .catch(() => {});
+                      }
+                    }
+                  }}
+                  title="Tambah Merk baru langsung"
+                >
+                  + Merk
+                </button>
+              </div>
             </div>
 
             {/* Supplier */}
             <div className="form-group">
-              <label className="form-label">Supplier / Distributor</label>
-              <input
-                type="text"
-                className="form-control"
-                placeholder="Contoh: Distributor Sembako Jaya..."
-                value={form.supplier}
-                onChange={e => setForm(f => ({ ...f, supplier: e.target.value }))}
-                list="supplier-suggestions"
-                id="input-supplier-barang"
-              />
-              <datalist id="supplier-suggestions">
-                {suppliers.map(s => (
-                  <option key={s.id} value={s.nama} />
-                ))}
-              </datalist>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <label className="form-label" style={{ marginBottom: 0 }}>Supplier / Distributor</label>
+                <Link
+                  href="/master/supplier"
+                  target="_blank"
+                  style={{ fontSize: 11, color: '#3b82f6', textDecoration: 'none', fontWeight: 600 }}
+                  title="Buka menu Master Supplier"
+                >
+                  ⚙️ Master Supplier
+                </Link>
+              </div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <select
+                  className="form-control"
+                  value={form.supplier}
+                  onChange={e => {
+                    const val = e.target.value;
+                    if (val === '__custom__') {
+                      const newS = prompt('Ketik nama Supplier baru untuk ditambahkan:')?.trim();
+                      if (newS) {
+                        setForm(f => ({ ...f, supplier: newS }));
+                        if (!suppliers.some(s => s.nama.toLowerCase() === newS.toLowerCase())) {
+                          createSupplier({ nama: newS })
+                            .then(added => setSuppliers(prev => [...prev, added]))
+                            .catch(() => {});
+                        }
+                      }
+                    } else {
+                      setForm(f => ({ ...f, supplier: val }));
+                    }
+                  }}
+                  id="input-supplier-barang"
+                >
+                  <option value="">-- Pilih Supplier / Distributor (Opsional) --</option>
+                  {suppliers.map(s => (
+                    <option key={s.id} value={s.nama}>
+                      {s.nama}
+                    </option>
+                  ))}
+                  {form.supplier && !suppliers.some(s => s.nama.toLowerCase() === form.supplier.toLowerCase()) && (
+                    <option value={form.supplier}>{form.supplier} (Kustom)</option>
+                  )}
+                  <option value="__custom__">➕ Tambah Supplier Baru...</option>
+                </select>
+                <button
+                  type="button"
+                  className="btn btn-outline btn-sm"
+                  style={{ whiteSpace: 'nowrap', padding: '0 10px' }}
+                  onClick={() => {
+                    const newS = prompt('Ketik nama Supplier baru:')?.trim();
+                    if (newS) {
+                      setForm(f => ({ ...f, supplier: newS }));
+                      if (!suppliers.some(s => s.nama.toLowerCase() === newS.toLowerCase())) {
+                        createSupplier({ nama: newS })
+                          .then(added => setSuppliers(prev => [...prev, added]))
+                          .catch(() => {});
+                      }
+                    }
+                  }}
+                  title="Tambah Supplier baru langsung"
+                >
+                  + Supplier
+                </button>
+              </div>
             </div>
 
             {/* Qty */}

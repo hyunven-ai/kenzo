@@ -93,7 +93,6 @@ export default function Sidebar({ user, collapsed, mobileOpen, onCloseMobile }: 
         items: [
           { label: 'Kategori Stock', href: '/master/kategori' },
           { label: 'Merk', href: '/master/merk' },
-          { label: 'Operator', href: '/master/operator' },
           { label: 'Supplier', href: '/master/supplier' },
         ],
       },
@@ -112,7 +111,6 @@ export default function Sidebar({ user, collapsed, mobileOpen, onCloseMobile }: 
           { label: 'Kasir', href: '/transaksi/penjualan' },
           { label: 'Detail Penjualan', href: '/transaksi/detail-penjualan' },
           { label: 'Barang Terjual', href: '/transaksi/barang-terjual' },
-          { label: 'Garansi', href: '/transaksi/garansi' },
         ],
       },
       {

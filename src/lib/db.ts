@@ -328,26 +328,40 @@ export async function getMerks(): Promise<MsMerk[]> {
 }
 
 export async function createMerk(payload: Omit<MsMerk, 'id' | 'create_time'>): Promise<MsMerk> {
+  let result: MsMerk;
   const neonRes = await callNeonApi('createMerk', payload, 'POST');
   if (neonRes) {
     const current = await getMerks();
     if (typeof window !== 'undefined') localStorage.setItem('local_ms_merk', JSON.stringify([...current, neonRes]));
-    return neonRes as MsMerk;
+    result = neonRes as MsMerk;
+  } else {
+    try {
+      const { data } = await supabase.from('ms_merk').insert(payload).select().single();
+      if (data) result = data as MsMerk;
+      else result = { ...payload, id: Date.now(), create_time: new Date().toISOString() } as MsMerk;
+    } catch {
+      result = { ...payload, id: Date.now(), create_time: new Date().toISOString() } as MsMerk;
+    }
   }
-  try {
-    const { data } = await supabase.from('ms_merk').insert(payload).select().single();
-    if (data) return data as MsMerk;
-  } catch {}
-  const fallback = { ...payload, id: Date.now(), create_time: new Date().toISOString() };
-  return fallback as MsMerk;
+  if (typeof window !== 'undefined') {
+    setTimeout(() => window.dispatchEvent(new Event('merk_updated')), 0);
+  }
+  return result;
 }
 
 export async function updateMerk(id: number, payload: Partial<MsMerk>): Promise<MsMerk> {
+  let result: MsMerk;
   try {
     const { data } = await supabase.from('ms_merk').update({ ...payload, update_time: new Date().toISOString() }).eq('id', id).select().single();
-    if (data) return data as MsMerk;
-  } catch {}
-  return { ...payload, id } as MsMerk;
+    if (data) result = data as MsMerk;
+    else result = { ...payload, id } as MsMerk;
+  } catch {
+    result = { ...payload, id } as MsMerk;
+  }
+  if (typeof window !== 'undefined') {
+    setTimeout(() => window.dispatchEvent(new Event('merk_updated')), 0);
+  }
+  return result;
 }
 
 export async function deleteMerk(id: number): Promise<void> {
@@ -358,6 +372,7 @@ export async function deleteMerk(id: number): Promise<void> {
   if (typeof window !== 'undefined') {
     const current = await getMerks();
     localStorage.setItem('local_ms_merk', JSON.stringify(current.filter(m => m.id !== id)));
+    setTimeout(() => window.dispatchEvent(new Event('merk_updated')), 0);
   }
 }
 
@@ -448,26 +463,40 @@ export async function getSuppliers(): Promise<MsSupplier[]> {
 }
 
 export async function createSupplier(payload: Omit<MsSupplier, 'id' | 'create_time'>): Promise<MsSupplier> {
+  let result: MsSupplier;
   const neonRes = await callNeonApi('createSupplier', payload, 'POST');
   if (neonRes) {
     const current = await getSuppliers();
     if (typeof window !== 'undefined') localStorage.setItem('local_ms_supplier', JSON.stringify([...current, neonRes]));
-    return neonRes as MsSupplier;
+    result = neonRes as MsSupplier;
+  } else {
+    try {
+      const { data } = await supabase.from('ms_supplier').insert(payload).select().single();
+      if (data) result = data as MsSupplier;
+      else result = { ...payload, id: Date.now(), create_time: new Date().toISOString() } as MsSupplier;
+    } catch {
+      result = { ...payload, id: Date.now(), create_time: new Date().toISOString() } as MsSupplier;
+    }
   }
-  try {
-    const { data } = await supabase.from('ms_supplier').insert(payload).select().single();
-    if (data) return data as MsSupplier;
-  } catch {}
-  const fallback = { ...payload, id: Date.now(), create_time: new Date().toISOString() };
-  return fallback as MsSupplier;
+  if (typeof window !== 'undefined') {
+    setTimeout(() => window.dispatchEvent(new Event('supplier_updated')), 0);
+  }
+  return result;
 }
 
 export async function updateSupplier(id: number, payload: Partial<MsSupplier>): Promise<MsSupplier> {
+  let result: MsSupplier;
   try {
     const { data } = await supabase.from('ms_supplier').update({ ...payload, update_time: new Date().toISOString() }).eq('id', id).select().single();
-    if (data) return data as MsSupplier;
-  } catch {}
-  return { ...payload, id } as MsSupplier;
+    if (data) result = data as MsSupplier;
+    else result = { ...payload, id } as MsSupplier;
+  } catch {
+    result = { ...payload, id } as MsSupplier;
+  }
+  if (typeof window !== 'undefined') {
+    setTimeout(() => window.dispatchEvent(new Event('supplier_updated')), 0);
+  }
+  return result;
 }
 
 export async function deleteSupplier(id: number): Promise<void> {
@@ -478,6 +507,7 @@ export async function deleteSupplier(id: number): Promise<void> {
   if (typeof window !== 'undefined') {
     const current = await getSuppliers();
     localStorage.setItem('local_ms_supplier', JSON.stringify(current.filter(m => m.id !== id)));
+    setTimeout(() => window.dispatchEvent(new Event('supplier_updated')), 0);
   }
 }
 
