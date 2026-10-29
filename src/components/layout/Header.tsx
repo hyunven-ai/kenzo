@@ -23,24 +23,30 @@ export default function Header({ user, isDarkMode, onToggleDarkMode, onToggleSid
       setOnline(navigator.onLine);
       const pending = getOfflineSales().filter(s => !s.synced).length;
       setPendingCount(pending);
+      // Jika online dan ada antrean pending, sinkronkan otomatis di latar belakang
+      if (navigator.onLine && pending > 0 && !syncing) {
+        syncPendingSalesToNeon().catch(() => {});
+      }
     };
 
     checkStatus();
     window.addEventListener('online', checkStatus);
     window.addEventListener('offline', checkStatus);
-    const interval = setInterval(checkStatus, 4000);
+    window.addEventListener('offline_sales_synced', checkStatus);
+    const interval = setInterval(checkStatus, 3000);
 
     return () => {
       window.removeEventListener('online', checkStatus);
       window.removeEventListener('offline', checkStatus);
+      window.removeEventListener('offline_sales_synced', checkStatus);
       clearInterval(interval);
     };
-  }, []);
+  }, [syncing]);
 
   const handleManualSync = async () => {
     setSyncing(true);
     try {
-      await syncPendingSalesToNeon();
+      const count = await syncPendingSalesToNeon();
       const pending = getOfflineSales().filter(s => !s.synced).length;
       setPendingCount(pending);
     } catch {

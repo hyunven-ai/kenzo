@@ -54,8 +54,8 @@ export default function PrintReceipt({
   const totalQty = items.reduce((sum, item) => sum + item.qty, 0);
 
   // Extract sequential invoice number from INV/YYMMDD/XXXX pattern if no index is given
-  const displayIndex = invoiceIndex !== undefined 
-    ? `#${invoiceIndex}` 
+  const displayIndex = invoiceIndex !== undefined
+    ? `#${invoiceIndex}`
     : invoiceNo ? `#${invoiceNo.split('/').pop()?.replace(/^0+/, '') || invoiceNo}` : '';
 
   const cleanBayar = bayar !== undefined ? bayar : total;
@@ -68,18 +68,18 @@ export default function PrintReceipt({
       {/* Logo & Header */}
       <div className="receipt-header">
         {settings.showLogo && Boolean(settings.logoUrl || '/logo-struk.png') && (
-          <img 
-            src={settings.logoUrl || '/logo-struk.png'} 
-            alt="Logo Struk" 
-            className="receipt-logo" 
-            style={{ maxWidth: '65px', maxHeight: '65px', objectFit: 'contain', marginBottom: '4px' }} 
+          <img
+            src={settings.logoUrl || '/logo-struk.png'}
+            alt="Logo Struk"
+            className="receipt-logo"
+            style={{ maxWidth: '65px', maxHeight: '65px', objectFit: 'contain', marginBottom: '4px' }}
           />
         )}
-        
-        <h1 className="receipt-shop-name">{settings.shopName || 'SERIES PONSEL'}</h1>
+
+        <h1 className="receipt-shop-name">{settings.shopName || 'Kenzo'}</h1>
         {settings.addressLine1 && <p className="receipt-shop-address">{settings.addressLine1}</p>}
         {settings.addressLine2 && <p className="receipt-shop-address">{settings.addressLine2}</p>}
-        
+
         {/* WhatsApp Row */}
         {settings.whatsappNumber && (
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, marginTop: 4 }}>
@@ -115,7 +115,7 @@ export default function PrintReceipt({
             {settings.tiktokName && (
               <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                 <svg viewBox="0 0 24 24" width="13" height="13" fill="#000000">
-                  <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.52-4.06-1.41-.45-.34-.84-.74-1.19-1.19v7.54c.04 3.44-1.89 6.81-5.18 7.91-3.28 1.14-7.23-.33-8.81-3.37-1.58-3.05-.72-7.27 2-9.25 1.99-1.48 4.79-1.78 7.03-.76v4.35c-1.42-.87-3.37-.62-4.52.54-1.15 1.15-1.19 3.16-.1 4.41.98 1.18 2.8 1.51 4.15.77 1.04-.54 1.63-1.63 1.6-2.82V0l.03.02z"/>
+                  <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.52-4.06-1.41-.45-.34-.84-.74-1.19-1.19v7.54c.04 3.44-1.89 6.81-5.18 7.91-3.28 1.14-7.23-.33-8.81-3.37-1.58-3.05-.72-7.27 2-9.25 1.99-1.48 4.79-1.78 7.03-.76v4.35c-1.42-.87-3.37-.62-4.52.54-1.15 1.15-1.19 3.16-.1 4.41.98 1.18 2.8 1.51 4.15.77 1.04-.54 1.63-1.63 1.6-2.82V0l.03.02z" />
                 </svg>
                 <span style={{ fontWeight: 700, fontSize: 8 }}>{settings.tiktokName}</span>
               </div>

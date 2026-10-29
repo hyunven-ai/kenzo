@@ -389,20 +389,27 @@ export async function POST(request: Request) {
 
       if (idhdr && items && items.length > 0) {
         for (const it of items) {
-          await sql`
+          const dtlRes = await sql`
             INSERT INTO public.trs_penjualan_dtl (idhdr, idbarang, kategori, code, nama_barang, qty, harga_modal, harga_jual, supplier)
             VALUES (${idhdr}, ${it.idbarang || 0}, ${it.kategori || 'Umum'}, ${it.code || '-'}, ${it.nama_barang}, ${it.qty || 1}, ${it.harga_modal || 0}, ${it.harga_jual || 0}, ${it.supplier || null})
-            ON CONFLICT (idhdr, code, nama_barang) DO NOTHING;
+            ON CONFLICT (idhdr, code, nama_barang) DO NOTHING
+            RETURNING id;
           `;
-          // Potong stok di ms_barang
-          await sql`
-            UPDATE public.ms_barang
-            SET qty = GREATEST(0, qty - ${it.qty || 1}), update_time = now()
-            WHERE barcode = ${it.code} OR id = ${it.idbarang};
-          `;
+          // Hanya potong stok jika item detail baru pertama kali tersimpan (menghindari duplikasi saat sync ulang)
+          if (dtlRes[0]?.id) {
+            await sql`
+              UPDATE public.ms_barang
+              SET qty = GREATEST(0, qty - ${it.qty || 1}), update_time = now()
+              WHERE (barcode = ${it.code} AND ${it.code} != '-') OR id = ${it.idbarang};
+            `;
+          }
         }
       }
-      return NextResponse.json({ ok: true, message: 'Transaksi berhasil disinkronkan ke Neon DB' });
+      return NextResponse.json({
+        ok: true,
+        message: 'Transaksi berhasil disinkronkan ke Neon DB',
+        data: { synced: true, idhdr, invoice: header.nomor_invoice }
+      });
     }
 
     // --- HAPUS / BATALKAN PENJUALAN ---

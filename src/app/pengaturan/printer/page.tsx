@@ -1,17 +1,17 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { 
-  getPrinterSettings, 
-  savePrinterSettings, 
-  resetPrinterSettings, 
+import {
+  getPrinterSettings,
+  savePrinterSettings,
+  resetPrinterSettings,
   addPrinterDevice,
   removePrinterDevice,
   setDefaultPrinterDevice,
-  PrinterSettings, 
+  PrinterSettings,
   PrinterDevice,
   PrinterConnectionType,
-  DEFAULT_PRINTER_SETTINGS 
+  DEFAULT_PRINTER_SETTINGS
 } from '@/lib/printerSettings';
 import PrintReceipt from '@/components/ui/PrintReceipt';
 import Modal from '@/components/ui/Modal';
@@ -27,7 +27,7 @@ export default function PrinterSettingsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [stepModal, setStepModal] = useState<'select_type' | 'form'>('select_type');
   const [selectedType, setSelectedType] = useState<PrinterConnectionType>('bluetooth');
-  
+
   // Form printer baru
   const [newPrinterName, setNewPrinterName] = useState('');
   const [newPrinterAddress, setNewPrinterAddress] = useState('');
@@ -238,16 +238,16 @@ export default function PrinterSettingsPage() {
           </p>
         </div>
         <div style={{ display: 'flex', gap: 10 }}>
-          <button 
-            type="button" 
-            className="btn btn-secondary" 
+          <button
+            type="button"
+            className="btn btn-secondary"
             onClick={handleReset}
           >
             🔄 Reset ke Default
           </button>
-          <button 
-            type="button" 
-            className="btn btn-primary" 
+          <button
+            type="button"
+            className="btn btn-primary"
             onClick={handleOpenAddModal}
             style={{ fontWeight: 600, background: '#e53935' }}
           >
@@ -257,11 +257,11 @@ export default function PrinterSettingsPage() {
       </div>
 
       {/* Tabs */}
-      <div style={{ 
-        display: 'flex', 
-        gap: 8, 
-        borderBottom: '1px solid var(--border-light)', 
-        marginBottom: 20 
+      <div style={{
+        display: 'flex',
+        gap: 8,
+        borderBottom: '1px solid var(--border-light)',
+        marginBottom: 20
       }}>
         <button
           type="button"
@@ -307,12 +307,12 @@ export default function PrinterSettingsPage() {
       </div>
 
       {savedSuccess && (
-        <div style={{ 
-          background: 'rgba(46, 125, 50, 0.15)', 
-          border: '1px solid rgba(46, 125, 50, 0.4)', 
-          color: '#4caf50', 
-          padding: '12px 16px', 
-          borderRadius: 8, 
+        <div style={{
+          background: 'rgba(46, 125, 50, 0.15)',
+          border: '1px solid rgba(46, 125, 50, 0.4)',
+          color: '#4caf50',
+          padding: '12px 16px',
+          borderRadius: 8,
           marginBottom: 20,
           display: 'flex',
           alignItems: 'center',
@@ -327,14 +327,14 @@ export default function PrinterSettingsPage() {
       {/* TAB 1: PERANGKAT PRINTER */}
       {activeTab === 'devices' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-          
+
           {/* Status summary banner */}
           <div className="card" style={{ padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-              <div style={{ 
-                width: 44, 
-                height: 44, 
-                borderRadius: '50%', 
+              <div style={{
+                width: 44,
+                height: 44,
+                borderRadius: '50%',
                 background: settings.devices.length > 0 ? 'rgba(46, 125, 50, 0.15)' : 'var(--bg-card-hover)',
                 display: 'flex',
                 alignItems: 'center',
@@ -357,8 +357,8 @@ export default function PrinterSettingsPage() {
               </div>
             </div>
 
-            <button 
-              type="button" 
+            <button
+              type="button"
               className="btn btn-primary"
               onClick={handleOpenAddModal}
               style={{ background: '#e53935', fontWeight: 600 }}
@@ -372,13 +372,13 @@ export default function PrinterSettingsPage() {
             /* EMPTY STATE LIKE USER SCREENSHOT */
             <div className="card" style={{ padding: '60px 20px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
               {/* Illustrated Printer Icon matching screenshot 2 */}
-              <div style={{ 
-                width: 120, 
-                height: 120, 
-                background: 'var(--bg-card-hover)', 
-                borderRadius: '50%', 
-                display: 'flex', 
-                alignItems: 'center', 
+              <div style={{
+                width: 120,
+                height: 120,
+                background: 'var(--bg-card-hover)',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
                 justifyContent: 'center',
                 marginBottom: 16,
                 border: '1px solid var(--border-light)'
@@ -421,10 +421,10 @@ export default function PrinterSettingsPage() {
             /* LIST OF ADDED PRINTERS */
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16 }}>
               {settings.devices.map(device => (
-                <div 
-                  key={device.id} 
+                <div
+                  key={device.id}
                   className="card"
-                  style={{ 
+                  style={{
                     border: device.isDefault ? '2px solid #4caf50' : '1px solid var(--border-light)',
                     position: 'relative',
                     overflow: 'hidden'
@@ -530,8 +530,8 @@ export default function PrinterSettingsPage() {
             </div>
             <div className="card-body" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 16 }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}>
-                <input 
-                  type="checkbox" 
+                <input
+                  type="checkbox"
                   checked={settings.autoPrint}
                   onChange={e => {
                     handleChange('autoPrint', e.target.checked);
@@ -547,8 +547,8 @@ export default function PrinterSettingsPage() {
 
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Jumlah Rangkap Struk:</span>
-                <select 
-                  className="form-control" 
+                <select
+                  className="form-control"
                   style={{ width: 140 }}
                   value={settings.printCopies}
                   onChange={e => {
@@ -568,15 +568,15 @@ export default function PrinterSettingsPage() {
 
       {/* TAB 2: FORMAT & IDENTITAS STRUK */}
       {activeTab === 'receipt' && (
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'minmax(350px, 1.2fr) minmax(320px, 0.8fr)', 
+        <div style={{
+          display: 'grid',
+          gridTemplateColumns: 'minmax(350px, 1.2fr) minmax(320px, 0.8fr)',
           gap: 24,
           alignItems: 'start'
         }}>
           {/* Form settings */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
-            
+
             {/* Ukuran Kertas */}
             <div className="card">
               <div className="card-header">
@@ -584,7 +584,7 @@ export default function PrinterSettingsPage() {
               </div>
               <div className="card-body">
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                  <label style={{ 
+                  <label style={{
                     border: settings.paperWidth === '58mm' ? '2px solid #e53935' : '1px solid var(--border-light)',
                     borderRadius: 8,
                     padding: '12px 14px',
@@ -595,11 +595,11 @@ export default function PrinterSettingsPage() {
                     background: settings.paperWidth === '58mm' ? 'rgba(229,57,53,0.08)' : 'var(--bg-card)'
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <input 
-                        type="radio" 
-                        name="paperWidth" 
-                        value="58mm" 
-                        checked={settings.paperWidth === '58mm'} 
+                      <input
+                        type="radio"
+                        name="paperWidth"
+                        value="58mm"
+                        checked={settings.paperWidth === '58mm'}
                         onChange={() => handleChange('paperWidth', '58mm')}
                       />
                       <strong style={{ fontSize: 14, color: 'var(--text-primary)' }}>58 mm (POS-58)</strong>
@@ -609,7 +609,7 @@ export default function PrinterSettingsPage() {
                     </span>
                   </label>
 
-                  <label style={{ 
+                  <label style={{
                     border: settings.paperWidth === '80mm' ? '2px solid #e53935' : '1px solid var(--border-light)',
                     borderRadius: 8,
                     padding: '12px 14px',
@@ -620,11 +620,11 @@ export default function PrinterSettingsPage() {
                     background: settings.paperWidth === '80mm' ? 'rgba(229,57,53,0.08)' : 'var(--bg-card)'
                   }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <input 
-                        type="radio" 
-                        name="paperWidth" 
-                        value="80mm" 
-                        checked={settings.paperWidth === '80mm'} 
+                      <input
+                        type="radio"
+                        name="paperWidth"
+                        value="80mm"
+                        checked={settings.paperWidth === '80mm'}
                         onChange={() => handleChange('paperWidth', '80mm')}
                       />
                       <strong style={{ fontSize: 14, color: 'var(--text-primary)' }}>80 mm (POS-80)</strong>
@@ -643,7 +643,7 @@ export default function PrinterSettingsPage() {
                 <span className="card-title">🏪 Identitas Toko & Logo di Struk</span>
               </div>
               <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                
+
                 {/* Opsi Tampilkan Logo & Box CRUD Logo */}
                 <div style={{
                   background: 'var(--bg-elevated, #24242c)',
@@ -657,8 +657,8 @@ export default function PrinterSettingsPage() {
                   {/* Toggle Tampilkan Logo */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', margin: 0 }}>
-                      <input 
-                        type="checkbox" 
+                      <input
+                        type="checkbox"
                         checked={settings.showLogo}
                         onChange={e => handleChange('showLogo', e.target.checked)}
                         style={{ width: 18, height: 18, cursor: 'pointer' }}
@@ -680,11 +680,11 @@ export default function PrinterSettingsPage() {
                   </div>
 
                   {/* Panel Kelola (CRUD) Logo */}
-                  <div style={{ 
-                    borderTop: '1px solid var(--border-light, #2a2a32)', 
-                    paddingTop: 12, 
-                    display: 'flex', 
-                    alignItems: 'center', 
+                  <div style={{
+                    borderTop: '1px solid var(--border-light, #2a2a32)',
+                    paddingTop: 12,
+                    display: 'flex',
+                    alignItems: 'center',
                     gap: 16,
                     flexWrap: 'wrap'
                   }}>
@@ -704,10 +704,10 @@ export default function PrinterSettingsPage() {
                       boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
                     }}>
                       {(settings.logoUrl || '/logo-struk.png') ? (
-                        <img 
-                          src={settings.logoUrl || '/logo-struk.png'} 
-                          alt="Logo Preview" 
-                          style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} 
+                        <img
+                          src={settings.logoUrl || '/logo-struk.png'}
+                          alt="Logo Preview"
+                          style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
                         />
                       ) : (
                         <span style={{ fontSize: 10, color: '#999', textAlign: 'center' }}>Tanpa Logo</span>
@@ -725,8 +725,8 @@ export default function PrinterSettingsPage() {
 
                       {/* Action buttons (CRUD) */}
                       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
-                        <input 
-                          type="file" 
+                        <input
+                          type="file"
                           ref={logoInputRef}
                           accept="image/png, image/jpeg, image/jpg, image/webp"
                           style={{ display: 'none' }}
@@ -779,8 +779,8 @@ export default function PrinterSettingsPage() {
 
                 <div className="form-group">
                   <label className="form-label">Nama Toko</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     className="form-control"
                     value={settings.shopName}
                     onChange={e => handleChange('shopName', e.target.value)}
@@ -791,8 +791,8 @@ export default function PrinterSettingsPage() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                   <div className="form-group">
                     <label className="form-label">Alamat Baris 1</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       className="form-control"
                       value={settings.addressLine1}
                       onChange={e => handleChange('addressLine1', e.target.value)}
@@ -801,8 +801,8 @@ export default function PrinterSettingsPage() {
                   </div>
                   <div className="form-group">
                     <label className="form-label">Alamat Baris 2</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       className="form-control"
                       value={settings.addressLine2}
                       onChange={e => handleChange('addressLine2', e.target.value)}
@@ -813,8 +813,8 @@ export default function PrinterSettingsPage() {
 
                 <div className="form-group">
                   <label className="form-label">Nomor WhatsApp Toko</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     className="form-control"
                     value={settings.whatsappNumber}
                     onChange={e => handleChange('whatsappNumber', e.target.value)}
@@ -831,8 +831,8 @@ export default function PrinterSettingsPage() {
               </div>
               <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                  <input 
-                    type="checkbox" 
+                  <input
+                    type="checkbox"
                     checked={settings.showSocialMedia}
                     onChange={e => handleChange('showSocialMedia', e.target.checked)}
                     style={{ width: 18, height: 18, cursor: 'pointer' }}
@@ -844,7 +844,7 @@ export default function PrinterSettingsPage() {
                   <>
                     <div className="form-group">
                       <label className="form-label">Akun Facebook</label>
-                      <textarea 
+                      <textarea
                         className="form-control"
                         rows={2}
                         value={settings.facebookName}
@@ -857,8 +857,8 @@ export default function PrinterSettingsPage() {
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                       <div className="form-group">
                         <label className="form-label">Akun Instagram</label>
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           className="form-control"
                           value={settings.instagramName}
                           onChange={e => handleChange('instagramName', e.target.value)}
@@ -866,8 +866,8 @@ export default function PrinterSettingsPage() {
                       </div>
                       <div className="form-group">
                         <label className="form-label">Akun TikTok</label>
-                        <input 
-                          type="text" 
+                        <input
+                          type="text"
                           className="form-control"
                           value={settings.tiktokName}
                           onChange={e => handleChange('tiktokName', e.target.value)}
@@ -886,8 +886,8 @@ export default function PrinterSettingsPage() {
               </div>
               <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                  <input 
-                    type="checkbox" 
+                  <input
+                    type="checkbox"
                     checked={settings.showImei}
                     onChange={e => handleChange('showImei', e.target.checked)}
                     style={{ width: 18, height: 18, cursor: 'pointer' }}
@@ -897,8 +897,8 @@ export default function PrinterSettingsPage() {
 
                 <div className="form-group">
                   <label className="form-label">Pesan Kebijakan / Garansi</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     className="form-control"
                     value={settings.warningNote}
                     onChange={e => handleChange('warningNote', e.target.value)}
@@ -907,16 +907,16 @@ export default function PrinterSettingsPage() {
 
                 <div className="form-group">
                   <label className="form-label">Teks Penutup Struk (Footer)</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     className="form-control"
                     value={settings.footerNote}
                     onChange={e => handleChange('footerNote', e.target.value)}
                   />
                 </div>
 
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   className="btn btn-primary"
                   onClick={handleSaveSettings}
                   style={{ marginTop: 10, fontWeight: 600 }}
@@ -938,7 +938,7 @@ export default function PrinterSettingsPage() {
                 </span>
               </div>
               <div className="card-body" style={{ background: '#334155', borderRadius: '0 0 8px 8px', padding: 24, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                
+
                 {/* Paper Simulation Wrapper */}
                 <div style={{
                   background: '#ffffff',
@@ -954,21 +954,21 @@ export default function PrinterSettingsPage() {
                 }}>
                   {settings.showLogo && Boolean(settings.logoUrl || '/logo-struk.png') && (
                     <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 4 }}>
-                      <img 
-                        src={settings.logoUrl || '/logo-struk.png'} 
-                        alt="Logo Struk" 
-                        style={{ maxWidth: settings.paperWidth === '80mm' ? 65 : 52, maxHeight: settings.paperWidth === '80mm' ? 65 : 52, objectFit: 'contain' }} 
+                      <img
+                        src={settings.logoUrl || '/logo-struk.png'}
+                        alt="Logo Struk"
+                        style={{ maxWidth: settings.paperWidth === '80mm' ? 65 : 52, maxHeight: settings.paperWidth === '80mm' ? 65 : 52, objectFit: 'contain' }}
                       />
                     </div>
                   )}
 
                   <div style={{ textAlign: 'center', marginBottom: 6 }}>
                     <div style={{ fontWeight: 800, fontSize: settings.paperWidth === '80mm' ? '16px' : '14px', margin: '2px 0' }}>
-                      {settings.shopName || 'SERIES PONSEL'}
+                      {settings.shopName || 'Kenzo'}
                     </div>
                     {settings.addressLine1 && <div style={{ fontSize: 10, color: '#111' }}>{settings.addressLine1}</div>}
                     {settings.addressLine2 && <div style={{ fontSize: 10, color: '#111' }}>{settings.addressLine2}</div>}
-                    
+
                     {settings.whatsappNumber && (
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, marginTop: 4 }}>
                         <img src="/icon-wa.png" alt="WA" style={{ width: 12, height: 12, objectFit: 'contain' }} />
@@ -1112,7 +1112,7 @@ export default function PrinterSettingsPage() {
             </div>
 
             {/* Option: Bluetooth */}
-            <div 
+            <div
               onClick={() => handleSelectType('bluetooth')}
               style={{
                 border: '1px solid var(--border-medium)',
@@ -1161,7 +1161,7 @@ export default function PrinterSettingsPage() {
             </div>
 
             {/* Option: WIFI / LAN */}
-            <div 
+            <div
               onClick={() => handleSelectType('network')}
               style={{
                 border: '1px solid var(--border-medium)',
@@ -1210,7 +1210,7 @@ export default function PrinterSettingsPage() {
             </div>
 
             {/* Option: USB / Driver Sistem */}
-            <div 
+            <div
               onClick={() => handleSelectType('usb')}
               style={{
                 border: '1px solid var(--border-medium)',
@@ -1261,7 +1261,7 @@ export default function PrinterSettingsPage() {
         ) : (
           /* STEP 2: FORM DETAIL PRINTER SESUAI TIPE (MATCHING SCREENSHOT 4) */
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '10px 0' }}>
-            
+
             {/* Bluetooth Scanner Action */}
             {selectedType === 'bluetooth' && (
               <div style={{
@@ -1305,8 +1305,8 @@ export default function PrinterSettingsPage() {
               <label className="form-label" style={{ fontWeight: 600, color: 'var(--text-primary)' }}>
                 Nama Perangkat Printer <span style={{ color: '#e53935' }}>*</span>
               </label>
-              <input 
-                type="text" 
+              <input
+                type="text"
                 className="form-control"
                 value={newPrinterName}
                 onChange={e => setNewPrinterName(e.target.value)}
@@ -1342,8 +1342,8 @@ export default function PrinterSettingsPage() {
               <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 12 }}>
                 <div className="form-group">
                   <label className="form-label" style={{ fontWeight: 600, color: 'var(--text-primary)' }}>IP Address Printer</label>
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     className="form-control"
                     value={newPrinterAddress}
                     onChange={e => setNewPrinterAddress(e.target.value)}
@@ -1352,8 +1352,8 @@ export default function PrinterSettingsPage() {
                 </div>
                 <div className="form-group">
                   <label className="form-label" style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Port</label>
-                  <input 
-                    type="number" 
+                  <input
+                    type="number"
                     className="form-control"
                     value={newPrinterPort}
                     onChange={e => setNewPrinterPort(Number(e.target.value))}
@@ -1367,7 +1367,7 @@ export default function PrinterSettingsPage() {
             <div className="form-group">
               <label className="form-label" style={{ fontWeight: 600, color: 'var(--text-primary)' }}>Ukuran Kertas Printer</label>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-                <label style={{ 
+                <label style={{
                   border: newPrinterPaper === '58mm' ? '2px solid #e53935' : '1px solid var(--border-medium)',
                   borderRadius: 6,
                   padding: '10px 12px',
@@ -1377,17 +1377,17 @@ export default function PrinterSettingsPage() {
                   cursor: 'pointer',
                   background: newPrinterPaper === '58mm' ? 'rgba(229,57,53,0.1)' : 'var(--bg-card-hover)'
                 }}>
-                  <input 
-                    type="radio" 
-                    name="newPaper" 
-                    value="58mm" 
+                  <input
+                    type="radio"
+                    name="newPaper"
+                    value="58mm"
                     checked={newPrinterPaper === '58mm'}
                     onChange={() => setNewPrinterPaper('58mm')}
                   />
                   <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>58 mm (POS-58)</span>
                 </label>
 
-                <label style={{ 
+                <label style={{
                   border: newPrinterPaper === '80mm' ? '2px solid #e53935' : '1px solid var(--border-medium)',
                   borderRadius: 6,
                   padding: '10px 12px',
@@ -1397,10 +1397,10 @@ export default function PrinterSettingsPage() {
                   cursor: 'pointer',
                   background: newPrinterPaper === '80mm' ? 'rgba(229,57,53,0.1)' : 'var(--bg-card-hover)'
                 }}>
-                  <input 
-                    type="radio" 
-                    name="newPaper" 
-                    value="80mm" 
+                  <input
+                    type="radio"
+                    name="newPaper"
+                    value="80mm"
                     checked={newPrinterPaper === '80mm'}
                     onChange={() => setNewPrinterPaper('80mm')}
                   />
@@ -1411,8 +1411,8 @@ export default function PrinterSettingsPage() {
 
             {/* Set as Default Switch */}
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', marginTop: 4 }}>
-              <input 
-                type="checkbox" 
+              <input
+                type="checkbox"
                 checked={newPrinterIsDefault}
                 onChange={e => setNewPrinterIsDefault(e.target.checked)}
                 style={{ width: 18, height: 18, cursor: 'pointer' }}

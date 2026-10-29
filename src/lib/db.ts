@@ -90,7 +90,7 @@ export async function callNeonApi(action: string, payload?: any, method: 'GET' |
     clearTimeout(timeout);
     if (!res.ok) return null;
     const json = await res.json();
-    return json.ok ? json.data : null;
+    return json.ok ? (json.data !== undefined ? json.data : true) : null;
   } catch {
     // Offline / Network Error - fallback to local storage
     return null;
@@ -1064,6 +1064,7 @@ export async function syncPendingSalesToNeon(): Promise<number> {
 
   if (typeof window !== 'undefined') {
     localStorage.setItem('local_offline_sales', JSON.stringify(all));
+    window.dispatchEvent(new Event('offline_sales_synced'));
   }
   return count;
 }
@@ -1106,6 +1107,7 @@ export async function createPenjualan(
         const existing = getOfflineSales();
         const updated = existing.map(s => s.invoice === header.nomor_invoice ? { ...s, synced: true } : s);
         localStorage.setItem('local_offline_sales', JSON.stringify(updated));
+        window.dispatchEvent(new Event('offline_sales_synced'));
       }
     }
   } catch {

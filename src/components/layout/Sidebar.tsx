@@ -157,7 +157,7 @@ export default function Sidebar({ user, collapsed, mobileOpen, onCloseMobile }: 
       {/* Logo */}
       <div className="sidebar-logo">
         <div className="sidebar-logo-icon" style={{ background: 'none' }}>
-          <img src="/logo-series.webp" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+          <img src="/logo-kenzo.webp" alt="Logo" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
         </div>
         <span className="sidebar-logo-text">Kasir Pintar</span>
         {/* Mobile close button */}

@@ -2,9 +2,9 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Series Ponsel — POS & Inventaris",
-  description: "Sistem Point of Sale dan Manajemen Inventaris Toko Handphone Series Ponsel",
-  keywords: "kasir, POS, inventaris, handphone, series ponsel",
+  title: "Kenzo — POS & Inventaris",
+  description: "Sistem Point of Sale dan Manajemen Inventaris Toko Handphone Kenzo",
+  keywords: "kasir, POS, inventaris, handphone, Kenzo",
 };
 
 export const viewport: Viewport = {
