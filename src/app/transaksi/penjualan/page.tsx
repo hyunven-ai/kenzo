@@ -350,6 +350,43 @@ export default function PenjualanPage() {
       const [year, month, day] = tanggalTransaksi.split('-').map(Number);
       const transactionDateTime = new Date(year, month - 1, day, now.getHours(), now.getMinutes(), now.getSeconds());
 
+      const checkoutItems = [...cart];
+      const checkoutTotal = total;
+      const checkoutBayar = bayar ? parseInt(bayar) : total;
+
+      // 1. Set receipt data & transisi modal instan tanpa menunggu proses database
+      setLastInvoice(invoiceNo);
+      setPrintData({
+        invoiceNo,
+        customer,
+        tanggalPenjualan: transactionDateTime.toISOString(),
+        metodePembayaran: metode,
+        items: checkoutItems,
+        total: checkoutTotal,
+        bayar: checkoutBayar,
+      });
+
+      // Tutup konfirmasi modal & tampilkan modal sukses seketika
+      setCheckoutModal(false);
+      setSuccessModal(true);
+
+      // Picu cetak struk instan jika opsi cetak dipilih
+      if (withPrint) {
+        setTimeout(() => window.print(), 150);
+      }
+
+      // Reset keranjang belanja & form kasir
+      setCart([]);
+      setBayar('');
+      setCustomer('Umum');
+      const d = new Date();
+      const yr = d.getFullYear();
+      const mt = String(d.getMonth() + 1).padStart(2, '0');
+      const dy = String(d.getDate()).padStart(2, '0');
+      setTanggalTransaksi(`${yr}-${mt}-${dy}`);
+      setCatatan('');
+
+      // 2. Simpan transaksi ke Neon DB / local queue
       await createPenjualan(
         {
           nomor_invoice: invoiceNo,
@@ -357,11 +394,11 @@ export default function PenjualanPage() {
           status: 1,
           tanggal_penjualan: transactionDateTime.toISOString(),
           metode_pembayaran: metode,
-          total_harga: total,
+          total_harga: checkoutTotal,
           catatan: catatan || undefined,
           create_by: user?.username ?? 'kasir',
         },
-        cart.map(item => ({
+        checkoutItems.map(item => ({
           idbarang: item.idbarang,
           kategori: item.kategori,
           code: item.code,
@@ -373,30 +410,7 @@ export default function PenjualanPage() {
           create_by: user?.username ?? 'kasir',
         }))
       );
-      setLastInvoice(invoiceNo);
-      setPrintData({
-        invoiceNo,
-        customer,
-        tanggalPenjualan: transactionDateTime.toISOString(),
-        metodePembayaran: metode,
-        items: [...cart],
-        total,
-        bayar: bayar ? parseInt(bayar) : total,
-      });
-      setCheckoutModal(false);
-      setSuccessModal(true);
-      if (withPrint) {
-        setTimeout(() => window.print(), 400);
-      }
-      setCart([]);
-      setBayar('');
-      setCustomer('Umum');
-      const d = new Date();
-      const yr = d.getFullYear();
-      const mt = String(d.getMonth() + 1).padStart(2, '0');
-      const dy = String(d.getDate()).padStart(2, '0');
-      setTanggalTransaksi(`${yr}-${mt}-${dy}`);
-      setCatatan('');
+
       loadCatalog();
     } catch (e: unknown) {
       alert(e instanceof Error ? e.message : 'Gagal checkout');
