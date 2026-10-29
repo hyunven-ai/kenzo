@@ -331,8 +331,6 @@ export async function createMerk(payload: Omit<MsMerk, 'id' | 'create_time'>): P
   let result: MsMerk;
   const neonRes = await callNeonApi('createMerk', payload, 'POST');
   if (neonRes) {
-    const current = await getMerks();
-    if (typeof window !== 'undefined') localStorage.setItem('local_ms_merk', JSON.stringify([...current, neonRes]));
     result = neonRes as MsMerk;
   } else {
     try {
@@ -344,6 +342,13 @@ export async function createMerk(payload: Omit<MsMerk, 'id' | 'create_time'>): P
     }
   }
   if (typeof window !== 'undefined') {
+    try {
+      const cached = localStorage.getItem('local_ms_merk');
+      const list: MsMerk[] = cached ? JSON.parse(cached) : [];
+      if (!list.some(m => m.id === result.id)) {
+        localStorage.setItem('local_ms_merk', JSON.stringify([...list, result]));
+      }
+    } catch {}
     setTimeout(() => window.dispatchEvent(new Event('merk_updated')), 0);
   }
   return result;
@@ -351,14 +356,26 @@ export async function createMerk(payload: Omit<MsMerk, 'id' | 'create_time'>): P
 
 export async function updateMerk(id: number, payload: Partial<MsMerk>): Promise<MsMerk> {
   let result: MsMerk;
-  try {
-    const { data } = await supabase.from('ms_merk').update({ ...payload, update_time: new Date().toISOString() }).eq('id', id).select().single();
-    if (data) result = data as MsMerk;
-    else result = { ...payload, id } as MsMerk;
-  } catch {
-    result = { ...payload, id } as MsMerk;
+  const neonRes = await callNeonApi('updateMerk', { id, ...payload }, 'POST');
+  if (neonRes) {
+    result = neonRes as MsMerk;
+  } else {
+    try {
+      const { data } = await supabase.from('ms_merk').update({ ...payload, update_time: new Date().toISOString() }).eq('id', id).select().single();
+      if (data) result = data as MsMerk;
+      else result = { ...payload, id } as MsMerk;
+    } catch {
+      result = { ...payload, id } as MsMerk;
+    }
   }
   if (typeof window !== 'undefined') {
+    try {
+      const cached = localStorage.getItem('local_ms_merk');
+      if (cached) {
+        const list: MsMerk[] = JSON.parse(cached);
+        localStorage.setItem('local_ms_merk', JSON.stringify(list.map(m => m.id === id ? { ...m, ...result } : m)));
+      }
+    } catch {}
     setTimeout(() => window.dispatchEvent(new Event('merk_updated')), 0);
   }
   return result;
@@ -466,8 +483,6 @@ export async function createSupplier(payload: Omit<MsSupplier, 'id' | 'create_ti
   let result: MsSupplier;
   const neonRes = await callNeonApi('createSupplier', payload, 'POST');
   if (neonRes) {
-    const current = await getSuppliers();
-    if (typeof window !== 'undefined') localStorage.setItem('local_ms_supplier', JSON.stringify([...current, neonRes]));
     result = neonRes as MsSupplier;
   } else {
     try {
@@ -479,6 +494,13 @@ export async function createSupplier(payload: Omit<MsSupplier, 'id' | 'create_ti
     }
   }
   if (typeof window !== 'undefined') {
+    try {
+      const cached = localStorage.getItem('local_ms_supplier');
+      const list: MsSupplier[] = cached ? JSON.parse(cached) : [];
+      if (!list.some(s => s.id === result.id)) {
+        localStorage.setItem('local_ms_supplier', JSON.stringify([...list, result]));
+      }
+    } catch {}
     setTimeout(() => window.dispatchEvent(new Event('supplier_updated')), 0);
   }
   return result;
@@ -486,14 +508,26 @@ export async function createSupplier(payload: Omit<MsSupplier, 'id' | 'create_ti
 
 export async function updateSupplier(id: number, payload: Partial<MsSupplier>): Promise<MsSupplier> {
   let result: MsSupplier;
-  try {
-    const { data } = await supabase.from('ms_supplier').update({ ...payload, update_time: new Date().toISOString() }).eq('id', id).select().single();
-    if (data) result = data as MsSupplier;
-    else result = { ...payload, id } as MsSupplier;
-  } catch {
-    result = { ...payload, id } as MsSupplier;
+  const neonRes = await callNeonApi('updateSupplier', { id, ...payload }, 'POST');
+  if (neonRes) {
+    result = neonRes as MsSupplier;
+  } else {
+    try {
+      const { data } = await supabase.from('ms_supplier').update({ ...payload, update_time: new Date().toISOString() }).eq('id', id).select().single();
+      if (data) result = data as MsSupplier;
+      else result = { ...payload, id } as MsSupplier;
+    } catch {
+      result = { ...payload, id } as MsSupplier;
+    }
   }
   if (typeof window !== 'undefined') {
+    try {
+      const cached = localStorage.getItem('local_ms_supplier');
+      if (cached) {
+        const list: MsSupplier[] = JSON.parse(cached);
+        localStorage.setItem('local_ms_supplier', JSON.stringify(list.map(s => s.id === id ? { ...s, ...result } : s)));
+      }
+    } catch {}
     setTimeout(() => window.dispatchEvent(new Event('supplier_updated')), 0);
   }
   return result;

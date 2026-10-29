@@ -36,9 +36,15 @@ export default function SupplierPage() {
     if (!form.nama.trim()) return;
     setSaving(true); setError('');
     try {
-      if (editing) await updateSupplier(editing.id, { ...form, update_by: user?.username });
-      else await createSupplier({ ...form, create_by: user?.username });
-      await load(); closeModal();
+      if (editing) {
+        const saved = await updateSupplier(editing.id, { ...form, update_by: user?.username });
+        setData(d => d.map(r => r.id === editing.id ? { ...r, ...saved } : r));
+      } else {
+        const saved = await createSupplier({ ...form, create_by: user?.username });
+        setData(d => [...d.filter(r => r.id !== saved.id), saved]);
+      }
+      closeModal();
+      load();
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Gagal menyimpan');
     } finally { setSaving(false); }

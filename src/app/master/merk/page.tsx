@@ -71,12 +71,14 @@ export default function MerkPage() {
     setError('');
     try {
       if (editing) {
-        await updateMerk(editing.id, { ...form, update_by: user?.username });
+        const saved = await updateMerk(editing.id, { ...form, update_by: user?.username });
+        setData(prev => prev.map(m => m.id === editing.id ? { ...m, ...saved } : m));
       } else {
-        await createMerk({ ...form, create_by: user?.username });
+        const saved = await createMerk({ ...form, create_by: user?.username });
+        setData(prev => [...prev.filter(m => m.id !== saved.id), saved]);
       }
-      await load();
       closeModal();
+      load();
     } catch (e: unknown) {
       setError(e instanceof Error ? e.message : 'Gagal menyimpan data');
     } finally {

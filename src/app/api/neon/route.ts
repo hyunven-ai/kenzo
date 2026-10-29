@@ -479,15 +479,48 @@ export async function POST(request: Request) {
 
     // --- MASTER MERK, SUPPLIER, OPERATOR ---
     if (action === 'createMerk') {
+      const kategori = payload.kategori || 'Umum';
       const res = await sql`
-        INSERT INTO public.ms_merk (nama, create_by)
-        VALUES (${payload.nama}, ${payload.create_by || null})
+        INSERT INTO public.ms_merk (nama, kategori, create_by)
+        VALUES (${payload.nama}, ${kategori}, ${payload.create_by || null})
         RETURNING *;
       `;
+      try {
+        await sql`
+          INSERT INTO public.log_aktivitas (username, aksi, tabel, detail)
+          VALUES (${payload.create_by || 'admin'}, 'INSERT', 'ms_merk', ${'Tambah merk: ' + payload.nama + ' (' + kategori + ')'});
+        `;
+      } catch {}
+      return NextResponse.json({ ok: true, data: res[0] });
+    }
+    if (action === 'updateMerk') {
+      const kategori = payload.kategori || 'Umum';
+      const res = await sql`
+        UPDATE public.ms_merk
+        SET
+          nama = ${payload.nama},
+          kategori = ${kategori},
+          update_by = ${payload.update_by || null},
+          update_time = now()
+        WHERE id = ${payload.id}
+        RETURNING *;
+      `;
+      try {
+        await sql`
+          INSERT INTO public.log_aktivitas (username, aksi, tabel, detail)
+          VALUES (${payload.update_by || 'admin'}, 'UPDATE', 'ms_merk', ${'Update merk: ' + payload.nama});
+        `;
+      } catch {}
       return NextResponse.json({ ok: true, data: res[0] });
     }
     if (action === 'deleteMerk') {
       await sql`DELETE FROM public.ms_merk WHERE id = ${payload.id};`;
+      try {
+        await sql`
+          INSERT INTO public.log_aktivitas (username, aksi, tabel, detail)
+          VALUES ('admin', 'DELETE', 'ms_merk', ${'Hapus merk ID: ' + payload.id});
+        `;
+      } catch {}
       return NextResponse.json({ ok: true });
     }
 
@@ -497,10 +530,40 @@ export async function POST(request: Request) {
         VALUES (${payload.nama}, ${payload.create_by || null})
         RETURNING *;
       `;
+      try {
+        await sql`
+          INSERT INTO public.log_aktivitas (username, aksi, tabel, detail)
+          VALUES (${payload.create_by || 'admin'}, 'INSERT', 'ms_supplier', ${'Tambah supplier: ' + payload.nama});
+        `;
+      } catch {}
+      return NextResponse.json({ ok: true, data: res[0] });
+    }
+    if (action === 'updateSupplier') {
+      const res = await sql`
+        UPDATE public.ms_supplier
+        SET
+          nama = ${payload.nama},
+          update_by = ${payload.update_by || null},
+          update_time = now()
+        WHERE id = ${payload.id}
+        RETURNING *;
+      `;
+      try {
+        await sql`
+          INSERT INTO public.log_aktivitas (username, aksi, tabel, detail)
+          VALUES (${payload.update_by || 'admin'}, 'UPDATE', 'ms_supplier', ${'Update supplier: ' + payload.nama});
+        `;
+      } catch {}
       return NextResponse.json({ ok: true, data: res[0] });
     }
     if (action === 'deleteSupplier') {
       await sql`DELETE FROM public.ms_supplier WHERE id = ${payload.id};`;
+      try {
+        await sql`
+          INSERT INTO public.log_aktivitas (username, aksi, tabel, detail)
+          VALUES ('admin', 'DELETE', 'ms_supplier', ${'Hapus supplier ID: ' + payload.id});
+        `;
+      } catch {}
       return NextResponse.json({ ok: true });
     }
 
