@@ -27,6 +27,8 @@ export default function LogBarangPage() {
   // Map database table name to user-friendly category name
   const getCategoryName = (table: string) => {
     switch (table) {
+      case 'ms_barang':
+        return 'Stock Produk';
       case 'ms_aksesoris':
         return 'Aksesoris';
       case 'ms_kuota':
@@ -37,8 +39,10 @@ export default function LogBarangPage() {
         return 'HP Non Pajak';
       case 'ms_cctv_dtl':
         return 'CCTV';
+      case 'ms_sparepart':
+        return 'Sparepart';
       default:
-        return table;
+        return table || 'Stock Produk';
     }
   };
 

@@ -81,15 +81,18 @@ export default function LogAktivitasPage() {
         </div>
       </div>
 
-      <div className="alert alert-info mb-16">
-        💡 Log ini memanfaatkan kolom <code>create_by</code> dan <code>update_by</code> yang tersimpan di setiap tabel database.
-        Integrasi penuh dengan PostgreSQL trigger tersedia setelah koneksi Supabase dikonfigurasi.
+      <div className="alert alert-info mb-16" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+        <div>
+          🛡️ Rekam jejak audit trail seluruh aktivitas sistem tersinkronisasi otomatis dengan database <strong>Neon PostgreSQL Cloud</strong>.
+        </div>
+        <span className="badge badge-success" style={{ fontSize: 11 }}>🟢 Neon Cloud Active</span>
       </div>
 
       <DataTable
         columns={columns}
         data={logs}
         loading={loading}
+        searchable={true}
       />
     </div>
   );

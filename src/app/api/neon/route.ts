@@ -213,6 +213,39 @@ export async function GET(request: Request) {
       });
     }
 
+    // --- USER MANAGEMENT ---
+    if (action === 'getUsers') {
+      const users = await sql`
+        SELECT id, username, nama_lengkap, role, is_active, create_time, create_by
+        FROM public.ms_user
+        ORDER BY id ASC;
+      `;
+      return NextResponse.json({ ok: true, data: users });
+    }
+
+    // --- AUDIT TRAIL LOG AKTIVITAS ---
+    if (action === 'getLogs') {
+      const logs = await sql`
+        SELECT id, username as user, aksi, tabel, detail, waktu
+        FROM public.log_aktivitas
+        ORDER BY waktu DESC
+        LIMIT 200;
+      `;
+      return NextResponse.json({ ok: true, data: logs });
+    }
+
+    // --- LOG BARANG MASUK ---
+    if (action === 'getItemEntryLogs') {
+      const logs = await sql`
+        SELECT id, username as user, aksi, tabel, detail, waktu
+        FROM public.log_aktivitas
+        WHERE aksi = 'INSERT' AND (tabel = 'ms_barang' OR tabel LIKE 'ms_%')
+        ORDER BY waktu DESC
+        LIMIT 200;
+      `;
+      return NextResponse.json({ ok: true, data: logs });
+    }
+
     return NextResponse.json({ ok: false, error: 'Aksi GET tidak dikenali' }, { status: 400 });
   } catch (err: unknown) {
     console.error('Neon API GET Error:', err);
@@ -264,6 +297,12 @@ export async function POST(request: Request) {
         VALUES (${payload.barcode}, ${payload.nama}, ${payload.kategori}, ${payload.merk || null}, ${payload.supplier || null}, ${payload.satuan || 'Pcs'}, ${payload.qty || 0}, ${payload.harga_modal || 0}, ${payload.harga_jual || 0}, ${payload.warna || null}, ${payload.ukuran || null}, ${payload.keterangan || null}, ${payload.create_by || null})
         RETURNING *;
       `;
+      try {
+        await sql`
+          INSERT INTO public.log_aktivitas (username, aksi, tabel, detail, waktu)
+          VALUES (${payload.create_by || 'admin'}, 'INSERT', 'ms_barang', ${'Barang masuk: ' + payload.nama + ' (' + payload.barcode + ', Stok: ' + (payload.qty || 0) + ')'}, now());
+        `;
+      } catch {}
       return NextResponse.json({ ok: true, data: res[0] });
     }
 
@@ -274,11 +313,23 @@ export async function POST(request: Request) {
         WHERE id = ${payload.id}
         RETURNING *;
       `;
+      try {
+        await sql`
+          INSERT INTO public.log_aktivitas (username, aksi, tabel, detail, waktu)
+          VALUES (${payload.update_by || 'admin'}, 'UPDATE', 'ms_barang', ${'Ubah data barang: ' + payload.nama + ' (Stok: ' + (payload.qty || 0) + ')'}, now());
+        `;
+      } catch {}
       return NextResponse.json({ ok: true, data: res[0] });
     }
 
     if (action === 'deleteBarang') {
       await sql`DELETE FROM public.ms_barang WHERE id = ${payload.id};`;
+      try {
+        await sql`
+          INSERT INTO public.log_aktivitas (username, aksi, tabel, detail, waktu)
+          VALUES ('admin', 'DELETE', 'ms_barang', ${'Hapus data barang ID: ' + payload.id}, now());
+        `;
+      } catch {}
       return NextResponse.json({ ok: true });
     }
 
@@ -291,6 +342,13 @@ export async function POST(request: Request) {
         ON CONFLICT (nomor_invoice) DO NOTHING
         RETURNING id;
       `;
+
+      try {
+        await sql`
+          INSERT INTO public.log_aktivitas (username, aksi, tabel, detail, waktu)
+          VALUES (${header.create_by || 'kasir'}, 'INSERT', 'trs_penjualan_hdr', ${'Penjualan invoice: ' + header.nomor_invoice + ' (Total: Rp ' + Number(header.total_harga || 0).toLocaleString('id-ID') + ')'}, now());
+        `;
+      } catch {}
 
       let idhdr = hdrRes[0]?.id;
       if (!idhdr) {
@@ -425,6 +483,81 @@ export async function POST(request: Request) {
     }
     if (action === 'deleteOperator') {
       await sql`DELETE FROM public.ms_operator WHERE id = ${payload.id};`;
+      return NextResponse.json({ ok: true });
+    }
+
+    // --- USER MANAGEMENT (POST) ---
+    if (action === 'createUser') {
+      const res = await sql`
+        INSERT INTO public.ms_user (username, nama_lengkap, password_hash, role, is_active, create_by, create_time)
+        VALUES (${payload.username}, ${payload.nama_lengkap}, ${payload.password || '123456'}, ${payload.role || 'kasir'}, ${payload.is_active ?? true}, ${payload.create_by || 'admin'}, now())
+        RETURNING id, username, nama_lengkap, role, is_active, create_time;
+      `;
+      try {
+        await sql`
+          INSERT INTO public.log_aktivitas (username, aksi, tabel, detail, waktu)
+          VALUES (${payload.create_by || 'admin'}, 'INSERT', 'ms_user', ${'Tambah user: @' + payload.username + ' (' + payload.role + ')'}, now());
+        `;
+      } catch {}
+      return NextResponse.json({ ok: true, data: res[0] });
+    }
+
+    if (action === 'updateUser') {
+      let res;
+      if (payload.password) {
+        res = await sql`
+          UPDATE public.ms_user
+          SET username = COALESCE(${payload.username}, username),
+              nama_lengkap = COALESCE(${payload.nama_lengkap}, nama_lengkap),
+              role = COALESCE(${payload.role}, role),
+              is_active = COALESCE(${payload.is_active}, is_active),
+              password_hash = ${payload.password},
+              update_time = now(),
+              update_by = ${payload.update_by || 'admin'}
+          WHERE id = ${payload.id}
+          RETURNING id, username, nama_lengkap, role, is_active;
+        `;
+      } else {
+        res = await sql`
+          UPDATE public.ms_user
+          SET username = COALESCE(${payload.username}, username),
+              nama_lengkap = COALESCE(${payload.nama_lengkap}, nama_lengkap),
+              role = COALESCE(${payload.role}, role),
+              is_active = COALESCE(${payload.is_active}, is_active),
+              update_time = now(),
+              update_by = ${payload.update_by || 'admin'}
+          WHERE id = ${payload.id}
+          RETURNING id, username, nama_lengkap, role, is_active;
+        `;
+      }
+      try {
+        await sql`
+          INSERT INTO public.log_aktivitas (username, aksi, tabel, detail, waktu)
+          VALUES (${payload.update_by || 'admin'}, 'UPDATE', 'ms_user', ${'Ubah data user ID ' + payload.id + (payload.username ? ' (@' + payload.username + ')' : '')}, now());
+        `;
+      } catch {}
+      return NextResponse.json({ ok: true, data: res[0] });
+    }
+
+    if (action === 'deleteUser') {
+      const user = await sql`SELECT username FROM public.ms_user WHERE id = ${payload.id} LIMIT 1;`;
+      const uname = user[0]?.username || payload.id;
+      await sql`DELETE FROM public.ms_user WHERE id = ${payload.id};`;
+      try {
+        await sql`
+          INSERT INTO public.log_aktivitas (username, aksi, tabel, detail, waktu)
+          VALUES ('admin', 'DELETE', 'ms_user', ${'Hapus user: @' + uname}, now());
+        `;
+      } catch {}
+      return NextResponse.json({ ok: true });
+    }
+
+    // --- AUDIT TRAIL LOG AKTIVITAS (POST) ---
+    if (action === 'writeLog') {
+      await sql`
+        INSERT INTO public.log_aktivitas (username, aksi, tabel, detail, waktu)
+        VALUES (${payload.username || 'system'}, ${payload.aksi || 'INFO'}, ${payload.tabel || 'system'}, ${payload.detail || '-'}, now());
+      `;
       return NextResponse.json({ ok: true });
     }
 

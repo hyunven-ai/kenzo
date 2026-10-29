@@ -16,19 +16,13 @@ interface UserItem {
 }
 
 export default function PenggunaPage() {
-  const currentUser = getCurrentUser();
-  if (currentUser?.role !== 'super_admin') {
-    return (
-      <div className="empty-state">
-        <div className="empty-state-icon">🔒</div>
-        <div className="empty-state-text">Akses ditolak — Hanya Super Admin</div>
-      </div>
-    );
-  }
-
+  const [mounted, setMounted] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const [users, setUsers] = useState<UserItem[]>([]);
+  const [loading, setLoading] = useState(true);
 
   const loadUsers = async () => {
+    setLoading(true);
     try {
       const data = await getUsers();
       setUsers(data);
@@ -39,16 +33,38 @@ export default function PenggunaPage() {
           setUsers(JSON.parse(stored));
         } catch { /* no-op */ }
       }
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
+    setMounted(true);
+    const u = getCurrentUser();
+    setCurrentUser(u);
     loadUsers();
   }, []);
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<UserItem | null>(null);
   const [form, setForm] = useState({ username: '', nama_lengkap: '', role: 'kasir' as Role, password: '' });
+
+  if (!mounted) {
+    return (
+      <div style={{ padding: 40, textAlign: 'center', color: 'var(--text-secondary)' }}>
+        <div className="spinner" style={{ margin: '0 auto 12px' }} /> Memuat data pengguna...
+      </div>
+    );
+  }
+
+  if (currentUser?.role !== 'super_admin') {
+    return (
+      <div className="empty-state">
+        <div className="empty-state-icon">🔒</div>
+        <div className="empty-state-text">Akses ditolak — Hanya Super Admin yang dapat mengakses menu Pengguna</div>
+      </div>
+    );
+  }
 
   const openAdd = () => { setEditing(null); setForm({ username: '', nama_lengkap: '', role: 'kasir', password: '' }); setModalOpen(true); };
   const openEdit = (u: UserItem) => { setEditing(u); setForm({ username: u.username, nama_lengkap: u.nama_lengkap, role: u.role, password: '' }); setModalOpen(true); };
@@ -174,6 +190,7 @@ export default function PenggunaPage() {
       <DataTable
         columns={columns}
         data={users}
+        loading={loading}
         onAdd={openAdd}
         addLabel="+ Tambah User"
       />

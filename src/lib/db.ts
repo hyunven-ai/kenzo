@@ -17,6 +17,7 @@ import type {
   MsGaransi,
   MsKategori,
   MsBarang,
+  LogAktivitas,
 } from './types';
 
 // ============================================
@@ -1834,94 +1835,132 @@ export async function writeLog(aksi: string, tabel: string, detail: string) {
   try {
     const user = getCurrentUser();
     const username = user?.username ?? 'system';
-    await supabase.from('log_aktivitas').insert({
-      username,
-      aksi,
-      tabel,
-      detail,
-      waktu: new Date().toISOString()
-    });
+    await callNeonApi('writeLog', { username, aksi, tabel, detail }, 'POST');
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('local_log_aktivitas');
+      const list = stored ? JSON.parse(stored) : [];
+      list.unshift({ id: Date.now(), user: username, aksi, tabel, detail, waktu: new Date().toISOString() });
+      localStorage.setItem('local_log_aktivitas', JSON.stringify(list.slice(0, 200)));
+    }
   } catch (e) {
     console.error('Gagal menulis log:', e);
   }
 }
 
-export async function getLogs() {
-  const { data, error } = await supabase
-    .from('log_aktivitas')
-    .select('*')
-    .order('waktu', { ascending: false });
-  if (error) throw error;
-  
-  return (data || []).map((row: any) => ({
-    id: row.id,
-    user: row.username,
-    aksi: row.aksi,
-    tabel: row.tabel,
-    detail: row.detail,
-    waktu: row.waktu
-  }));
+export async function getLogs(): Promise<LogAktivitas[]> {
+  try {
+    const neonData = await callNeonApi('getLogs');
+    if (neonData && Array.isArray(neonData)) {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('local_log_aktivitas', JSON.stringify(neonData));
+      }
+      return neonData;
+    }
+  } catch (e) {
+    console.error('Error fetching logs from Neon:', e);
+  }
+
+  if (typeof window !== 'undefined') {
+    const local = localStorage.getItem('local_log_aktivitas');
+    if (local) {
+      try { return JSON.parse(local); } catch {}
+    }
+  }
+  return [];
 }
 
-export async function getItemEntryLogs() {
-  const { data, error } = await supabase
-    .from('log_aktivitas')
-    .select('*')
-    .eq('aksi', 'INSERT')
-    .in('tabel', ['ms_aksesoris', 'ms_kuota', 'ms_hp_dtl', 'ms_hp_dtl_non_pajak', 'ms_cctv_dtl', 'ms_sparepart'])
-    .order('waktu', { ascending: false });
-  if (error) throw error;
-  
-  return (data || []).map((row: any) => ({
-    id: row.id,
-    user: row.username,
-    aksi: row.aksi,
-    tabel: row.tabel,
-    detail: row.detail,
-    waktu: row.waktu
-  }));
+export async function getItemEntryLogs(): Promise<LogAktivitas[]> {
+  try {
+    const neonData = await callNeonApi('getItemEntryLogs');
+    if (neonData && Array.isArray(neonData)) {
+      return neonData;
+    }
+  } catch (e) {
+    console.error('Error fetching item entry logs from Neon:', e);
+  }
+  return [];
 }
 
 // ============================================
 // USER MANAGEMENT
 // ============================================
 
-export async function getUsers() {
-  const { data, error } = await supabase
-    .from('ms_user')
-    .select('*')
-    .order('create_time');
-  if (error) throw error;
-  return data as any[];
+export async function getUsers(): Promise<any[]> {
+  try {
+    const neonData = await callNeonApi('getUsers');
+    if (neonData && Array.isArray(neonData)) {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('series_ponsel_users', JSON.stringify(neonData));
+      }
+      return neonData;
+    }
+  } catch (e) {
+    console.error('Error fetching users from Neon:', e);
+  }
+
+  if (typeof window !== 'undefined') {
+    const stored = localStorage.getItem('series_ponsel_users');
+    if (stored) {
+      try { return JSON.parse(stored); } catch {}
+    }
+  }
+  return [];
 }
 
 export async function createUser(payload: any) {
-  const { data, error } = await supabase
-    .from('ms_user')
-    .insert(payload)
-    .select()
-    .single();
-  if (error) throw error;
-  return data;
+  try {
+    const user = getCurrentUser();
+    const neonRes = await callNeonApi('createUser', { ...payload, create_by: user?.username ?? 'admin' }, 'POST');
+    if (neonRes) {
+      return neonRes;
+    }
+  } catch (e) {
+    console.error('Error creating user in Neon:', e);
+  }
+
+  const stored = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('series_ponsel_users') || '[]') : [];
+  const newUser = { id: Date.now(), ...payload, is_active: true };
+  stored.push(newUser);
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('series_ponsel_users', JSON.stringify(stored));
+  }
+  return newUser;
 }
 
 export async function updateUser(id: number, payload: any) {
-  const { data, error } = await supabase
-    .from('ms_user')
-    .update({ ...payload, update_time: new Date().toISOString() })
-    .eq('id', id)
-    .select()
-    .single();
-  if (error) throw error;
-  return data;
+  try {
+    const user = getCurrentUser();
+    const neonRes = await callNeonApi('updateUser', { id, ...payload, update_by: user?.username ?? 'admin' }, 'POST');
+    if (neonRes) {
+      return neonRes;
+    }
+  } catch (e) {
+    console.error('Error updating user in Neon:', e);
+  }
+
+  const stored = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('series_ponsel_users') || '[]') : [];
+  const idx = stored.findIndex((u: any) => u.id === id);
+  if (idx >= 0) {
+    stored[idx] = { ...stored[idx], ...payload };
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('series_ponsel_users', JSON.stringify(stored));
+    }
+  }
+  return payload;
 }
 
 export async function deleteUser(id: number) {
-  const { error } = await supabase
-    .from('ms_user')
-    .delete()
-    .eq('id', id);
-  if (error) throw error;
+  try {
+    await callNeonApi('deleteUser', { id }, 'POST');
+  } catch (e) {
+    console.error('Error deleting user in Neon:', e);
+  }
+
+  const stored = typeof window !== 'undefined' ? JSON.parse(localStorage.getItem('series_ponsel_users') || '[]') : [];
+  const updated = stored.filter((u: any) => u.id !== id);
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('series_ponsel_users', JSON.stringify(updated));
+  }
 }
 
 // ============================================
