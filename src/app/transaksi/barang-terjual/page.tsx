@@ -136,7 +136,7 @@ export default function BarangTerjualPage() {
   // Flatten raw sales details into individual sold items
   const soldItems: FlattenedSoldItem[] = [];
   rawSales.forEach((hdr) => {
-    const dtls = (hdr as any).trs_penjualan_dtl ?? [];
+    const dtls = (hdr as any).details ?? (hdr as any).trs_penjualan_dtl ?? [];
     dtls.forEach((dtl: TrsPenjualanDtl) => {
       const totalModal = dtl.harga_modal * dtl.qty;
       const totalJual = dtl.harga_jual * dtl.qty;

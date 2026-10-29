@@ -48,6 +48,144 @@ export async function GET(request: Request) {
       return NextResponse.json({ ok: true, data });
     }
 
+    if (action === 'getOperators') {
+      const data = await sql`SELECT * FROM public.ms_operator ORDER BY nama;`;
+      return NextResponse.json({ ok: true, data });
+    }
+
+    // --- GET PENJUALAN LENGKAP DENGAN DETAIL ---
+    if (action === 'getPenjualan') {
+      const from = searchParams.get('from');
+      const to = searchParams.get('to');
+
+      let rows;
+      if (from && to) {
+        rows = await sql`
+          SELECT 
+            h.id,
+            h.nomor_invoice,
+            h.customer,
+            h.status,
+            h.metode_pembayaran,
+            h.total_harga,
+            h.catatan,
+            h.tanggal_penjualan,
+            h.create_time,
+            h.create_by,
+            COALESCE(
+              json_agg(
+                json_build_object(
+                  'id', d.id,
+                  'idhdr', d.idhdr,
+                  'idbarang', d.idbarang,
+                  'kategori', d.kategori,
+                  'code', d.code,
+                  'nama_barang', d.nama_barang,
+                  'qty', d.qty,
+                  'harga_modal', d.harga_modal,
+                  'harga_jual', d.harga_jual,
+                  'supplier', d.supplier,
+                  'create_time', d.create_time,
+                  'create_by', d.create_by
+                )
+              ) FILTER (WHERE d.id IS NOT NULL),
+              '[]'::json
+            ) AS details
+          FROM public.trs_penjualan_hdr h
+          LEFT JOIN public.trs_penjualan_dtl d ON d.idhdr = h.id
+          WHERE h.tanggal_penjualan >= ${from}::timestamp AND h.tanggal_penjualan <= ${to + ' 23:59:59'}::timestamp
+          GROUP BY h.id
+          ORDER BY h.tanggal_penjualan DESC;
+        `;
+      } else {
+        rows = await sql`
+          SELECT 
+            h.id,
+            h.nomor_invoice,
+            h.customer,
+            h.status,
+            h.metode_pembayaran,
+            h.total_harga,
+            h.catatan,
+            h.tanggal_penjualan,
+            h.create_time,
+            h.create_by,
+            COALESCE(
+              json_agg(
+                json_build_object(
+                  'id', d.id,
+                  'idhdr', d.idhdr,
+                  'idbarang', d.idbarang,
+                  'kategori', d.kategori,
+                  'code', d.code,
+                  'nama_barang', d.nama_barang,
+                  'qty', d.qty,
+                  'harga_modal', d.harga_modal,
+                  'harga_jual', d.harga_jual,
+                  'supplier', d.supplier,
+                  'create_time', d.create_time,
+                  'create_by', d.create_by
+                )
+              ) FILTER (WHERE d.id IS NOT NULL),
+              '[]'::json
+            ) AS details
+          FROM public.trs_penjualan_hdr h
+          LEFT JOIN public.trs_penjualan_dtl d ON d.idhdr = h.id
+          GROUP BY h.id
+          ORDER BY h.tanggal_penjualan DESC;
+        `;
+      }
+      return NextResponse.json({ ok: true, data: rows });
+    }
+
+    // --- DASHBOARD STATS ---
+    if (action === 'getDashboardStats') {
+      const from = searchParams.get('from');
+      const to = searchParams.get('to');
+
+      let statsQuery;
+      if (from && to) {
+        statsQuery = sql`
+          SELECT 
+            COALESCE(SUM(d.harga_jual * d.qty), 0) AS total_pemasukan,
+            COALESCE(SUM(d.harga_modal * d.qty), 0) AS total_pengeluaran
+          FROM public.trs_penjualan_hdr h
+          JOIN public.trs_penjualan_dtl d ON d.idhdr = h.id
+          WHERE h.tanggal_penjualan >= ${from}::timestamp AND h.tanggal_penjualan <= ${to + ' 23:59:59'}::timestamp;
+        `;
+      } else {
+        statsQuery = sql`
+          SELECT 
+            COALESCE(SUM(d.harga_jual * d.qty), 0) AS total_pemasukan,
+            COALESCE(SUM(d.harga_modal * d.qty), 0) AS total_pengeluaran
+          FROM public.trs_penjualan_hdr h
+          JOIN public.trs_penjualan_dtl d ON d.idhdr = h.id;
+        `;
+      }
+
+      // Hitung stok & aset produk
+      const [statsRes, barangRes] = await Promise.all([
+        statsQuery,
+        sql`SELECT COALESCE(SUM(qty), 0) AS total_qty, COALESCE(SUM(harga_modal * qty), 0) AS total_aset FROM public.ms_barang;`,
+      ]);
+
+      const stat = statsRes[0] || {};
+      const barang = barangRes[0] || {};
+      const total_pemasukan = Number(stat.total_pemasukan || 0);
+      const total_pengeluaran = Number(stat.total_pengeluaran || 0);
+
+      return NextResponse.json({
+        ok: true,
+        data: {
+          total_pemasukan,
+          total_pengeluaran,
+          total_keuntungan: total_pemasukan - total_pengeluaran,
+          total_produk: Number(barang.total_qty || 0),
+          total_aset: Number(barang.total_aset || 0),
+        },
+      });
+    }
+
     return NextResponse.json({ ok: false, error: 'Aksi GET tidak dikenali' }, { status: 400 });
   } catch (err: unknown) {
     console.error('Neon API GET Error:', err);
@@ -127,7 +265,12 @@ export async function POST(request: Request) {
         RETURNING id;
       `;
 
-      const idhdr = hdrRes[0]?.id;
+      let idhdr = hdrRes[0]?.id;
+      if (!idhdr) {
+        const existingHdr = await sql`SELECT id FROM public.trs_penjualan_hdr WHERE nomor_invoice = ${header.nomor_invoice} LIMIT 1;`;
+        idhdr = existingHdr[0]?.id;
+      }
+
       if (idhdr && items && items.length > 0) {
         for (const it of items) {
           await sql`
@@ -144,6 +287,118 @@ export async function POST(request: Request) {
         }
       }
       return NextResponse.json({ ok: true, message: 'Transaksi berhasil disinkronkan ke Neon DB' });
+    }
+
+    // --- HAPUS / BATALKAN PENJUALAN ---
+    if (action === 'deletePenjualan') {
+      const details = await sql`SELECT * FROM public.trs_penjualan_dtl WHERE idhdr = ${payload.id};`;
+      for (const d of details) {
+        await sql`
+          UPDATE public.ms_barang
+          SET qty = qty + ${d.qty || 1}, update_time = now()
+          WHERE id = ${d.idbarang} OR barcode = ${d.code};
+        `;
+      }
+      await sql`DELETE FROM public.trs_penjualan_hdr WHERE id = ${payload.id};`;
+      return NextResponse.json({ ok: true });
+    }
+
+    if (action === 'cancelBarangTerjual') {
+      const dtl = await sql`SELECT * FROM public.trs_penjualan_dtl WHERE id = ${payload.id};`;
+      if (dtl.length > 0) {
+        const { idhdr, idbarang, code, harga_jual, qty } = dtl[0];
+        // Kembalikan stok
+        await sql`
+          UPDATE public.ms_barang 
+          SET qty = qty + ${qty || 1}, update_time = now()
+          WHERE id = ${idbarang} OR barcode = ${code};
+        `;
+        await sql`DELETE FROM public.trs_penjualan_dtl WHERE id = ${payload.id};`;
+        const remaining = await sql`SELECT id FROM public.trs_penjualan_dtl WHERE idhdr = ${idhdr};`;
+        if (remaining.length === 0) {
+          await sql`DELETE FROM public.trs_penjualan_hdr WHERE id = ${idhdr};`;
+        } else {
+          await sql`
+            UPDATE public.trs_penjualan_hdr 
+            SET total_harga = GREATEST(0, total_harga - ${harga_jual * qty}), update_time = now() 
+            WHERE id = ${idhdr};
+          `;
+        }
+      }
+      return NextResponse.json({ ok: true });
+    }
+
+    if (action === 'deleteBarangTerjual') {
+      const dtl = await sql`SELECT * FROM public.trs_penjualan_dtl WHERE id = ${payload.id};`;
+      if (dtl.length > 0) {
+        const { idhdr, harga_jual, qty } = dtl[0];
+        await sql`DELETE FROM public.trs_penjualan_dtl WHERE id = ${payload.id};`;
+        const remaining = await sql`SELECT id FROM public.trs_penjualan_dtl WHERE idhdr = ${idhdr};`;
+        if (remaining.length === 0) {
+          await sql`DELETE FROM public.trs_penjualan_hdr WHERE id = ${idhdr};`;
+        } else {
+          await sql`
+            UPDATE public.trs_penjualan_hdr 
+            SET total_harga = GREATEST(0, total_harga - ${harga_jual * qty}), update_time = now() 
+            WHERE id = ${idhdr};
+          `;
+        }
+      }
+      return NextResponse.json({ ok: true });
+    }
+
+    if (action === 'updatePenjualanHeader') {
+      const res = await sql`
+        UPDATE public.trs_penjualan_hdr
+        SET customer = ${payload.customer || 'Umum'},
+            metode_pembayaran = ${payload.metode_pembayaran || 'Tunai'},
+            tanggal_penjualan = ${payload.tanggal_penjualan || new Date().toISOString()}::timestamp,
+            create_by = ${payload.create_by || null},
+            update_time = now()
+        WHERE id = ${payload.id}
+        RETURNING *;
+      `;
+      return NextResponse.json({ ok: true, data: res[0] });
+    }
+
+    // --- MASTER MERK, SUPPLIER, OPERATOR ---
+    if (action === 'createMerk') {
+      const res = await sql`
+        INSERT INTO public.ms_merk (nama, create_by)
+        VALUES (${payload.nama}, ${payload.create_by || null})
+        RETURNING *;
+      `;
+      return NextResponse.json({ ok: true, data: res[0] });
+    }
+    if (action === 'deleteMerk') {
+      await sql`DELETE FROM public.ms_merk WHERE id = ${payload.id};`;
+      return NextResponse.json({ ok: true });
+    }
+
+    if (action === 'createSupplier') {
+      const res = await sql`
+        INSERT INTO public.ms_supplier (nama, create_by)
+        VALUES (${payload.nama}, ${payload.create_by || null})
+        RETURNING *;
+      `;
+      return NextResponse.json({ ok: true, data: res[0] });
+    }
+    if (action === 'deleteSupplier') {
+      await sql`DELETE FROM public.ms_supplier WHERE id = ${payload.id};`;
+      return NextResponse.json({ ok: true });
+    }
+
+    if (action === 'createOperator') {
+      const res = await sql`
+        INSERT INTO public.ms_operator (nama, create_by)
+        VALUES (${payload.nama}, ${payload.create_by || null})
+        RETURNING *;
+      `;
+      return NextResponse.json({ ok: true, data: res[0] });
+    }
+    if (action === 'deleteOperator') {
+      await sql`DELETE FROM public.ms_operator WHERE id = ${payload.id};`;
+      return NextResponse.json({ ok: true });
     }
 
     return NextResponse.json({ ok: false, error: 'Aksi POST tidak dikenali' }, { status: 400 });

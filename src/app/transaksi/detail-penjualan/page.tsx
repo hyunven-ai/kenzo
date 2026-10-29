@@ -103,7 +103,7 @@ export default function DetailPenjualanPage() {
       ]);
       setMerks(mList);
       const mapped = result.map(row => {
-        const dtls = (row as unknown as { trs_penjualan_dtl?: TrsPenjualanDtl[] }).trs_penjualan_dtl ?? [];
+        const dtls: TrsPenjualanDtl[] = (row as any).details ?? (row as any).trs_penjualan_dtl ?? [];
         const itemsString = dtls.map(d => d.nama_barang).join(', ');
         const supplierString = dtls.map(d => d.supplier || '-').filter((v, i, a) => v !== '-' && a.indexOf(v) === i).join(', ') || '-';
         const imeiString = dtls.map(d => d.code).filter(c => c).join(', ') || '-';

@@ -293,112 +293,191 @@ export async function deleteBarang(id: number): Promise<void> {
 }
 
 // ============================================
-// MASTER DATA
+// MASTER DATA (MERK, OPERATOR, SUPPLIER)
 // ============================================
 
-export async function getMerks() {
-  const { data, error } = await supabase
-    .from('ms_merk')
-    .select('*')
-    .order('nama');
-  if (error) throw error;
-  return data as MsMerk[];
+export async function getMerks(): Promise<MsMerk[]> {
+  try {
+    const neonRes = await callNeonApi('getMerks');
+    if (neonRes && Array.isArray(neonRes)) {
+      if (typeof window !== 'undefined') localStorage.setItem('local_ms_merk', JSON.stringify(neonRes));
+      return neonRes as MsMerk[];
+    }
+  } catch {
+    // ignore
+  }
+
+  try {
+    const { data, error } = await supabase.from('ms_merk').select('*').order('nama');
+    if (!error && data && data.length > 0) {
+      if (typeof window !== 'undefined') localStorage.setItem('local_ms_merk', JSON.stringify(data));
+      return data as MsMerk[];
+    }
+  } catch {
+    // ignore
+  }
+
+  if (typeof window !== 'undefined') {
+    try {
+      const cached = localStorage.getItem('local_ms_merk');
+      if (cached) return JSON.parse(cached);
+    } catch {}
+  }
+  return [];
 }
 
-export async function createMerk(payload: Omit<MsMerk, 'id' | 'create_time'>) {
-  const { data, error } = await supabase
-    .from('ms_merk')
-    .insert(payload)
-    .select()
-    .single();
-  if (error) throw error;
-  return data as MsMerk;
+export async function createMerk(payload: Omit<MsMerk, 'id' | 'create_time'>): Promise<MsMerk> {
+  const neonRes = await callNeonApi('createMerk', payload, 'POST');
+  if (neonRes) {
+    const current = await getMerks();
+    if (typeof window !== 'undefined') localStorage.setItem('local_ms_merk', JSON.stringify([...current, neonRes]));
+    return neonRes as MsMerk;
+  }
+  try {
+    const { data } = await supabase.from('ms_merk').insert(payload).select().single();
+    if (data) return data as MsMerk;
+  } catch {}
+  const fallback = { ...payload, id: Date.now(), create_time: new Date().toISOString() };
+  return fallback as MsMerk;
 }
 
-export async function updateMerk(id: number, payload: Partial<MsMerk>) {
-  const { data, error } = await supabase
-    .from('ms_merk')
-    .update({ ...payload, update_time: new Date().toISOString() })
-    .eq('id', id)
-    .select()
-    .single();
-  if (error) throw error;
-  return data as MsMerk;
+export async function updateMerk(id: number, payload: Partial<MsMerk>): Promise<MsMerk> {
+  try {
+    const { data } = await supabase.from('ms_merk').update({ ...payload, update_time: new Date().toISOString() }).eq('id', id).select().single();
+    if (data) return data as MsMerk;
+  } catch {}
+  return { ...payload, id } as MsMerk;
 }
 
-export async function deleteMerk(id: number) {
-  const { error } = await supabase.from('ms_merk').delete().eq('id', id);
-  if (error) throw error;
+export async function deleteMerk(id: number): Promise<void> {
+  await callNeonApi('deleteMerk', { id }, 'POST');
+  try {
+    await supabase.from('ms_merk').delete().eq('id', id);
+  } catch {}
+  if (typeof window !== 'undefined') {
+    const current = await getMerks();
+    localStorage.setItem('local_ms_merk', JSON.stringify(current.filter(m => m.id !== id)));
+  }
 }
 
-export async function getOperators() {
-  const { data, error } = await supabase
-    .from('ms_operator')
-    .select('*')
-    .order('nama');
-  if (error) throw error;
-  return data as MsOperator[];
+export async function getOperators(): Promise<MsOperator[]> {
+  try {
+    const neonRes = await callNeonApi('getOperators');
+    if (neonRes && Array.isArray(neonRes)) {
+      if (typeof window !== 'undefined') localStorage.setItem('local_ms_operator', JSON.stringify(neonRes));
+      return neonRes as MsOperator[];
+    }
+  } catch {}
+
+  try {
+    const { data, error } = await supabase.from('ms_operator').select('*').order('nama');
+    if (!error && data && data.length > 0) {
+      if (typeof window !== 'undefined') localStorage.setItem('local_ms_operator', JSON.stringify(data));
+      return data as MsOperator[];
+    }
+  } catch {}
+
+  if (typeof window !== 'undefined') {
+    try {
+      const cached = localStorage.getItem('local_ms_operator');
+      if (cached) return JSON.parse(cached);
+    } catch {}
+  }
+  return [];
 }
 
-export async function createOperator(payload: Omit<MsOperator, 'id' | 'create_time'>) {
-  const { data, error } = await supabase
-    .from('ms_operator')
-    .insert(payload)
-    .select()
-    .single();
-  if (error) throw error;
-  return data as MsOperator;
+export async function createOperator(payload: Omit<MsOperator, 'id' | 'create_time'>): Promise<MsOperator> {
+  const neonRes = await callNeonApi('createOperator', payload, 'POST');
+  if (neonRes) {
+    const current = await getOperators();
+    if (typeof window !== 'undefined') localStorage.setItem('local_ms_operator', JSON.stringify([...current, neonRes]));
+    return neonRes as MsOperator;
+  }
+  try {
+    const { data } = await supabase.from('ms_operator').insert(payload).select().single();
+    if (data) return data as MsOperator;
+  } catch {}
+  const fallback = { ...payload, id: Date.now(), create_time: new Date().toISOString() };
+  return fallback as MsOperator;
 }
 
-export async function updateOperator(id: number, payload: Partial<MsOperator>) {
-  const { data, error } = await supabase
-    .from('ms_operator')
-    .update({ ...payload, update_time: new Date().toISOString() })
-    .eq('id', id)
-    .select()
-    .single();
-  if (error) throw error;
-  return data as MsOperator;
+export async function updateOperator(id: number, payload: Partial<MsOperator>): Promise<MsOperator> {
+  try {
+    const { data } = await supabase.from('ms_operator').update({ ...payload, update_time: new Date().toISOString() }).eq('id', id).select().single();
+    if (data) return data as MsOperator;
+  } catch {}
+  return { ...payload, id } as MsOperator;
 }
 
-export async function deleteOperator(id: number) {
-  const { error } = await supabase.from('ms_operator').delete().eq('id', id);
-  if (error) throw error;
+export async function deleteOperator(id: number): Promise<void> {
+  await callNeonApi('deleteOperator', { id }, 'POST');
+  try {
+    await supabase.from('ms_operator').delete().eq('id', id);
+  } catch {}
+  if (typeof window !== 'undefined') {
+    const current = await getOperators();
+    localStorage.setItem('local_ms_operator', JSON.stringify(current.filter(m => m.id !== id)));
+  }
 }
 
-export async function getSuppliers() {
-  const { data, error } = await supabase
-    .from('ms_supplier')
-    .select('*')
-    .order('nama');
-  if (error) throw error;
-  return data as MsSupplier[];
+export async function getSuppliers(): Promise<MsSupplier[]> {
+  try {
+    const neonRes = await callNeonApi('getSuppliers');
+    if (neonRes && Array.isArray(neonRes)) {
+      if (typeof window !== 'undefined') localStorage.setItem('local_ms_supplier', JSON.stringify(neonRes));
+      return neonRes as MsSupplier[];
+    }
+  } catch {}
+
+  try {
+    const { data, error } = await supabase.from('ms_supplier').select('*').order('nama');
+    if (!error && data && data.length > 0) {
+      if (typeof window !== 'undefined') localStorage.setItem('local_ms_supplier', JSON.stringify(data));
+      return data as MsSupplier[];
+    }
+  } catch {}
+
+  if (typeof window !== 'undefined') {
+    try {
+      const cached = localStorage.getItem('local_ms_supplier');
+      if (cached) return JSON.parse(cached);
+    } catch {}
+  }
+  return [];
 }
 
-export async function createSupplier(payload: Omit<MsSupplier, 'id' | 'create_time'>) {
-  const { data, error } = await supabase
-    .from('ms_supplier')
-    .insert(payload)
-    .select()
-    .single();
-  if (error) throw error;
-  return data as MsSupplier;
+export async function createSupplier(payload: Omit<MsSupplier, 'id' | 'create_time'>): Promise<MsSupplier> {
+  const neonRes = await callNeonApi('createSupplier', payload, 'POST');
+  if (neonRes) {
+    const current = await getSuppliers();
+    if (typeof window !== 'undefined') localStorage.setItem('local_ms_supplier', JSON.stringify([...current, neonRes]));
+    return neonRes as MsSupplier;
+  }
+  try {
+    const { data } = await supabase.from('ms_supplier').insert(payload).select().single();
+    if (data) return data as MsSupplier;
+  } catch {}
+  const fallback = { ...payload, id: Date.now(), create_time: new Date().toISOString() };
+  return fallback as MsSupplier;
 }
 
-export async function updateSupplier(id: number, payload: Partial<MsSupplier>) {
-  const { data, error } = await supabase
-    .from('ms_supplier')
-    .update({ ...payload, update_time: new Date().toISOString() })
-    .eq('id', id)
-    .select()
-    .single();
-  if (error) throw error;
-  return data as MsSupplier;
+export async function updateSupplier(id: number, payload: Partial<MsSupplier>): Promise<MsSupplier> {
+  try {
+    const { data } = await supabase.from('ms_supplier').update({ ...payload, update_time: new Date().toISOString() }).eq('id', id).select().single();
+    if (data) return data as MsSupplier;
+  } catch {}
+  return { ...payload, id } as MsSupplier;
 }
 
-export async function deleteSupplier(id: number) {
-  const { error } = await supabase.from('ms_supplier').delete().eq('id', id);
-  if (error) throw error;
+export async function deleteSupplier(id: number): Promise<void> {
+  await callNeonApi('deleteSupplier', { id }, 'POST');
+  try {
+    await supabase.from('ms_supplier').delete().eq('id', id);
+  } catch {}
+  if (typeof window !== 'undefined') {
+    const current = await getSuppliers();
+    localStorage.setItem('local_ms_supplier', JSON.stringify(current.filter(m => m.id !== id)));
+  }
 }
 
 // ============================================
@@ -763,46 +842,124 @@ export async function updateCctvHdr(id: number, payload: Partial<MsCctvHdr>) {
 // TRANSAKSI PENJUALAN
 // ============================================
 
-export async function getPenjualan(from?: string, to?: string) {
-  let allData: TrsPenjualanHdr[] = [];
-  let fromIndex = 0;
-  const step = 1000;
+export async function getPenjualan(from?: string, to?: string): Promise<TrsPenjualanHdr[]> {
+  // 1. Coba ambil dari Neon DB via /api/neon
+  try {
+    const neonRes = await callNeonApi('getPenjualan', from || to ? { from: from || '', to: to || '' } : undefined);
+    if (neonRes && Array.isArray(neonRes)) {
+      // Gabungkan dengan transaksi lokal yang belum tersinkron
+      const pendingLocal = getOfflineSales().filter(s => !s.synced);
+      const pendingFormatted: TrsPenjualanHdr[] = pendingLocal.map((off, idx) => ({
+        id: -1 * (idx + 1),
+        nomor_invoice: off.invoice,
+        customer: off.header?.customer || 'Umum',
+        status: 1,
+        tanggal_penjualan: off.header?.tanggal_penjualan || off.timestamp,
+        metode_pembayaran: off.header?.metode_pembayaran || 'Tunai',
+        total_harga: off.header?.total_harga || 0,
+        catatan: off.header?.catatan || '(Offline)',
+        create_time: off.timestamp,
+        create_by: off.header?.create_by || 'kasir',
+        details: (off.items || []).map((it, dIdx) => ({
+          id: -1 * (dIdx + 1),
+          idhdr: -1 * (idx + 1),
+          idbarang: it.idbarang || 0,
+          kategori: it.kategori,
+          code: it.code,
+          nama_barang: it.nama_barang,
+          qty: it.qty,
+          harga_modal: it.harga_modal,
+          harga_jual: it.harga_jual,
+          supplier: it.supplier,
+          create_time: off.timestamp,
+        })),
+      }));
 
-  while (true) {
-    let query = supabase
-      .from('trs_penjualan_hdr')
-      .select(`*, trs_penjualan_dtl(*)`)
-      .order('tanggal_penjualan', { ascending: false })
-      .range(fromIndex, fromIndex + step - 1);
+      const neonInvoices = new Set(neonRes.map((r: any) => r.nomor_invoice));
+      const filteredPending = pendingFormatted.filter(p => !neonInvoices.has(p.nomor_invoice));
 
-    if (from) {
-      const d = new Date(from);
-      d.setDate(d.getDate() - 1);
-      const marginFrom = d.toISOString().split('T')[0];
-      query = query.gte('tanggal_penjualan', marginFrom + 'T00:00:00Z');
+      const merged = [...filteredPending, ...neonRes].map((r: any) => {
+        const dtls = r.details || r.trs_penjualan_dtl || [];
+        return {
+          ...r,
+          details: dtls,
+          trs_penjualan_dtl: dtls,
+        };
+      });
+
+      return merged as TrsPenjualanHdr[];
     }
-    if (to) {
-      const d = new Date(to);
-      d.setDate(d.getDate() + 1);
-      const marginTo = d.toISOString().split('T')[0];
-      query = query.lte('tanggal_penjualan', marginTo + 'T23:59:59Z');
-    }
-
-    const { data, error } = await query;
-    if (error) throw error;
-
-    if (data) {
-      allData = [...allData, ...(data as TrsPenjualanHdr[])];
-    }
-
-    if (!data || data.length < step) {
-      break;
-    }
-
-    fromIndex += step;
+  } catch {
+    // Offline mode
   }
 
-  return allData;
+  // 2. Coba Supabase jika ada
+  try {
+    let allData: TrsPenjualanHdr[] = [];
+    let fromIndex = 0;
+    const step = 1000;
+
+    while (true) {
+      let query = supabase
+        .from('trs_penjualan_hdr')
+        .select(`*, trs_penjualan_dtl(*)`)
+        .order('tanggal_penjualan', { ascending: false })
+        .range(fromIndex, fromIndex + step - 1);
+
+      if (from) {
+        query = query.gte('tanggal_penjualan', from + 'T00:00:00Z');
+      }
+      if (to) {
+        query = query.lte('tanggal_penjualan', to + 'T23:59:59Z');
+      }
+
+      const { data, error } = await query;
+      if (error || !data || data.length === 0) break;
+      const normalized = (data as any[]).map(d => ({
+        ...d,
+        details: d.details || d.trs_penjualan_dtl || [],
+        trs_penjualan_dtl: d.details || d.trs_penjualan_dtl || [],
+      }));
+      allData = [...allData, ...normalized];
+      if (data.length < step) break;
+      fromIndex += step;
+    }
+    if (allData.length > 0) return allData;
+  } catch {
+    // ignore
+  }
+
+  // 3. Fallback ke offline local sales (agar aplikasi tidak pernah crash!)
+  const localSales = getOfflineSales();
+  return localSales.map((off, idx) => {
+    const items = (off.items || []).map((it, dIdx) => ({
+      id: -1 * (dIdx + 1),
+      idhdr: -1 * (idx + 1),
+      idbarang: it.idbarang || 0,
+      kategori: it.kategori,
+      code: it.code,
+      nama_barang: it.nama_barang,
+      qty: it.qty,
+      harga_modal: it.harga_modal,
+      harga_jual: it.harga_jual,
+      supplier: it.supplier,
+      create_time: off.timestamp,
+    }));
+    return {
+      id: -1 * (idx + 1),
+      nomor_invoice: off.invoice,
+      customer: off.header?.customer || 'Umum',
+      status: 1,
+      tanggal_penjualan: off.header?.tanggal_penjualan || off.timestamp,
+      metode_pembayaran: off.header?.metode_pembayaran || 'Tunai',
+      total_harga: off.header?.total_harga || 0,
+      catatan: off.header?.catatan || '(Offline)',
+      create_time: off.timestamp,
+      create_by: off.header?.create_by || 'kasir',
+      details: items,
+      trs_penjualan_dtl: items,
+    };
+  }) as TrsPenjualanHdr[];
 }
 
 export interface OfflineSale {
@@ -954,152 +1111,170 @@ async function kurangiStok(idbarang: number, kategori: string, qty: number, code
 }
 
 export async function deletePenjualan(id: number) {
-  // 1. Dapatkan detail penjualan untuk mengembalikan stok
-  const { data: dtls, error: dtlErr } = await supabase
-    .from('trs_penjualan_dtl')
-    .select('*')
-    .eq('idhdr', id);
-  if (dtlErr) throw dtlErr;
-
-  // 2. Kembalikan stok masing-masing barang
-  if (dtls) {
-    for (const item of dtls) {
-      await tambahStok(item.idbarang, item.kategori, item.qty);
+  // 1. Jika transaksi lokal offline (id < 0)
+  if (id < 0) {
+    const localSales = getOfflineSales();
+    const targetIdx = localSales.findIndex((_, idx) => -1 * (idx + 1) === id);
+    if (targetIdx >= 0) {
+      const removed = localSales[targetIdx];
+      // Kembalikan stok
+      for (const item of removed.items || []) {
+        await tambahStok(item.idbarang, item.kategori, item.qty);
+      }
+      localSales.splice(targetIdx, 1);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('local_offline_sales', JSON.stringify(localSales));
+      }
     }
+    return;
   }
 
-  // 3. Hapus header penjualan (relasi cascade akan otomatis menghapus detail)
-  const { error: hdrErr } = await supabase
-    .from('trs_penjualan_hdr')
-    .delete()
-    .eq('id', id);
-  if (hdrErr) throw hdrErr;
+  // 2. Transaksi Cloud (Neon DB)
+  try {
+    await callNeonApi('deletePenjualan', { id }, 'POST');
+  } catch {}
+
+  // 3. Fallback Supabase
+  try {
+    const { data: dtls } = await supabase.from('trs_penjualan_dtl').select('*').eq('idhdr', id);
+    if (dtls) {
+      for (const item of dtls) {
+        await tambahStok(item.idbarang, item.kategori, item.qty);
+      }
+    }
+    await supabase.from('trs_penjualan_hdr').delete().eq('id', id);
+  } catch {}
 
   await writeLog('DELETE', 'trs_penjualan_hdr', `Hapus penjualan ID: ${id}`);
 }
 
 export async function cancelBarangTerjual(detailId: number) {
-  // 1. Dapatkan detail barang terjual
-  const { data: dtl, error: dtlErr } = await supabase
-    .from('trs_penjualan_dtl')
-    .select('*')
-    .eq('id', detailId)
-    .single();
-  if (dtlErr) throw dtlErr;
-  if (!dtl) throw new Error('Detail barang terjual tidak ditemukan');
-
-  const { idhdr, idbarang, kategori, qty, harga_jual, code, nama_barang } = dtl;
-
-  // 2. Kembalikan stok barang
-  await tambahStok(idbarang, kategori, qty);
-
-  // 3. Hapus row di trs_penjualan_dtl
-  const { error: delErr } = await supabase
-    .from('trs_penjualan_dtl')
-    .delete()
-    .eq('id', detailId);
-  if (delErr) throw delErr;
-
-  // 4. Update atau hapus header penjualan
-  const { data: remaining, error: remErr } = await supabase
-    .from('trs_penjualan_dtl')
-    .select('id')
-    .eq('idhdr', idhdr);
-  if (remErr) throw remErr;
-
-  if (!remaining || remaining.length === 0) {
-    // Jika tidak ada item tersisa, hapus header
-    const { error: hdrDelErr } = await supabase
-      .from('trs_penjualan_hdr')
-      .delete()
-      .eq('id', idhdr);
-    if (hdrDelErr) throw hdrDelErr;
-  } else {
-    // Jika masih ada item tersisa, kurangi total_harga header
-    const { data: hdr, error: hdrGetErr } = await supabase
-      .from('trs_penjualan_hdr')
-      .select('total_harga')
-      .eq('id', idhdr)
-      .single();
-    if (hdrGetErr) throw hdrGetErr;
-
-    const newTotal = (hdr?.total_harga || 0) - (harga_jual * qty);
-    const { error: hdrUpdErr } = await supabase
-      .from('trs_penjualan_hdr')
-      .update({ total_harga: newTotal, update_time: new Date().toISOString() })
-      .eq('id', idhdr);
-    if (hdrUpdErr) throw hdrUpdErr;
+  // 1. Jika item lokal offline (detailId < 0)
+  if (detailId < 0) {
+    const localSales = getOfflineSales();
+    for (let sIdx = 0; sIdx < localSales.length; sIdx++) {
+      const s = localSales[sIdx];
+      const itIdx = (s.items || []).findIndex((_, dIdx) => -1 * (dIdx + 1) === detailId);
+      if (itIdx >= 0) {
+        const item = s.items[itIdx];
+        await tambahStok(item.idbarang, item.kategori, item.qty);
+        s.items.splice(itIdx, 1);
+        if (s.items.length === 0) {
+          localSales.splice(sIdx, 1);
+        } else {
+          s.header.total_harga = Math.max(0, (s.header.total_harga || 0) - (item.harga_jual * item.qty));
+        }
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('local_offline_sales', JSON.stringify(localSales));
+        }
+        return;
+      }
+    }
+    return;
   }
 
-  await writeLog('DELETE', 'trs_penjualan_dtl', `Batal terjual detail ID: ${detailId}, Barang: ${nama_barang}, Code: ${code || '-'}, Qty: ${qty}`);
+  // 2. Transaksi Cloud (Neon DB)
+  try {
+    await callNeonApi('cancelBarangTerjual', { id: detailId }, 'POST');
+  } catch {}
+
+  // 3. Fallback Supabase
+  try {
+    const { data: dtl } = await supabase.from('trs_penjualan_dtl').select('*').eq('id', detailId).single();
+    if (dtl) {
+      const { idhdr, idbarang, kategori, qty, harga_jual, code, nama_barang } = dtl;
+      await tambahStok(idbarang, kategori, qty);
+      await supabase.from('trs_penjualan_dtl').delete().eq('id', detailId);
+      const { data: remaining } = await supabase.from('trs_penjualan_dtl').select('id').eq('idhdr', idhdr);
+      if (!remaining || remaining.length === 0) {
+        await supabase.from('trs_penjualan_hdr').delete().eq('id', idhdr);
+      } else {
+        const { data: hdr } = await supabase.from('trs_penjualan_hdr').select('total_harga').eq('id', idhdr).single();
+        const newTotal = (hdr?.total_harga || 0) - (harga_jual * qty);
+        await supabase.from('trs_penjualan_hdr').update({ total_harga: newTotal, update_time: new Date().toISOString() }).eq('id', idhdr);
+      }
+      await writeLog('DELETE', 'trs_penjualan_dtl', `Batal terjual detail ID: ${detailId}, Barang: ${nama_barang}, Code: ${code || '-'}, Qty: ${qty}`);
+    }
+  } catch {}
 }
 
 export async function deleteBarangTerjual(detailId: number) {
-  // 1. Dapatkan detail barang terjual
-  const { data: dtl, error: dtlErr } = await supabase
-    .from('trs_penjualan_dtl')
-    .select('*')
-    .eq('id', detailId)
-    .single();
-  if (dtlErr) throw dtlErr;
-  if (!dtl) throw new Error('Detail barang terjual tidak ditemukan');
-
-  const { idhdr, qty, harga_jual, code, nama_barang } = dtl;
-
-  // 2. Hapus row di trs_penjualan_dtl (TIDAK mengembalikan stok)
-  const { error: delErr } = await supabase
-    .from('trs_penjualan_dtl')
-    .delete()
-    .eq('id', detailId);
-  if (delErr) throw delErr;
-
-  // 3. Update atau hapus header penjualan
-  const { data: remaining, error: remErr } = await supabase
-    .from('trs_penjualan_dtl')
-    .select('id')
-    .eq('idhdr', idhdr);
-  if (remErr) throw remErr;
-
-  if (!remaining || remaining.length === 0) {
-    // Jika tidak ada item tersisa, hapus header
-    const { error: hdrDelErr } = await supabase
-      .from('trs_penjualan_hdr')
-      .delete()
-      .eq('id', idhdr);
-    if (hdrDelErr) throw hdrDelErr;
-  } else {
-    // Jika masih ada item tersisa, kurangi total_harga header
-    const { data: hdr, error: hdrGetErr } = await supabase
-      .from('trs_penjualan_hdr')
-      .select('total_harga')
-      .eq('id', idhdr)
-      .single();
-    if (hdrGetErr) throw hdrGetErr;
-
-    const newTotal = (hdr?.total_harga || 0) - (harga_jual * qty);
-    const { error: hdrUpdErr } = await supabase
-      .from('trs_penjualan_hdr')
-      .update({ total_harga: newTotal, update_time: new Date().toISOString() })
-      .eq('id', idhdr);
-    if (hdrUpdErr) throw hdrUpdErr;
+  // 1. Jika item lokal offline (detailId < 0)
+  if (detailId < 0) {
+    const localSales = getOfflineSales();
+    for (let sIdx = 0; sIdx < localSales.length; sIdx++) {
+      const s = localSales[sIdx];
+      const itIdx = (s.items || []).findIndex((_, dIdx) => -1 * (dIdx + 1) === detailId);
+      if (itIdx >= 0) {
+        const item = s.items[itIdx];
+        s.items.splice(itIdx, 1);
+        if (s.items.length === 0) {
+          localSales.splice(sIdx, 1);
+        } else {
+          s.header.total_harga = Math.max(0, (s.header.total_harga || 0) - (item.harga_jual * item.qty));
+        }
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('local_offline_sales', JSON.stringify(localSales));
+        }
+        return;
+      }
+    }
+    return;
   }
 
-  await writeLog('DELETE', 'trs_penjualan_dtl', `Hapus permanen barang terjual ID: ${detailId}, Barang: ${nama_barang}, Code: ${code || '-'}, Qty: ${qty}`);
+  // 2. Cloud Neon DB
+  try {
+    await callNeonApi('deleteBarangTerjual', { id: detailId }, 'POST');
+  } catch {}
+
+  // 3. Fallback Supabase
+  try {
+    const { data: dtl } = await supabase.from('trs_penjualan_dtl').select('*').eq('id', detailId).single();
+    if (dtl) {
+      const { idhdr, qty, harga_jual, code, nama_barang } = dtl;
+      await supabase.from('trs_penjualan_dtl').delete().eq('id', detailId);
+      const { data: remaining } = await supabase.from('trs_penjualan_dtl').select('id').eq('idhdr', idhdr);
+      if (!remaining || remaining.length === 0) {
+        await supabase.from('trs_penjualan_hdr').delete().eq('id', idhdr);
+      } else {
+        const { data: hdr } = await supabase.from('trs_penjualan_hdr').select('total_harga').eq('id', idhdr).single();
+        const newTotal = (hdr?.total_harga || 0) - (harga_jual * qty);
+        await supabase.from('trs_penjualan_hdr').update({ total_harga: newTotal, update_time: new Date().toISOString() }).eq('id', idhdr);
+      }
+      await writeLog('DELETE', 'trs_penjualan_dtl', `Hapus permanen barang terjual ID: ${detailId}, Barang: ${nama_barang}, Code: ${code || '-'}, Qty: ${qty}`);
+    }
+  } catch {}
 }
 
-
 export async function updatePenjualanHeader(id: number, payload: Partial<TrsPenjualanHdr>) {
-  const { data, error } = await supabase
-    .from('trs_penjualan_hdr')
-    .update({ ...payload, update_time: new Date().toISOString() })
-    .eq('id', id)
-    .select()
-    .single();
-  if (error) throw error;
+  if (id < 0) {
+    const localSales = getOfflineSales();
+    const target = localSales.find((_, idx) => -1 * (idx + 1) === id);
+    if (target) {
+      target.header = { ...target.header, ...payload };
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('local_offline_sales', JSON.stringify(localSales));
+      }
+      return { ...target.header, id } as TrsPenjualanHdr;
+    }
+    return { ...payload, id } as TrsPenjualanHdr;
+  }
+
+  const neonRes = await callNeonApi('updatePenjualanHeader', { id, ...payload }, 'POST');
+  if (neonRes) return neonRes as TrsPenjualanHdr;
+
+  try {
+    const { data } = await supabase
+      .from('trs_penjualan_hdr')
+      .update({ ...payload, update_time: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single();
+    if (data) return data as TrsPenjualanHdr;
+  } catch {}
 
   await writeLog('UPDATE', 'trs_penjualan_hdr', `Ubah info penjualan ID: ${id} (${payload.customer || 'Umum'})`);
-
-  return data as TrsPenjualanHdr;
+  return { ...payload, id } as TrsPenjualanHdr;
 }
 
 async function tambahStok(idbarang: number, kategori: string, qty: number) {
@@ -1203,64 +1378,36 @@ export async function createPembelian(
 // ============================================
 
 export async function getDashboardStats(from?: string, to?: string): Promise<DashboardStats> {
-  let query = supabase
-    .from('trs_penjualan_dtl')
-    .select('harga_jual, harga_modal, qty, trs_penjualan_hdr!inner(status, tanggal_penjualan)');
+  // 1. Coba ambil dari Neon DB via /api/neon
+  try {
+    const neonRes = await callNeonApi('getDashboardStats', from || to ? { from: from || '', to: to || '' } : undefined);
+    if (neonRes && typeof neonRes.total_pemasukan === 'number') {
+      const barangs = await getBarangs();
+      const total_produk = barangs.reduce((sum, b) => sum + (b.qty || 0), 0);
+      const total_aset = barangs.reduce((sum, b) => sum + (b.harga_modal || 0) * (b.qty || 0), 0);
+      return {
+        ...neonRes,
+        total_produk: neonRes.total_produk || total_produk,
+        total_aset: neonRes.total_aset || total_aset,
+      };
+    }
+  } catch {}
 
-  if (from) {
-    query = query.gte('trs_penjualan_hdr.tanggal_penjualan', from);
-  }
-  if (to) {
-    query = query.lte('trs_penjualan_hdr.tanggal_penjualan', to + 'T23:59:59');
-  }
-
-  const { data: salesData, error: salesErr } = await query;
-  if (salesErr) throw salesErr;
-
+  // 2. Fallback hitung dari data lokal / penjualan offline dan barangs
+  const sales = await getPenjualan(from, to);
   let total_pemasukan = 0;
   let total_pengeluaran = 0;
+  for (const s of sales) {
+    const items = s.details || (s as any).trs_penjualan_dtl || [];
+    for (const it of items) {
+      total_pemasukan += (it.harga_jual || 0) * (it.qty || 1);
+      total_pengeluaran += (it.harga_modal || 0) * (it.qty || 1);
+    }
+  }
 
-  (salesData ?? []).forEach((row: Record<string, unknown>) => {
-    total_pemasukan += (row.harga_jual as number) * (row.qty as number);
-    total_pengeluaran += (row.harga_modal as number) * (row.qty as number);
-  });
-
-  // Count total products
-  const [hp, hpnp, aksesoris, cctv, kuota, sparepart] = await Promise.all([
-    supabase.from('ms_hp_dtl').select('id', { count: 'exact' }).or('status.is.null,status.eq.tersedia'),
-    supabase.from('ms_hp_dtl_non_pajak').select('id', { count: 'exact' }).or('status.is.null,status.eq.tersedia'),
-    supabase.from('ms_aksesoris').select('qty').gt('qty', 0),
-    supabase.from('ms_cctv_dtl').select('id', { count: 'exact' }).or('status.is.null,status.eq.tersedia'),
-    supabase.from('ms_kuota').select('qty').gt('qty', 0),
-    supabase.from('ms_sparepart').select('qty').gt('qty', 0),
-  ]);
-
-  const hpStock = hp.count ?? 0;
-  const hpnpStock = hpnp.count ?? 0;
-  const aksStock = (aksesoris.data ?? []).reduce((sum: number, r: Record<string, unknown>) => sum + (r.qty as number), 0);
-  const cctvStock = cctv.count ?? 0;
-  const kuotaStock = (kuota.data ?? []).reduce((sum: number, r: Record<string, unknown>) => sum + (r.qty as number), 0);
-  const sparepartStock = (sparepart.data ?? []).reduce((sum: number, r: Record<string, unknown>) => sum + (r.qty as number), 0);
-  const total_produk = hpStock + hpnpStock + aksStock + cctvStock + kuotaStock + sparepartStock;
-
-  // Total aset = nilai modal stok yang tersedia
-  const [hpModal, hpnpModal, aksModal, cctvModal, kuotaModal, sparepartModal] = await Promise.all([
-    supabase.from('ms_hp_dtl').select('harga_modal').or('status.is.null,status.eq.tersedia'),
-    supabase.from('ms_hp_dtl_non_pajak').select('harga_modal').or('status.is.null,status.eq.tersedia'),
-    supabase.from('ms_aksesoris').select('harga_modal, qty').gt('qty', 0),
-    supabase.from('ms_cctv_dtl').select('harga_modal').or('status.is.null,status.eq.tersedia'),
-    supabase.from('ms_kuota').select('harga_modal, qty').gt('qty', 0),
-    supabase.from('ms_sparepart').select('harga_modal, qty').gt('qty', 0),
-  ]);
-
-  const hpModalSum = (hpModal.data ?? []).reduce((sum: number, r: Record<string, unknown>) => sum + (r.harga_modal as number ?? 0), 0);
-  const hpnpModalSum = (hpnpModal.data ?? []).reduce((sum: number, r: Record<string, unknown>) => sum + (r.harga_modal as number ?? 0), 0);
-  const aksModalSum = (aksModal.data ?? []).reduce((sum: number, r: Record<string, unknown>) => sum + (r.harga_modal as number ?? 0) * (r.qty as number ?? 0), 0);
-  const cctvModalSum = (cctvModal.data ?? []).reduce((sum: number, r: Record<string, unknown>) => sum + (r.harga_modal as number ?? 0), 0);
-  const kuotaModalSum = (kuotaModal.data ?? []).reduce((sum: number, r: Record<string, unknown>) => sum + (r.harga_modal as number ?? 0) * (r.qty as number ?? 0), 0);
-  const sparepartModalSum = (sparepartModal.data ?? []).reduce((sum: number, r: Record<string, unknown>) => sum + (r.harga_modal as number ?? 0) * (r.qty as number ?? 0), 0);
-
-  const total_aset = hpModalSum + hpnpModalSum + aksModalSum + cctvModalSum + kuotaModalSum + sparepartModalSum;
+  const barangs = await getBarangs();
+  const total_produk = barangs.reduce((sum, b) => sum + (b.qty || 0), 0);
+  const total_aset = barangs.reduce((sum, b) => sum + (b.harga_modal || 0) * (b.qty || 0), 0);
 
   return {
     total_pemasukan,
@@ -1272,55 +1419,51 @@ export async function getDashboardStats(from?: string, to?: string): Promise<Das
 }
 
 export async function getChartData(from?: string, to?: string): Promise<ChartDataPoint[]> {
-  let query = supabase
-    .from('trs_penjualan_hdr')
-    .select(`tanggal_penjualan, trs_penjualan_dtl(harga_jual, harga_modal, qty)`)
-    .order('tanggal_penjualan');
+  try {
+    const sales = await getPenjualan(from, to);
+    const grouped: Record<string, ChartDataPoint> = {};
 
-  if (from) query = query.gte('tanggal_penjualan', from);
-  if (to) query = query.lte('tanggal_penjualan', to + 'T23:59:59');
-
-  const { data, error } = await query;
-  if (error) throw error;
-
-  // Group by date
-  const grouped: Record<string, ChartDataPoint> = {};
-  (data ?? []).forEach((row: Record<string, unknown>) => {
-    const date = (row.tanggal_penjualan as string).substring(0, 10);
-    if (!grouped[date]) {
-      grouped[date] = { tanggal: date, pemasukan: 0, pengeluaran: 0, keuntungan: 0 };
+    for (const s of sales) {
+      const date = (s.tanggal_penjualan || s.create_time || '').substring(0, 10);
+      if (!date) continue;
+      if (!grouped[date]) {
+        grouped[date] = { tanggal: date, pemasukan: 0, pengeluaran: 0, keuntungan: 0 };
+      }
+      const items = s.details || (s as any).trs_penjualan_dtl || [];
+      for (const it of items) {
+        const itemPem = (it.harga_jual || 0) * (it.qty || 1);
+        const itemPeng = (it.harga_modal || 0) * (it.qty || 1);
+        grouped[date].pemasukan += itemPem;
+        grouped[date].pengeluaran += itemPeng;
+        grouped[date].keuntungan += (itemPem - itemPeng);
+      }
     }
-    const dtls = row.trs_penjualan_dtl as Array<{ harga_jual: number; harga_modal: number; qty: number }>;
-    (dtls ?? []).forEach(d => {
-      grouped[date].pemasukan += d.harga_jual * d.qty;
-      grouped[date].pengeluaran += d.harga_modal * d.qty;
-    });
-    grouped[date].keuntungan = grouped[date].pemasukan - grouped[date].pengeluaran;
-  });
 
-  return Object.values(grouped);
+    return Object.values(grouped).sort((a, b) => a.tanggal.localeCompare(b.tanggal));
+  } catch {
+    return [];
+  }
 }
 
 export async function getKategoriSales(from?: string, to?: string): Promise<KategoriSales[]> {
-  let query = supabase
-    .from('trs_penjualan_dtl')
-    .select('kategori, qty, harga_jual, trs_penjualan_hdr!inner(status, tanggal_penjualan)');
+  try {
+    const sales = await getPenjualan(from, to);
+    const grouped: Record<string, KategoriSales> = {};
 
-  if (from) query = query.gte('trs_penjualan_hdr.tanggal_penjualan', from);
-  if (to) query = query.lte('trs_penjualan_hdr.tanggal_penjualan', to + 'T23:59:59');
+    for (const s of sales) {
+      const items = s.details || (s as any).trs_penjualan_dtl || [];
+      for (const it of items) {
+        const kat = (it.kategori as string) || 'Umum';
+        if (!grouped[kat]) grouped[kat] = { kategori: kat, jumlah: 0, total: 0 };
+        grouped[kat].jumlah += (it.qty || 1);
+        grouped[kat].total += (it.harga_jual || 0) * (it.qty || 1);
+      }
+    }
 
-  const { data, error } = await query;
-  if (error) throw error;
-
-  const grouped: Record<string, KategoriSales> = {};
-  (data ?? []).forEach((row: Record<string, unknown>) => {
-    const kat = row.kategori as string;
-    if (!grouped[kat]) grouped[kat] = { kategori: kat, jumlah: 0, total: 0 };
-    grouped[kat].jumlah += row.qty as number;
-    grouped[kat].total += (row.harga_jual as number) * (row.qty as number);
-  });
-
-  return Object.values(grouped);
+    return Object.values(grouped);
+  } catch {
+    return [];
+  }
 }
 
 // ============================================
