@@ -36,6 +36,37 @@ export const DEMO_ACCOUNTS_PUBLIC = DEMO_ACCOUNTS.map(a => ({
   is_active: true,
 }));
 
+async function callNeonLogin(username: string, password: string): Promise<AuthUser | null> {
+  if (typeof window === 'undefined') return null;
+  try {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 6000);
+    const res = await fetch('/api/neon', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'login',
+        payload: { username, password },
+      }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    if (!res.ok) return null;
+    const json = await res.json();
+    if (json.ok && json.data) {
+      return {
+        id: Number(json.data.id),
+        username: json.data.username,
+        nama_lengkap: json.data.nama_lengkap,
+        role: json.data.role as Role,
+      };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 function getStoredUsersFallback(): any[] {
   if (typeof window === 'undefined') return DEMO_ACCOUNTS;
   const stored = localStorage.getItem('series_ponsel_users');
@@ -45,7 +76,17 @@ function getStoredUsersFallback(): any[] {
     return initial;
   }
   try {
-    return JSON.parse(stored);
+    const parsed = JSON.parse(stored);
+    if (Array.isArray(parsed) && parsed.length > 0) {
+      return parsed.map(u => {
+        const demo = DEMO_ACCOUNTS.find(d => d.username.toLowerCase() === (u.username || '').toLowerCase());
+        return {
+          ...u,
+          password: u.password || u.password_hash || demo?.password || 'admin123',
+        };
+      });
+    }
+    return DEMO_ACCOUNTS.map(a => ({ ...a, is_active: true }));
   } catch {
     return DEMO_ACCOUNTS.map(a => ({ ...a, is_active: true }));
   }
@@ -55,7 +96,7 @@ function loginFallback(username: string, password: string): AuthUser | null {
   const users = getStoredUsersFallback();
   const account = users.find(
     a => a.username.toLowerCase() === username.toLowerCase() && 
-         a.password === password && 
+         (a.password === password || a.password_hash === password) && 
          a.is_active !== false
   );
   if (!account) return null;
@@ -75,36 +116,24 @@ function loginFallback(username: string, password: string): AuthUser | null {
 }
 
 export async function login(username: string, password: string): Promise<AuthUser | null> {
+  const uname = (username || '').trim();
+  const pass = (password || '').trim();
+
+  // 1. Prioritas Utama: Autentikasi langsung ke Cloud Database Neon
   try {
-    const { data, error } = await supabase
-      .from('ms_user')
-      .select('*')
-      .eq('username', username)
-      .single();
-
-    if (error || !data) {
-      return loginFallback(username, password);
+    const neonUser = await callNeonLogin(uname, pass);
+    if (neonUser) {
+      if (typeof window !== 'undefined') {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(neonUser));
+      }
+      return neonUser;
     }
-
-    if (data.password !== password || !data.is_active) {
-      return null;
-    }
-
-    const user: AuthUser = {
-      id: Number(data.id),
-      username: data.username,
-      nama_lengkap: data.nama_lengkap,
-      role: data.role as Role,
-    };
-
-    if (typeof window !== 'undefined') {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-    }
-
-    return user;
-  } catch (e) {
-    return loginFallback(username, password);
+  } catch (err) {
+    console.warn('Neon DB login error, mencoba fallback:', err);
   }
+
+  // 2. Fallback offline atau local storage
+  return loginFallback(uname, pass);
 }
 
 export function logout() {

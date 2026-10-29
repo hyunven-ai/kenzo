@@ -561,6 +561,61 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true });
     }
 
+    // --- AUTHENTICATION LOGIN DENGAN NEON DB ---
+    if (action === 'login') {
+      const username = (payload?.username || '').trim();
+      const password = (payload?.password || '').trim();
+
+      if (!username || !password) {
+        return NextResponse.json({ ok: false, error: 'Username dan password wajib diisi' }, { status: 400 });
+      }
+
+      const rows = await sql`
+        SELECT id, username, nama_lengkap, password_hash, role, is_active
+        FROM public.ms_user
+        WHERE LOWER(username) = LOWER(${username})
+        LIMIT 1;
+      `;
+
+      if (rows.length === 0) {
+        return NextResponse.json({ ok: false, error: 'Username atau password salah' }, { status: 401 });
+      }
+
+      const user = rows[0];
+
+      if (!user.is_active) {
+        return NextResponse.json({ ok: false, error: 'Akun dinonaktifkan. Hubungi Administrator.' }, { status: 403 });
+      }
+
+      // Validasi password terhadap password_hash
+      if (user.password_hash !== password) {
+        return NextResponse.json({ ok: false, error: 'Username atau password salah' }, { status: 401 });
+      }
+
+      // Catat waktu login terakhir
+      try {
+        await sql`UPDATE public.ms_user SET last_login = now() WHERE id = ${user.id};`;
+      } catch {}
+
+      // Catat ke audit trail log aktivitas
+      try {
+        await sql`
+          INSERT INTO public.log_aktivitas (username, aksi, tabel, detail, waktu)
+          VALUES (${user.username}, 'LOGIN', 'ms_user', ${'User @' + user.username + ' berhasil login (' + user.role + ')'}, now());
+        `;
+      } catch {}
+
+      return NextResponse.json({
+        ok: true,
+        data: {
+          id: user.id,
+          username: user.username,
+          nama_lengkap: user.nama_lengkap,
+          role: user.role,
+        },
+      });
+    }
+
     return NextResponse.json({ ok: false, error: 'Aksi POST tidak dikenali' }, { status: 400 });
   } catch (err: unknown) {
     console.error('Neon API POST Error:', err);
