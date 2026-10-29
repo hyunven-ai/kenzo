@@ -691,11 +691,16 @@ export default function BarcodePage() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))', gap: 20, alignItems: 'start' }}>
           {/* Kolom Kiri: Live Visual Sticker Preview */}
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, background: 'var(--bg-elevated)', padding: 16, borderRadius: 12 }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', flexWrap: 'wrap', gap: 6 }}>
               <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)' }}>👁️ LIVE PREVIEW STIKER</span>
-              <span style={{ fontSize: 11, background: 'rgba(34, 197, 94, 0.15)', color: '#4ade80', padding: '2px 8px', borderRadius: 6, fontWeight: 700 }}>
-                {settings.widthMm} × {settings.heightMm} mm
-              </span>
+              <div style={{ display: 'flex', gap: 6 }}>
+                <span style={{ fontSize: 11, background: 'rgba(34, 197, 94, 0.15)', color: '#4ade80', padding: '2px 8px', borderRadius: 6, fontWeight: 700 }}>
+                  {settings.widthMm} × {settings.heightMm} mm
+                </span>
+                <span style={{ fontSize: 11, background: settings.paperMode === 'continuous_receipt' ? 'rgba(59, 130, 246, 0.15)' : 'rgba(234, 179, 8, 0.15)', color: settings.paperMode === 'continuous_receipt' ? '#60a5fa' : '#facc15', padding: '2px 8px', borderRadius: 6, fontWeight: 700 }}>
+                  {settings.paperMode === 'continuous_receipt' ? '🧾 Kertas Kasir' : '🏷️ Roll Stiker'}
+                </span>
+              </div>
             </div>
 
             {/* Authentic Thermal Label Sticker Preview */}
@@ -763,14 +768,118 @@ export default function BarcodePage() {
                   💡 <strong>Mode Atur Format:</strong> Menampilkan contoh stiker. Anda bisa menyimpan pengaturan ini atau melakukan tes cetak 1 lembar.
                 </div>
               )}
-              <div style={{ marginTop: 8, fontSize: 11, opacity: 0.9 }}>
-                Printer Thermal: Pastikan ukuran kertas di dialog browser diset ke <strong>{settings.widthMm}×{settings.heightMm}mm</strong> dan Margin ke <strong>None</strong>.
+              <div style={{ marginTop: 8, fontSize: 11, color: '#1e3a8a', background: 'rgba(255,255,255,0.7)', padding: '6px 8px', borderRadius: 6 }}>
+                📌 <strong>Agar Hasil Tidak Miring / Boros Kertas:</strong><br />
+                {settings.paperMode === 'continuous_receipt' ? (
+                  <span>✅ Mode <strong>Kertas Kasir Continuous</strong> aktif: Barcode dicetak beruntun rapat tanpa loncat halaman kosong.</span>
+                ) : (
+                  <span>✅ Mode <strong>Roll Stiker</strong> aktif: Mencetak 1 lembar per stiker untuk printer stiker kupas berjarak/gap.</span>
+                )}
+                <div style={{ marginTop: 4, fontWeight: 600 }}>
+                  Pastikan di dialog cetak: <strong>Tata Letak = Potret (Portrait)</strong> &amp; <strong>Margin = Tidak Ada (None)</strong>.
+                </div>
               </div>
             </div>
           </div>
 
           {/* Kolom Kanan: Pengaturan Ukuran & Elemen */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            {/* Mode Kertas Printer */}
+            <div>
+              <label className="form-label" style={{ fontWeight: 700, marginBottom: 8, display: 'block', fontSize: 13 }}>
+                🖨️ Jenis Kertas / Printer Anda:
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <button
+                  type="button"
+                  onClick={() => handleUpdateSetting('paperMode', 'continuous_receipt')}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: 8,
+                    border: `1.5px solid ${settings.paperMode === 'continuous_receipt' ? '#22c55e' : 'var(--border-medium)'}`,
+                    background: settings.paperMode === 'continuous_receipt' ? 'rgba(34, 197, 94, 0.12)' : 'var(--bg-card)',
+                    color: settings.paperMode === 'continuous_receipt' ? '#4ade80' : 'var(--text-primary)',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <div style={{ fontWeight: 700, fontSize: 12 }}>🧾 Kertas Struk Kasir (Continuous)</div>
+                  <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 2 }}>
+                    Hemat kertas! Rapat bersambung tanpa loncat halaman kosong (POS-58 / POS-80)
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleUpdateSetting('paperMode', 'roll_sticker')}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: 8,
+                    border: `1.5px solid ${settings.paperMode === 'roll_sticker' ? '#22c55e' : 'var(--border-medium)'}`,
+                    background: settings.paperMode === 'roll_sticker' ? 'rgba(34, 197, 94, 0.12)' : 'var(--bg-card)',
+                    color: settings.paperMode === 'roll_sticker' ? '#4ade80' : 'var(--text-primary)',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <div style={{ fontWeight: 700, fontSize: 12 }}>🏷️ Roll Stiker (Per Lembar)</div>
+                  <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 2 }}>
+                    Untuk kertas stiker kupas dengan sensor gap (40×30, 50×30mm)
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            {/* Arah Cetak (Orientasi) */}
+            <div>
+              <label className="form-label" style={{ fontWeight: 700, marginBottom: 8, display: 'block', fontSize: 13 }}>
+                🔄 Arah Cetak (Orientasi):
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <button
+                  type="button"
+                  onClick={() => handleUpdateSetting('orientation', 'portrait')}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: 8,
+                    border: `1.5px solid ${settings.orientation !== 'landscape' ? '#22c55e' : 'var(--border-medium)'}`,
+                    background: settings.orientation !== 'landscape' ? 'rgba(34, 197, 94, 0.12)' : 'var(--bg-card)',
+                    color: settings.orientation !== 'landscape' ? '#4ade80' : 'var(--text-primary)',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <div style={{ fontWeight: 700, fontSize: 12 }}>📱 Tegak (Portrait) — Rekomendasi</div>
+                  <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 2 }}>
+                    Standar printer thermal (Cegah browser memutar hasil cetak)
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => handleUpdateSetting('orientation', 'landscape')}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: 8,
+                    border: `1.5px solid ${settings.orientation === 'landscape' ? '#22c55e' : 'var(--border-medium)'}`,
+                    background: settings.orientation === 'landscape' ? 'rgba(34, 197, 94, 0.12)' : 'var(--bg-card)',
+                    color: settings.orientation === 'landscape' ? '#4ade80' : 'var(--text-primary)',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <div style={{ fontWeight: 700, fontSize: 12 }}>🖥️ Mendatar (Landscape)</div>
+                  <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 2 }}>
+                    Hanya jika printer memerlukan orientasi mendatar
+                  </div>
+                </button>
+              </div>
+            </div>
+
             {/* Preset Buttons */}
             <div>
               <label className="form-label" style={{ fontWeight: 700, marginBottom: 8, display: 'block', fontSize: 13 }}>

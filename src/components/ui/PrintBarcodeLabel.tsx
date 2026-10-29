@@ -66,6 +66,9 @@ export default function PrintBarcodeLabel({
   const priceFontSize = isMini ? 8.5 : heightMm <= 30 ? 11 : 13;
   const codeFontSize = isMini ? 7 : 8.5;
 
+  const isContinuous = settings.paperMode === 'continuous_receipt';
+  const isLandscape = settings.orientation === 'landscape';
+
   const content = (
     <div id="print-barcode-portal">
       <style>{`
@@ -76,7 +79,7 @@ export default function PrintBarcodeLabel({
         }
         @media print {
           @page {
-            size: ${widthMm}mm ${heightMm}mm;
+            ${isLandscape ? 'size: landscape;' : 'size: portrait;'}
             margin: 0 !important;
           }
           html, body {
@@ -84,26 +87,40 @@ export default function PrintBarcodeLabel({
             padding: 0 !important;
             background: #ffffff !important;
             color: #000000 !important;
-            width: ${widthMm}mm !important;
+            width: 100% !important;
           }
           /* Hide regular application layout during label printing */
           .app-shell, .app-sidebar, .app-header, .app-main, .page-header, .pos-layout, .card, .modal-backdrop, .mobile-bottom-nav {
             display: none !important;
           }
           #print-barcode-portal {
-            display: block !important;
-            width: ${widthMm}mm !important;
-            margin: 0 !important;
+            display: flex !important;
+            flex-direction: column !important;
+            align-items: center !important;
+            width: 100% !important;
+            margin: 0 auto !important;
             padding: 0 !important;
           }
           .thermal-label-page {
             width: ${widthMm}mm !important;
-            height: ${heightMm}mm !important;
             max-width: ${widthMm}mm !important;
-            max-height: ${heightMm}mm !important;
-            page-break-after: always !important;
-            break-after: page !important;
-            page-break-inside: avoid !important;
+            ${isContinuous
+              ? `min-height: ${heightMm}mm !important;
+                 height: auto !important;
+                 page-break-after: avoid !important;
+                 break-after: avoid !important;
+                 page-break-inside: avoid !important;
+                 break-inside: avoid !important;
+                 border-bottom: 1px dashed #666666 !important;
+                 margin-bottom: ${settings.gapMm || 2}mm !important;`
+              : `height: ${heightMm}mm !important;
+                 max-height: ${heightMm}mm !important;
+                 page-break-after: always !important;
+                 break-after: page !important;
+                 page-break-inside: avoid !important;
+                 break-inside: avoid !important;
+                 margin: 0 auto !important;`
+            }
             box-sizing: border-box !important;
             padding: 1.5mm 2mm !important;
             display: flex !important;
@@ -118,6 +135,8 @@ export default function PrintBarcodeLabel({
           .thermal-label-page:last-child {
             page-break-after: avoid !important;
             break-after: avoid !important;
+            border-bottom: none !important;
+            margin-bottom: 0 !important;
           }
         }
       `}</style>

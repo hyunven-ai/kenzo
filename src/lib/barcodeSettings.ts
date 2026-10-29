@@ -17,6 +17,9 @@ export const BARCODE_LABEL_PRESETS: BarcodeLabelPreset[] = [
   { id: 'custom', name: 'Kustom (Bebas mm)', widthMm: 40, heightMm: 30, description: 'Tentukan lebar & tinggi sendiri' },
 ];
 
+export type BarcodePrintPaperMode = 'roll_sticker' | 'continuous_receipt';
+export type BarcodeOrientation = 'portrait' | 'landscape';
+
 export interface BarcodeLabelSettings {
   presetId: string;
   widthMm: number;
@@ -28,6 +31,8 @@ export interface BarcodeLabelSettings {
   showBarcodeText: boolean;
   barcodeFormat: 'CODE128' | 'EAN13' | 'CODE39';
   gapMm: number;
+  paperMode: BarcodePrintPaperMode;
+  orientation: BarcodeOrientation;
 }
 
 export const DEFAULT_BARCODE_LABEL_SETTINGS: BarcodeLabelSettings = {
@@ -41,6 +46,8 @@ export const DEFAULT_BARCODE_LABEL_SETTINGS: BarcodeLabelSettings = {
   showBarcodeText: true,
   barcodeFormat: 'CODE128',
   gapMm: 2,
+  paperMode: 'roll_sticker',
+  orientation: 'portrait',
 };
 
 const STORAGE_KEY = 'series_barcode_label_settings';
