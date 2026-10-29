@@ -31,6 +31,8 @@ export default function BarcodePage() {
 
   // Label Settings state
   const [settings, setSettings] = useState<BarcodeLabelSettings>(DEFAULT_BARCODE_LABEL_SETTINGS);
+  const [customWidthStr, setCustomWidthStr] = useState<string>('40');
+  const [customHeightStr, setCustomHeightStr] = useState<string>('30');
   const [previewModalOpen, setPreviewModalOpen] = useState(false);
   const [singlePrintItem, setSinglePrintItem] = useState<MsBarang | null>(null);
 
@@ -62,7 +64,10 @@ export default function BarcodePage() {
   };
 
   useEffect(() => {
-    setSettings(getBarcodeLabelSettings());
+    const s = getBarcodeLabelSettings();
+    setSettings(s);
+    setCustomWidthStr(String(s.widthMm));
+    setCustomHeightStr(String(s.heightMm));
     loadData();
   }, []);
 
@@ -121,23 +126,78 @@ export default function BarcodePage() {
     setPrintQuantities(prev => ({ ...prev, [id]: Math.max(1, Math.min(999, val)) }));
   };
 
+  const updateSettings = (partial: Partial<BarcodeLabelSettings>) => {
+    setSettings(prev => {
+      const updated = { ...prev, ...partial };
+      saveBarcodeLabelSettings(updated);
+      return updated;
+    });
+  };
+
   const handleApplyPreset = (presetId: string) => {
+    if (presetId === 'custom') {
+      updateSettings({ presetId: 'custom' });
+      const widthInput = document.getElementById('input-custom-width') as HTMLInputElement | null;
+      if (widthInput) widthInput.focus();
+      return;
+    }
     const preset = BARCODE_LABEL_PRESETS.find(p => p.id === presetId);
     if (!preset) return;
-    const updated = {
-      ...settings,
+    setCustomWidthStr(String(preset.widthMm));
+    setCustomHeightStr(String(preset.heightMm));
+    updateSettings({
       presetId,
       widthMm: preset.widthMm,
       heightMm: preset.heightMm,
-    };
-    setSettings(updated);
-    saveBarcodeLabelSettings(updated);
+    });
   };
 
   const handleUpdateSetting = <K extends keyof BarcodeLabelSettings>(key: K, val: BarcodeLabelSettings[K]) => {
-    const updated = { ...settings, [key]: val };
-    setSettings(updated);
-    saveBarcodeLabelSettings(updated);
+    updateSettings({ [key]: val });
+  };
+
+  const handleWidthChange = (valStr: string) => {
+    setCustomWidthStr(valStr);
+    const num = parseInt(valStr, 10);
+    if (!isNaN(num) && num > 0) {
+      updateSettings({
+        widthMm: num,
+        presetId: 'custom',
+      });
+    }
+  };
+
+  const handleWidthBlur = () => {
+    let num = parseInt(customWidthStr, 10);
+    if (isNaN(num) || num < 15) num = 40;
+    if (num > 120) num = 120;
+    setCustomWidthStr(String(num));
+    updateSettings({
+      widthMm: num,
+      presetId: 'custom',
+    });
+  };
+
+  const handleHeightChange = (valStr: string) => {
+    setCustomHeightStr(valStr);
+    const num = parseInt(valStr, 10);
+    if (!isNaN(num) && num > 0) {
+      updateSettings({
+        heightMm: num,
+        presetId: 'custom',
+      });
+    }
+  };
+
+  const handleHeightBlur = () => {
+    let num = parseInt(customHeightStr, 10);
+    if (isNaN(num) || num < 10) num = 30;
+    if (num > 150) num = 150;
+    setCustomHeightStr(String(num));
+    updateSettings({
+      heightMm: num,
+      presetId: 'custom',
+    });
   };
 
   // Trigger Print for Single Item
@@ -568,7 +628,7 @@ export default function BarcodePage() {
         isOpen={previewModalOpen}
         onClose={() => setPreviewModalOpen(false)}
         title="🖨️ Preview & Pengaturan Cetak Label Barcode Thermal"
-        size="lg"
+        size="xl"
         footer={
           <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
             <button
@@ -692,19 +752,19 @@ export default function BarcodePage() {
             </div>
 
             {/* Print queue info / guidance */}
-            <div className="alert alert-info" style={{ width: '100%', fontSize: 12, padding: '10px 12px', lineHeight: 1.4 }}>
+            <div className="alert alert-info" style={{ width: '100%', fontSize: 12, padding: '12px 14px', lineHeight: 1.5, display: 'block' }}>
               {printQueue.length > 0 ? (
-                <>
+                <div>
                   ⚡ <strong>Antrean Cetak:</strong> {printQueue.length} produk terpilih, total{' '}
                   <strong>{printQueue.reduce((acc, cur) => acc + (cur.qtyPrint || 1), 0)} lembar stiker</strong> thermal.
-                </>
+                </div>
               ) : (
-                <>
+                <div>
                   💡 <strong>Mode Atur Format:</strong> Menampilkan contoh stiker. Anda bisa menyimpan pengaturan ini atau melakukan tes cetak 1 lembar.
-                </>
+                </div>
               )}
-              <div style={{ marginTop: 6, fontSize: 11, opacity: 0.9 }}>
-                Printer Thermal: Pastikan ukuran kertas di browser diset ke <strong>{settings.widthMm}×{settings.heightMm}mm</strong> dan Margin ke <strong>None</strong>.
+              <div style={{ marginTop: 8, fontSize: 11, opacity: 0.9 }}>
+                Printer Thermal: Pastikan ukuran kertas di dialog browser diset ke <strong>{settings.widthMm}×{settings.heightMm}mm</strong> dan Margin ke <strong>None</strong>.
               </div>
             </div>
           </div>
@@ -749,31 +809,29 @@ export default function BarcodePage() {
                 <label className="form-label" style={{ fontSize: 12 }}>Lebar Label (mm)</label>
                 <input
                   type="number"
+                  id="input-custom-width"
                   className="form-control"
                   style={{ height: 36, fontSize: 13 }}
-                  value={settings.widthMm}
-                  onChange={e => {
-                    const w = parseInt(e.target.value) || 10;
-                    handleUpdateSetting('widthMm', w);
-                    handleUpdateSetting('presetId', 'custom');
-                  }}
-                  min={20}
-                  max={110}
+                  value={customWidthStr}
+                  onChange={e => handleWidthChange(e.target.value)}
+                  onBlur={handleWidthBlur}
+                  placeholder="Lebar (mm)"
+                  min={15}
+                  max={120}
                 />
               </div>
               <div className="form-group" style={{ marginBottom: 0 }}>
                 <label className="form-label" style={{ fontSize: 12 }}>Tinggi Label (mm)</label>
                 <input
                   type="number"
+                  id="input-custom-height"
                   className="form-control"
                   style={{ height: 36, fontSize: 13 }}
-                  value={settings.heightMm}
-                  onChange={e => {
-                    const h = parseInt(e.target.value) || 10;
-                    handleUpdateSetting('heightMm', h);
-                    handleUpdateSetting('presetId', 'custom');
-                  }}
-                  min={15}
+                  value={customHeightStr}
+                  onChange={e => handleHeightChange(e.target.value)}
+                  onBlur={handleHeightBlur}
+                  placeholder="Tinggi (mm)"
+                  min={10}
                   max={150}
                 />
               </div>
