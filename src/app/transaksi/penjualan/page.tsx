@@ -44,6 +44,7 @@ export default function PenjualanPage() {
   const [bayar, setBayar] = useState('');
   const [checkoutModal, setCheckoutModal] = useState(false);
   const [processing, setProcessing] = useState(false);
+  const [checkoutMode, setCheckoutMode] = useState<'pay_only' | 'pay_print' | null>(null);
   const [successModal, setSuccessModal] = useState(false);
   const [lastInvoice, setLastInvoice] = useState('');
   const [printData, setPrintData] = useState<{
@@ -339,9 +340,10 @@ export default function PenjualanPage() {
     barcodeRef.current?.focus();
   };
 
-  const handleCheckout = async () => {
+  const handleCheckout = async (withPrint = false) => {
     if (cart.length === 0) return;
     setProcessing(true);
+    setCheckoutMode(withPrint ? 'pay_print' : 'pay_only');
     try {
       const invoiceNo = generateInvoiceNo();
       const now = new Date();
@@ -383,8 +385,8 @@ export default function PenjualanPage() {
       });
       setCheckoutModal(false);
       setSuccessModal(true);
-      if (getPrinterSettings().autoPrint) {
-        setTimeout(() => window.print(), 350);
+      if (withPrint) {
+        setTimeout(() => window.print(), 400);
       }
       setCart([]);
       setBayar('');
@@ -400,6 +402,7 @@ export default function PenjualanPage() {
       alert(e instanceof Error ? e.message : 'Gagal checkout');
     } finally {
       setProcessing(false);
+      setCheckoutMode(null);
     }
   };
 
@@ -1148,10 +1151,10 @@ export default function PenjualanPage() {
       {/* Checkout Confirmation Modal */}
       {checkoutModal && (
         <div className="modal-backdrop">
-          <div className="modal" style={{ maxWidth: 440 }}>
+          <div className="modal" style={{ maxWidth: 520 }}>
             <div className="modal-header">
               <h2 className="modal-title">Konfirmasi Checkout</h2>
-              <button className="modal-close" onClick={() => setCheckoutModal(false)}>✕</button>
+              <button className="modal-close" onClick={() => !processing && setCheckoutModal(false)}>✕</button>
             </div>
             <div className="modal-body">
               <div style={{ background: 'var(--bg-elevated, #24242c)', border: '1px solid var(--border-light, #2e2e36)', borderRadius: 10, padding: 16, marginBottom: 16 }}>
@@ -1197,11 +1200,63 @@ export default function PenjualanPage() {
                 </div>
               )}
             </div>
-            <div className="modal-footer">
-              <button className="btn btn-secondary" onClick={() => setCheckoutModal(false)}>Batal</button>
-              <button className="btn btn-success" onClick={handleCheckout} disabled={processing} id="btn-confirm-checkout">
-                {processing ? <><div className="spinner" style={{ width: 14, height: 14 }} /> Memproses...</> : '✅ Konfirmasi & Bayar'}
+            <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+              <button 
+                type="button"
+                className="btn btn-secondary" 
+                onClick={() => setCheckoutModal(false)}
+                disabled={processing}
+                id="btn-cancel-checkout"
+              >
+                Batal
               </button>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                <button 
+                  type="button"
+                  className="btn btn-outline" 
+                  onClick={() => handleCheckout(false)} 
+                  disabled={processing} 
+                  id="btn-confirm-pay"
+                  style={{ 
+                    fontWeight: 600, 
+                    borderColor: 'rgba(74, 222, 128, 0.4)', 
+                    color: '#4ade80',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    padding: '8px 14px'
+                  }}
+                  title="Simpan transaksi tanpa mencetak struk"
+                >
+                  {processing && checkoutMode === 'pay_only' ? (
+                    <><div className="spinner" style={{ width: 14, height: 14 }} /> Memproses...</>
+                  ) : (
+                    '✅ Konfirmasi Bayar'
+                  )}
+                </button>
+                <button 
+                  type="button"
+                  className="btn btn-success" 
+                  onClick={() => handleCheckout(true)} 
+                  disabled={processing} 
+                  id="btn-confirm-pay-and-print"
+                  style={{ 
+                    fontWeight: 700, 
+                    display: 'inline-flex', 
+                    alignItems: 'center', 
+                    gap: 6, 
+                    boxShadow: '0 2px 8px rgba(76, 175, 80, 0.3)',
+                    padding: '8px 16px'
+                  }}
+                  title="Simpan transaksi dan langsung cetak struk"
+                >
+                  {processing && checkoutMode === 'pay_print' ? (
+                    <><div className="spinner" style={{ width: 14, height: 14 }} /> Memproses & Cetak...</>
+                  ) : (
+                    '🖨️ Konfirmasi Bayar & Cetak Struk'
+                  )}
+                </button>
+              </div>
             </div>
           </div>
         </div>
