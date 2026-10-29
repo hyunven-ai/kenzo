@@ -647,6 +647,7 @@ function StockContent() {
                 <input
                   type="text"
                   className="form-control font-mono"
+                  style={{ minWidth: 0, flex: 1 }}
                   placeholder="Scan barcode..."
                   value={form.barcode}
                   onChange={e => setForm(f => ({ ...f, barcode: e.target.value }))}
@@ -739,6 +740,7 @@ function StockContent() {
               <div style={{ display: 'flex', gap: 6 }}>
                 <select
                   className="form-control"
+                  style={{ minWidth: 0, flex: 1 }}
                   value={form.merk}
                   onChange={e => {
                     const val = e.target.value;
@@ -807,6 +809,7 @@ function StockContent() {
               <div style={{ display: 'flex', gap: 6 }}>
                 <select
                   className="form-control"
+                  style={{ minWidth: 0, flex: 1 }}
                   value={form.supplier}
                   onChange={e => {
                     const val = e.target.value;
@@ -859,24 +862,28 @@ function StockContent() {
               </div>
             </div>
 
-            {/* Qty */}
-            <div className="form-group">
-              <label className="form-label">Jumlah Stok Fisik *</label>
-              <input
-                type="number"
-                min="0"
-                className="form-control"
-                value={form.qty}
-                onChange={e => setForm(f => ({ ...f, qty: Math.max(0, parseInt(e.target.value) || 0) }))}
-                required
-                id="input-qty-barang"
-              />
-            </div>
+            {/* Qty, Harga Modal & Harga Jual (3 Kolom Sejajar & Rapi) */}
+            <div
+              className="form-grid-3"
+              style={{
+                gridColumn: '1 / -1',
+              }}
+            >
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label">Jumlah Stok Fisik *</label>
+                <input
+                  type="number"
+                  min="0"
+                  className="form-control"
+                  value={form.qty}
+                  onChange={e => setForm(f => ({ ...f, qty: Math.max(0, parseInt(e.target.value) || 0) }))}
+                  required
+                  id="input-qty-barang"
+                />
+              </div>
 
-            {/* Harga Modal & Harga Jual */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              <div className="form-group">
-                <label className="form-label">Harga Modal *</label>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label">Harga Modal (Rp) *</label>
                 <NumericInput
                   value={form.harga_modal}
                   onChange={val => setForm(f => ({ ...f, harga_modal: val }))}
@@ -886,8 +893,8 @@ function StockContent() {
                 />
               </div>
 
-              <div className="form-group">
-                <label className="form-label">Harga Jual *</label>
+              <div className="form-group" style={{ marginBottom: 0 }}>
+                <label className="form-label">Harga Jual (Rp) *</label>
                 <NumericInput
                   value={form.harga_jual}
                   onChange={val => setForm(f => ({ ...f, harga_jual: val }))}
