@@ -17,6 +17,22 @@ export interface MsUser {
   update_by?: string;
 }
 
+export type JenisToko = 'kelontong' | 'baju' | 'umum';
+
+export interface MsKategori {
+  id: number;
+  kode: string;
+  nama: string;
+  jenis_toko: JenisToko;
+  satuan_default: string;
+  keterangan?: string;
+  is_active?: boolean;
+  create_time: string;
+  create_by?: string;
+  update_time?: string;
+  update_by?: string;
+}
+
 export interface MsMerk {
   id: number;
   nama: string;

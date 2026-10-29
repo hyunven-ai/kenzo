@@ -15,7 +15,175 @@ import type {
   TrsPenjualanHdr, TrsPenjualanDtl,
   DashboardStats, ChartDataPoint, KategoriSales,
   MsGaransi,
+  MsKategori,
 } from './types';
+
+// ============================================
+// MASTER KATEGORI STOCK (KELONTONG & BAJU)
+// ============================================
+
+export const DEFAULT_KATEGORI_PRESETS: Omit<MsKategori, 'id' | 'create_time'>[] = [
+  // Toko Kelontong
+  { kode: 'SMBK', nama: 'Sembako', jenis_toko: 'kelontong', satuan_default: 'Kg', keterangan: 'Beras, Minyak, Gula, Tepung, Telur' },
+  { kode: 'SNK', nama: 'Makanan & Snack', jenis_toko: 'kelontong', satuan_default: 'Pcs', keterangan: 'Biskuit, Keripik, Mie Instan, Roti' },
+  { kode: 'MNM', nama: 'Minuman', jenis_toko: 'kelontong', satuan_default: 'Pcs', keterangan: 'Air Mineral, Kopi, Teh, Minuman Dingin' },
+  { kode: 'BMBU', nama: 'Bumbu & Bahan Masak', jenis_toko: 'kelontong', satuan_default: 'Pcs', keterangan: 'Kecap, Saus, Garam, Bumbu Sachet' },
+  { kode: 'KBRS', nama: 'Kebersihan & Mandi', jenis_toko: 'kelontong', satuan_default: 'Pcs', keterangan: 'Sabun, Sampo, Deterjen, Pasta Gigi' },
+  { kode: 'ROK', nama: 'Rokok & Tembakau', jenis_toko: 'kelontong', satuan_default: 'Bungkus', keterangan: 'Aneka rokok filter & kretek' },
+  { kode: 'GAS', nama: 'Gas & Galon', jenis_toko: 'kelontong', satuan_default: 'Tabung', keterangan: 'Gas LPG 3kg, Galon Aqua/Isi Ulang' },
+  // Toko Baju
+  { kode: 'KAOS', nama: 'Kaos & T-Shirt', jenis_toko: 'baju', satuan_default: 'Pcs', keterangan: 'Kaos oblong, polo shirt, raglan' },
+  { kode: 'KMJ', nama: 'Kemeja Pria & Wanita', jenis_toko: 'baju', satuan_default: 'Pcs', keterangan: 'Kemeja formal, kasual, batik' },
+  { kode: 'CLN', nama: 'Celana & Rok', jenis_toko: 'baju', satuan_default: 'Pcs', keterangan: 'Jeans, chinos, celana kain, rok panjang' },
+  { kode: 'GMS', nama: 'Gamis & Busana Muslim', jenis_toko: 'baju', satuan_default: 'Pcs', keterangan: 'Gamis, koko, tunik, hijab' },
+  { kode: 'ANK', nama: 'Pakaian Anak & Bayi', jenis_toko: 'baju', satuan_default: 'Set', keterangan: 'Baju setelan anak, romper, celana anak' },
+  { kode: 'JKT', nama: 'Jaket & Outerwear', jenis_toko: 'baju', satuan_default: 'Pcs', keterangan: 'Jaket, hoodie, sweater, cardigan' },
+  { kode: 'AKSF', nama: 'Aksesoris Fashion', jenis_toko: 'baju', satuan_default: 'Pcs', keterangan: 'Topi, sabuk, kaos kaki, syal' },
+];
+
+function getLocalKategoris(): MsKategori[] {
+  if (typeof window === 'undefined') return [];
+  const raw = localStorage.getItem('local_ms_kategori');
+  if (!raw) {
+    const initial: MsKategori[] = DEFAULT_KATEGORI_PRESETS.map((p, idx) => ({
+      ...p,
+      id: idx + 1,
+      is_active: true,
+      create_time: new Date().toISOString(),
+    }));
+    localStorage.setItem('local_ms_kategori', JSON.stringify(initial));
+    return initial;
+  }
+  try {
+    return JSON.parse(raw);
+  } catch {
+    return [];
+  }
+}
+
+function saveLocalKategoris(data: MsKategori[]) {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('local_ms_kategori', JSON.stringify(data));
+  }
+}
+
+export async function getKategoris(): Promise<MsKategori[]> {
+  try {
+    const { data, error } = await supabase
+      .from('ms_kategori')
+      .select('*')
+      .order('nama');
+    if (error || !data || data.length === 0) {
+      return getLocalKategoris();
+    }
+    return data as MsKategori[];
+  } catch {
+    return getLocalKategoris();
+  }
+}
+
+export async function createKategori(payload: Omit<MsKategori, 'id' | 'create_time'>): Promise<MsKategori> {
+  const localList = getLocalKategoris();
+  const nextId = localList.length > 0 ? Math.max(...localList.map(k => k.id)) + 1 : 1;
+  const newRecord: MsKategori = {
+    ...payload,
+    id: nextId,
+    is_active: payload.is_active ?? true,
+    create_time: new Date().toISOString(),
+  };
+
+  try {
+    const { data, error } = await supabase
+      .from('ms_kategori')
+      .insert(payload)
+      .select()
+      .single();
+    if (!error && data) {
+      saveLocalKategoris([...localList, data as MsKategori]);
+      return data as MsKategori;
+    }
+  } catch {
+    // fallback to local
+  }
+
+  const updated = [...localList, newRecord];
+  saveLocalKategoris(updated);
+  return newRecord;
+}
+
+export async function updateKategori(id: number, payload: Partial<MsKategori>): Promise<MsKategori> {
+  const localList = getLocalKategoris();
+  const index = localList.findIndex(k => k.id === id);
+  const updatedItem: MsKategori = {
+    ...(index >= 0 ? localList[index] : ({} as MsKategori)),
+    ...payload,
+    id,
+    update_time: new Date().toISOString(),
+  };
+
+  try {
+    const { data, error } = await supabase
+      .from('ms_kategori')
+      .update({ ...payload, update_time: new Date().toISOString() })
+      .eq('id', id)
+      .select()
+      .single();
+    if (!error && data) {
+      if (index >= 0) localList[index] = data as MsKategori;
+      saveLocalKategoris(localList);
+      return data as MsKategori;
+    }
+  } catch {
+    // fallback
+  }
+
+  if (index >= 0) {
+    localList[index] = updatedItem;
+    saveLocalKategoris(localList);
+  }
+  return updatedItem;
+}
+
+export async function deleteKategori(id: number): Promise<void> {
+  try {
+    await supabase.from('ms_kategori').delete().eq('id', id);
+  } catch {
+    // fallback
+  }
+  const localList = getLocalKategoris().filter(k => k.id !== id);
+  saveLocalKategoris(localList);
+}
+
+export async function seedContohKategori(preset: 'semua' | 'kelontong' | 'baju' = 'semua'): Promise<MsKategori[]> {
+  const filtered = DEFAULT_KATEGORI_PRESETS.filter(p => preset === 'semua' || p.jenis_toko === preset);
+  const current = getLocalKategoris();
+  const existingNames = new Set(current.map(c => c.nama.toLowerCase()));
+  
+  const toAdd = filtered.filter(p => !existingNames.has(p.nama.toLowerCase()));
+  if (toAdd.length === 0) return current;
+
+  let maxId = current.length > 0 ? Math.max(...current.map(c => c.id)) : 0;
+  const newItems: MsKategori[] = toAdd.map(item => {
+    maxId++;
+    return {
+      ...item,
+      id: maxId,
+      is_active: true,
+      create_time: new Date().toISOString(),
+    };
+  });
+
+  const merged = [...current, ...newItems];
+  saveLocalKategoris(merged);
+
+  try {
+    await supabase.from('ms_kategori').insert(toAdd);
+  } catch {
+    // ignore
+  }
+
+  return merged;
+}
 
 // ============================================
 // MASTER DATA

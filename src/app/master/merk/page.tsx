@@ -3,29 +3,40 @@
 import { useState, useEffect } from 'react';
 import DataTable from '@/components/ui/DataTable';
 import Modal from '@/components/ui/Modal';
-import { getMerks, createMerk, updateMerk, deleteMerk } from '@/lib/db';
+import { getMerks, createMerk, updateMerk, deleteMerk, getKategoris } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
 import { formatDate } from '@/lib/utils';
 import type { MsMerk } from '@/lib/types';
 
-const KATEGORI_OPTIONS = ['HP', 'HP Non Pajak', 'Aksesoris', 'CCTV', 'Kuota', 'Sparepart'];
+const DEFAULT_OPTIONS = ['Sembako', 'Makanan & Snack', 'Minuman', 'Kaos & T-Shirt', 'Kemeja Pria & Wanita', 'Celana & Rok', 'HP', 'Aksesoris'];
 
 export default function MerkPage() {
   const user = getCurrentUser();
   const [data, setData] = useState<MsMerk[]>([]);
+  const [categoryOptions, setCategoryOptions] = useState<string[]>(DEFAULT_OPTIONS);
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [editing, setEditing] = useState<MsMerk | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<number | null>(null);
   const [error, setError] = useState('');
-  const [form, setForm] = useState({ nama: '', kategori: 'HP' });
+  const [form, setForm] = useState({ nama: '', kategori: 'Sembako' });
 
   const load = async () => {
     setLoading(true);
     try {
-      const d = await getMerks();
+      const [d, kats] = await Promise.all([
+        getMerks(),
+        getKategoris().catch(() => []),
+      ]);
       setData(d);
+      if (kats && kats.length > 0) {
+        const names = Array.from(new Set([...kats.map(k => k.nama), ...d.map(m => m.kategori)]));
+        setCategoryOptions(names);
+        if (names.length > 0 && !form.kategori) {
+          setForm(f => ({ ...f, kategori: names[0] }));
+        }
+      }
     } catch {
       setError('Gagal memuat data merk');
     } finally {
@@ -37,7 +48,7 @@ export default function MerkPage() {
 
   const openAdd = () => {
     setEditing(null);
-    setForm({ nama: '', kategori: 'HP' });
+    setForm({ nama: '', kategori: categoryOptions[0] || 'Sembako' });
     setModalOpen(true);
   };
 
@@ -200,7 +211,7 @@ export default function MerkPage() {
                 onChange={e => setForm(f => ({ ...f, kategori: e.target.value }))}
                 id="input-kategori-merk"
               >
-                {KATEGORI_OPTIONS.map(k => (
+                {categoryOptions.map(k => (
                   <option key={k} value={k}>{k}</option>
                 ))}
               </select>

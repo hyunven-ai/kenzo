@@ -37,6 +37,7 @@ const NAV_GROUPS: NavGroup[] = [
     icon: '📂',
     feature: 'master',
     items: [
+      { label: 'Kategori Stock', href: '/master/kategori' },
       { label: 'Merk', href: '/master/merk' },
       { label: 'Operator', href: '/master/operator' },
       { label: 'Supplier', href: '/master/supplier' },
