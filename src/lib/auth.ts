@@ -127,13 +127,13 @@ export function getCurrentUser(): AuthUser | null {
 // RBAC - Permission check
 export const PERMISSIONS: Record<Role, string[]> = {
   super_admin: [
-    'dashboard', 'master', 'stock', 'transaksi', 'pengaturan', 'laporan'
+    'dashboard', 'master', 'stock', 'transaksi', 'pengaturan', 'laporan', 'barcode'
   ],
   admin_gudang: [
-    'master', 'stock'
+    'master', 'stock', 'barcode'
   ],
   kasir: [
-    'transaksi', 'pengaturan'
+    'transaksi', 'pengaturan', 'barcode'
   ],
 };
 

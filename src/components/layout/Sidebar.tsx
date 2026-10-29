@@ -30,6 +30,7 @@ interface NavSingle {
 
 const NAV_SINGLES: NavSingle[] = [
   { label: 'Dashboard', href: '/dashboard', icon: '🏠', feature: 'dashboard' },
+  { label: 'Label Barcode', href: '/barcode', icon: '🏷️', feature: 'barcode' },
 ];
 
 export default function Sidebar({ user, collapsed, mobileOpen, onCloseMobile }: SidebarProps) {

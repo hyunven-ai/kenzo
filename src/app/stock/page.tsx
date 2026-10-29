@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo, Suspense } from 'react';
+import Link from 'next/link';
 import { useSearchParams, useRouter } from 'next/navigation';
 import DataTable from '@/components/ui/DataTable';
 import Modal from '@/components/ui/Modal';
@@ -370,9 +371,17 @@ function StockContent() {
     {
       key: 'actions',
       label: 'Aksi',
-      width: '110px',
+      width: '140px',
       render: (row: MsBarang) => (
         <div className="table-actions">
+          <Link
+            href={`/barcode`}
+            className="btn btn-outline btn-sm"
+            title="Cetak Label Barcode Thermal"
+            style={{ textDecoration: 'none', padding: '3px 7px' }}
+          >
+            🏷️
+          </Link>
           <button
             className="btn btn-outline btn-sm"
             onClick={() => openEdit(row)}
@@ -415,6 +424,16 @@ function StockContent() {
               : 'Kelola data stok barang, barcode, harga modal & harga jual'}
           </p>
         </div>
+        <Link
+          href="/barcode"
+          className="btn btn-secondary"
+          style={{ textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 6, fontSize: 13 }}
+          title="Buka menu Cetak Label Barcode Thermal"
+          id="btn-goto-barcode-labels"
+        >
+          <span>🏷️</span>
+          <span>Cetak Label Barcode</span>
+        </Link>
       </div>
 
       {/* KPI Cards */}
