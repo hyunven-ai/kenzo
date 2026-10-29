@@ -1467,36 +1467,39 @@ export async function getKategoriSales(from?: string, to?: string): Promise<Kate
 }
 
 // ============================================
-// SEARCH FOR POS (barcode scan)
+// SEARCH FOR POS (barcode scan & name search)
 // ============================================
 
 export async function searchBarcode(barcode: string) {
-  // Search in ms_barang (Kelontong & Baju)
+  const codeTrimmed = barcode.trim();
+  if (!codeTrimmed) return null;
+
+  // 1. Coba cari di Neon DB via /api/neon?action=searchBarcode
   try {
-    const { data: brg } = await supabase
-      .from('ms_barang')
-      .select('*')
-      .eq('barcode', barcode)
-      .gt('qty', 0)
-      .single();
-    if (brg) {
+    const neonRes = await callNeonApi('searchBarcode', { barcode: codeTrimmed });
+    if (neonRes && neonRes.id) {
       return {
-        idbarang: brg.id,
-        kategori: brg.kategori,
-        code: brg.barcode,
-        nama_barang: `${brg.merk ? brg.merk + ' ' : ''}${brg.nama}${brg.ukuran ? ` (${brg.ukuran})` : ''}`,
+        idbarang: neonRes.id,
+        kategori: neonRes.kategori,
+        code: neonRes.barcode,
+        nama_barang: `${neonRes.merk ? neonRes.merk + ' ' : ''}${neonRes.nama}${neonRes.ukuran ? ` (${neonRes.ukuran})` : ''}`,
         qty: 1,
-        harga_modal: brg.harga_modal,
-        harga_jual: brg.harga_jual,
-        supplier: brg.supplier,
-        max_qty: brg.qty,
+        harga_modal: neonRes.harga_modal,
+        harga_jual: neonRes.harga_jual,
+        supplier: neonRes.supplier,
+        max_qty: neonRes.qty,
       };
     }
-  } catch {
-    // fallback
-  }
+  } catch {}
 
-  const localBrg = getLocalBarangs().find(b => b.barcode.toLowerCase() === barcode.toLowerCase() && b.qty > 0);
+  // 2. Coba cari di penyimpanan lokal ms_barang (Offline mode)
+  const codeLower = codeTrimmed.toLowerCase();
+  const localBrg = getLocalBarangs().find(
+    b => b.qty > 0 && (
+      b.barcode.toLowerCase() === codeLower ||
+      b.nama.toLowerCase().includes(codeLower)
+    )
+  );
   if (localBrg) {
     return {
       idbarang: localBrg.id,
@@ -1511,184 +1514,159 @@ export async function searchBarcode(barcode: string) {
     };
   }
 
-  // Search in aksesoris
-  const { data: aks } = await supabase
-    .from('ms_aksesoris')
-    .select('*')
-    .eq('barcode', barcode)
-    .gt('qty', 0)
-    .single();
+  // 3. Fallback pencarian tabel lama (Supabase) dengan proteksi try/catch
+  try {
+    const { data: aks } = await supabase.from('ms_aksesoris').select('*').eq('barcode', codeTrimmed).gt('qty', 0).single();
+    if (aks) {
+      return {
+        idbarang: aks.id,
+        kategori: 'Aksesoris' as const,
+        code: aks.barcode,
+        nama_barang: `${aks.merk} ${aks.nama}`,
+        qty: 1,
+        harga_modal: aks.harga_modal,
+        harga_jual: aks.harga_jual,
+        supplier: aks.supplier,
+        max_qty: aks.qty,
+      };
+    }
+  } catch {}
 
-  if (aks) {
-    return {
-      idbarang: aks.id,
-      kategori: 'Aksesoris' as const,
-      code: aks.barcode,
-      nama_barang: `${aks.merk} ${aks.nama}`,
-      qty: 1,
-      harga_modal: aks.harga_modal,
-      harga_jual: aks.harga_jual,
-      supplier: aks.supplier,
-      max_qty: aks.qty,
-    };
-  }
+  try {
+    const { data: spr } = await supabase.from('ms_sparepart').select('*').eq('barcode', codeTrimmed).gt('qty', 0).single();
+    if (spr) {
+      return {
+        idbarang: spr.id,
+        kategori: 'Sparepart' as const,
+        code: spr.barcode,
+        nama_barang: `${spr.merk} ${spr.nama}`,
+        qty: 1,
+        harga_modal: spr.harga_modal,
+        harga_jual: spr.harga_jual,
+        supplier: spr.supplier,
+        max_qty: spr.qty,
+      };
+    }
+  } catch {}
 
-  // Search in sparepart
-  const { data: spr } = await supabase
-    .from('ms_sparepart')
-    .select('*')
-    .eq('barcode', barcode)
-    .gt('qty', 0)
-    .single();
+  try {
+    const { data: kuo } = await supabase.from('ms_kuota').select('*').eq('barcode', codeTrimmed).gt('qty', 0).single();
+    if (kuo) {
+      return {
+        idbarang: kuo.id,
+        kategori: 'Kuota' as const,
+        code: kuo.barcode,
+        nama_barang: `${kuo.operator} ${kuo.description}`,
+        qty: 1,
+        harga_modal: kuo.harga_modal,
+        harga_jual: kuo.harga_jual,
+        supplier: kuo.supplier,
+        max_qty: kuo.qty,
+      };
+    }
+  } catch {}
 
-  if (spr) {
-    return {
-      idbarang: spr.id,
-      kategori: 'Sparepart' as const,
-      code: spr.barcode,
-      nama_barang: `${spr.merk} ${spr.nama}`,
-      qty: 1,
-      harga_modal: spr.harga_modal,
-      harga_jual: spr.harga_jual,
-      supplier: spr.supplier,
-      max_qty: spr.qty,
-    };
-  }
+  try {
+    const { data: hp } = await supabase.from('ms_hp_dtl').select('*, ms_hp_hdr(nama, merk, supplier)').eq('imei', codeTrimmed).or('status.is.null,status.eq.tersedia').single();
+    if (hp) {
+      const hdr = (hp as Record<string, unknown>).ms_hp_hdr as Record<string, string>;
+      return {
+        idbarang: hp.id,
+        kategori: 'HP' as const,
+        code: hp.imei,
+        nama_barang: `${hdr?.merk} ${hdr?.nama}`,
+        qty: 1,
+        harga_modal: hp.harga_modal,
+        harga_jual: hp.harga_jual,
+        supplier: hdr?.supplier,
+        max_qty: 1,
+      };
+    }
+  } catch {}
 
-  // Search in kuota
-  const { data: kuo } = await supabase
-    .from('ms_kuota')
-    .select('*')
-    .eq('barcode', barcode)
-    .gt('qty', 0)
-    .single();
+  try {
+    const { data: hpnp } = await supabase.from('ms_hp_dtl_non_pajak').select('*, ms_hp_hdr_non_pajak(nama, merk, supplier)').eq('imei', codeTrimmed).or('status.is.null,status.eq.tersedia').single();
+    if (hpnp) {
+      const hdr = (hpnp as Record<string, unknown>).ms_hp_hdr_non_pajak as Record<string, string>;
+      return {
+        idbarang: hpnp.id,
+        kategori: 'HP Non Pajak' as const,
+        code: hpnp.imei,
+        nama_barang: `${hdr?.merk} ${hdr?.nama} (Non Pajak)`,
+        qty: 1,
+        harga_modal: hpnp.harga_modal,
+        harga_jual: hpnp.harga_jual,
+        supplier: hdr?.supplier,
+        max_qty: 1,
+      };
+    }
+  } catch {}
 
-  if (kuo) {
-    return {
-      idbarang: kuo.id,
-      kategori: 'Kuota' as const,
-      code: kuo.barcode,
-      nama_barang: `${kuo.operator} ${kuo.description}`,
-      qty: 1,
-      harga_modal: kuo.harga_modal,
-      harga_jual: kuo.harga_jual,
-      supplier: kuo.supplier,
-      max_qty: kuo.qty,
-    };
-  }
-
-  // Search HP by IMEI
-  const { data: hp } = await supabase
-    .from('ms_hp_dtl')
-    .select('*, ms_hp_hdr(nama, merk, supplier)')
-    .eq('imei', barcode)
-    .or('status.is.null,status.eq.tersedia')
-    .single();
-
-  if (hp) {
-    const hdr = (hp as Record<string, unknown>).ms_hp_hdr as Record<string, string>;
-    return {
-      idbarang: hp.id,
-      kategori: 'HP' as const,
-      code: hp.imei,
-      nama_barang: `${hdr?.merk} ${hdr?.nama}`,
-      qty: 1,
-      harga_modal: hp.harga_modal,
-      harga_jual: hp.harga_jual,
-      supplier: hdr?.supplier,
-      max_qty: 1,
-    };
-  }
-
-  // Search HP Non Pajak by IMEI
-  const { data: hpnp } = await supabase
-    .from('ms_hp_dtl_non_pajak')
-    .select('*, ms_hp_hdr_non_pajak(nama, merk, supplier)')
-    .eq('imei', barcode)
-    .or('status.is.null,status.eq.tersedia')
-    .single();
-
-  if (hpnp) {
-    const hdr = (hpnp as Record<string, unknown>).ms_hp_hdr_non_pajak as Record<string, string>;
-    return {
-      idbarang: hpnp.id,
-      kategori: 'HP Non Pajak' as const,
-      code: hpnp.imei,
-      nama_barang: `${hdr?.merk} ${hdr?.nama} (Non Pajak)`,
-      qty: 1,
-      harga_modal: hpnp.harga_modal,
-      harga_jual: hpnp.harga_jual,
-      supplier: hdr?.supplier,
-      max_qty: 1,
-    };
-  }
-
-  // Search CCTV by SN
-  const { data: cctv } = await supabase
-    .from('ms_cctv_dtl')
-    .select('*, ms_cctv_hdr(nama, merk, supplier)')
-    .eq('sn_cctv', barcode)
-    .or('status.is.null,status.eq.tersedia')
-    .single();
-
-  if (cctv) {
-    const hdr = (cctv as Record<string, unknown>).ms_cctv_hdr as Record<string, string>;
-    return {
-      idbarang: cctv.id,
-      kategori: 'CCTV' as const,
-      code: cctv.sn_cctv,
-      nama_barang: `${hdr?.merk} ${hdr?.nama}`,
-      qty: 1,
-      harga_modal: cctv.harga_modal,
-      harga_jual: cctv.harga_jual,
-      supplier: hdr?.supplier,
-      max_qty: 1,
-    };
-  }
+  try {
+    const { data: cctv } = await supabase.from('ms_cctv_dtl').select('*, ms_cctv_hdr(nama, merk, supplier)').eq('sn_cctv', codeTrimmed).or('status.is.null,status.eq.tersedia').single();
+    if (cctv) {
+      const hdr = (cctv as Record<string, unknown>).ms_cctv_hdr as Record<string, string>;
+      return {
+        idbarang: cctv.id,
+        kategori: 'CCTV' as const,
+        code: cctv.sn_cctv,
+        nama_barang: `${hdr?.merk} ${hdr?.nama}`,
+        qty: 1,
+        harga_modal: cctv.harga_modal,
+        harga_jual: cctv.harga_jual,
+        supplier: hdr?.supplier,
+        max_qty: 1,
+      };
+    }
+  } catch {}
 
   return null;
 }
 
 export async function searchProductsByName(query: string) {
-  const q = `%${query}%`;
+  const queryTrimmed = query.trim();
+  if (!queryTrimmed) return [];
   const results: any[] = [];
+  const seenCodes = new Set<string>();
 
-  // 0. ms_barang (Kelontong & Baju)
+  // 1. Cari di Neon DB via /api/neon?action=searchProducts
   try {
-    const { data: brgs } = await supabase
-      .from('ms_barang')
-      .select('*')
-      .or(`nama.ilike.${q},merk.ilike.${q},barcode.ilike.${q}`)
-      .gt('qty', 0)
-      .limit(10);
-    if (brgs) {
-      brgs.forEach(b => {
-        results.push({
-          idbarang: b.id,
-          kategori: b.kategori,
-          code: b.barcode,
-          nama_barang: `${b.merk ? b.merk + ' ' : ''}${b.nama}${b.ukuran ? ` (${b.ukuran})` : ''}`,
-          qty: 1,
-          harga_modal: b.harga_modal,
-          harga_jual: b.harga_jual,
-          supplier: b.supplier,
-          max_qty: b.qty,
-        });
+    const neonRes = await callNeonApi('searchProducts', { q: queryTrimmed });
+    if (neonRes && Array.isArray(neonRes)) {
+      neonRes.forEach(b => {
+        const key = b.barcode || `id_${b.id}`;
+        if (!seenCodes.has(key)) {
+          seenCodes.add(key);
+          results.push({
+            idbarang: b.id,
+            kategori: b.kategori,
+            code: b.barcode,
+            nama_barang: `${b.merk ? b.merk + ' ' : ''}${b.nama}${b.ukuran ? ` (${b.ukuran})` : ''}`,
+            qty: 1,
+            harga_modal: b.harga_modal,
+            harga_jual: b.harga_jual,
+            supplier: b.supplier,
+            max_qty: b.qty,
+          });
+        }
       });
     }
-  } catch {
-    // fallback
-  }
+  } catch {}
 
-  const queryLower = query.toLowerCase();
+  // 2. Cari di data lokal ms_barang (Offline mode)
+  const queryLower = queryTrimmed.toLowerCase();
   const localMatched = getLocalBarangs().filter(
-    b => b.qty > 0 &&
-      (b.nama.toLowerCase().includes(queryLower) ||
-       (b.merk && b.merk.toLowerCase().includes(queryLower)) ||
-       b.barcode.toLowerCase().includes(queryLower))
+    b => b.qty > 0 && (
+      b.nama.toLowerCase().includes(queryLower) ||
+      (b.merk && b.merk.toLowerCase().includes(queryLower)) ||
+      b.barcode.toLowerCase().includes(queryLower) ||
+      (b.kategori && b.kategori.toLowerCase().includes(queryLower))
+    )
   );
   localMatched.forEach(b => {
-    if (!results.some(r => r.code === b.barcode)) {
+    const key = b.barcode || `id_${b.id}`;
+    if (!seenCodes.has(key)) {
+      seenCodes.add(key);
       results.push({
         idbarang: b.id,
         kategori: b.kategori,
@@ -1703,152 +1681,147 @@ export async function searchProductsByName(query: string) {
     }
   });
 
-  // 1. Aksesoris
-  const { data: aks } = await supabase
-    .from('ms_aksesoris')
-    .select('*')
-    .or(`nama.ilike.${q},merk.ilike.${q}`)
-    .gt('qty', 0);
-  
-  if (aks) {
-    aks.forEach(item => {
-      results.push({
-        idbarang: item.id,
-        kategori: 'Aksesoris' as const,
-        code: item.barcode,
-        nama_barang: `${item.merk} ${item.nama}`,
-        qty: 1,
-        harga_modal: item.harga_modal,
-        harga_jual: item.harga_jual,
-        supplier: item.supplier,
-        max_qty: item.qty,
+  // 3. Cari di kategori lama Supabase dengan proteksi try/catch
+  try {
+    const q = `%${queryTrimmed}%`;
+    const { data: aks } = await supabase.from('ms_aksesoris').select('*').or(`nama.ilike.${q},merk.ilike.${q}`).gt('qty', 0);
+    if (aks) {
+      aks.forEach(item => {
+        if (!seenCodes.has(item.barcode)) {
+          seenCodes.add(item.barcode);
+          results.push({
+            idbarang: item.id,
+            kategori: 'Aksesoris' as const,
+            code: item.barcode,
+            nama_barang: `${item.merk} ${item.nama}`,
+            qty: 1,
+            harga_modal: item.harga_modal,
+            harga_jual: item.harga_jual,
+            supplier: item.supplier,
+            max_qty: item.qty,
+          });
+        }
       });
-    });
-  }
+    }
+  } catch {}
 
-  // 2. Kuota
-  const { data: kuo } = await supabase
-    .from('ms_kuota')
-    .select('*')
-    .or(`description.ilike.${q},operator.ilike.${q}`)
-    .gt('qty', 0);
-  
-  if (kuo) {
-    kuo.forEach(item => {
-      results.push({
-        idbarang: item.id,
-        kategori: 'Kuota' as const,
-        code: item.barcode,
-        nama_barang: `${item.operator} ${item.description}`,
-        qty: 1,
-        harga_modal: item.harga_modal,
-        harga_jual: item.harga_jual,
-        supplier: item.supplier,
-        max_qty: item.qty,
+  try {
+    const q = `%${queryTrimmed}%`;
+    const { data: kuo } = await supabase.from('ms_kuota').select('*').or(`description.ilike.${q},operator.ilike.${q}`).gt('qty', 0);
+    if (kuo) {
+      kuo.forEach(item => {
+        if (!seenCodes.has(item.barcode)) {
+          seenCodes.add(item.barcode);
+          results.push({
+            idbarang: item.id,
+            kategori: 'Kuota' as const,
+            code: item.barcode,
+            nama_barang: `${item.operator} ${item.description}`,
+            qty: 1,
+            harga_modal: item.harga_modal,
+            harga_jual: item.harga_jual,
+            supplier: item.supplier,
+            max_qty: item.qty,
+          });
+        }
       });
-    });
-  }
+    }
+  } catch {}
 
-  // 3. HP
-  const { data: hp } = await supabase
-    .from('ms_hp_dtl')
-    .select('*, ms_hp_hdr(nama, merk, supplier)')
-    .or('status.is.null,status.eq.tersedia');
-  
-  if (hp) {
-    hp.forEach(item => {
-      const hdr = (item as any).ms_hp_hdr;
-      const namaFull = `${hdr?.merk} ${hdr?.nama}`;
-      if (namaFull.toLowerCase().includes(query.toLowerCase()) || item.imei.includes(query)) {
-        results.push({
-          idbarang: item.id,
-          kategori: 'HP' as const,
-          code: item.imei,
-          nama_barang: namaFull,
-          qty: 1,
-          harga_modal: item.harga_modal,
-          harga_jual: item.harga_jual,
-          supplier: hdr?.supplier,
-          max_qty: 1,
-        });
-      }
-    });
-  }
-
-  // 4. HP Non Pajak
-  const { data: hpnp } = await supabase
-    .from('ms_hp_dtl_non_pajak')
-    .select('*, ms_hp_hdr_non_pajak(nama, merk, supplier)')
-    .or('status.is.null,status.eq.tersedia');
-  
-  if (hpnp) {
-    hpnp.forEach(item => {
-      const hdr = (item as any).ms_hp_hdr_non_pajak;
-      const namaFull = `${hdr?.merk} ${hdr?.nama} (Non Pajak)`;
-      if (namaFull.toLowerCase().includes(query.toLowerCase()) || item.imei.includes(query)) {
-        results.push({
-          idbarang: item.id,
-          kategori: 'HP Non Pajak' as const,
-          code: item.imei,
-          nama_barang: namaFull,
-          qty: 1,
-          harga_modal: item.harga_modal,
-          harga_jual: item.harga_jual,
-          supplier: hdr?.supplier,
-          max_qty: 1,
-        });
-      }
-    });
-  }
-
-  // 5. CCTV
-  const { data: cctv } = await supabase
-    .from('ms_cctv_dtl')
-    .select('*, ms_cctv_hdr(nama, merk, supplier)')
-    .or('status.is.null,status.eq.tersedia');
-  
-  if (cctv) {
-    cctv.forEach(item => {
-      const hdr = (item as any).ms_cctv_hdr;
-      const namaFull = `${hdr?.merk} ${hdr?.nama}`;
-      if (namaFull.toLowerCase().includes(query.toLowerCase()) || item.sn_cctv.includes(query)) {
-        results.push({
-          idbarang: item.id,
-          kategori: 'CCTV' as const,
-          code: item.sn_cctv,
-          nama_barang: namaFull,
-          qty: 1,
-          harga_modal: item.harga_modal,
-          harga_jual: item.harga_jual,
-          supplier: hdr?.supplier,
-          max_qty: 1,
-        });
-      }
-    });
-  }
-
-  // 6. Sparepart
-  const { data: sprList } = await supabase
-    .from('ms_sparepart')
-    .select('*')
-    .or(`nama.ilike.${q},merk.ilike.${q}`)
-    .gt('qty', 0);
-  
-  if (sprList) {
-    sprList.forEach(item => {
-      results.push({
-        idbarang: item.id,
-        kategori: 'Sparepart' as const,
-        code: item.barcode,
-        nama_barang: `${item.merk} ${item.nama}`,
-        qty: 1,
-        harga_modal: item.harga_modal,
-        harga_jual: item.harga_jual,
-        supplier: item.supplier,
-        max_qty: item.qty,
+  try {
+    const { data: hp } = await supabase.from('ms_hp_dtl').select('*, ms_hp_hdr(nama, merk, supplier)').or('status.is.null,status.eq.tersedia');
+    if (hp) {
+      hp.forEach(item => {
+        const hdr = (item as any).ms_hp_hdr;
+        const namaFull = `${hdr?.merk} ${hdr?.nama}`;
+        if ((namaFull.toLowerCase().includes(queryLower) || item.imei.includes(queryTrimmed)) && !seenCodes.has(item.imei)) {
+          seenCodes.add(item.imei);
+          results.push({
+            idbarang: item.id,
+            kategori: 'HP' as const,
+            code: item.imei,
+            nama_barang: namaFull,
+            qty: 1,
+            harga_modal: item.harga_modal,
+            harga_jual: item.harga_jual,
+            supplier: hdr?.supplier,
+            max_qty: 1,
+          });
+        }
       });
-    });
-  }
+    }
+  } catch {}
+
+  try {
+    const { data: hpnp } = await supabase.from('ms_hp_dtl_non_pajak').select('*, ms_hp_hdr_non_pajak(nama, merk, supplier)').or('status.is.null,status.eq.tersedia');
+    if (hpnp) {
+      hpnp.forEach(item => {
+        const hdr = (item as any).ms_hp_hdr_non_pajak;
+        const namaFull = `${hdr?.merk} ${hdr?.nama} (Non Pajak)`;
+        if ((namaFull.toLowerCase().includes(queryLower) || item.imei.includes(queryTrimmed)) && !seenCodes.has(item.imei)) {
+          seenCodes.add(item.imei);
+          results.push({
+            idbarang: item.id,
+            kategori: 'HP Non Pajak' as const,
+            code: item.imei,
+            nama_barang: namaFull,
+            qty: 1,
+            harga_modal: item.harga_modal,
+            harga_jual: item.harga_jual,
+            supplier: hdr?.supplier,
+            max_qty: 1,
+          });
+        }
+      });
+    }
+  } catch {}
+
+  try {
+    const { data: cctv } = await supabase.from('ms_cctv_dtl').select('*, ms_cctv_hdr(nama, merk, supplier)').or('status.is.null,status.eq.tersedia');
+    if (cctv) {
+      cctv.forEach(item => {
+        const hdr = (item as any).ms_cctv_hdr;
+        const namaFull = `${hdr?.merk} ${hdr?.nama}`;
+        if ((namaFull.toLowerCase().includes(queryLower) || item.sn_cctv.includes(queryTrimmed)) && !seenCodes.has(item.sn_cctv)) {
+          seenCodes.add(item.sn_cctv);
+          results.push({
+            idbarang: item.id,
+            kategori: 'CCTV' as const,
+            code: item.sn_cctv,
+            nama_barang: namaFull,
+            qty: 1,
+            harga_modal: item.harga_modal,
+            harga_jual: item.harga_jual,
+            supplier: hdr?.supplier,
+            max_qty: 1,
+          });
+        }
+      });
+    }
+  } catch {}
+
+  try {
+    const q = `%${queryTrimmed}%`;
+    const { data: sprList } = await supabase.from('ms_sparepart').select('*').or(`nama.ilike.${q},merk.ilike.${q}`).gt('qty', 0);
+    if (sprList) {
+      sprList.forEach(item => {
+        if (!seenCodes.has(item.barcode)) {
+          seenCodes.add(item.barcode);
+          results.push({
+            idbarang: item.id,
+            kategori: 'Sparepart' as const,
+            code: item.barcode,
+            nama_barang: `${item.merk} ${item.nama}`,
+            qty: 1,
+            harga_modal: item.harga_modal,
+            harga_jual: item.harga_jual,
+            supplier: item.supplier,
+            max_qty: item.qty,
+          });
+        }
+      });
+    }
+  } catch {}
 
   return results;
 }

@@ -53,6 +53,33 @@ export async function GET(request: Request) {
       return NextResponse.json({ ok: true, data });
     }
 
+    // --- PENCARIAN BARANG POS / KASIR ---
+    if (action === 'searchProducts') {
+      const q = searchParams.get('q') || '';
+      const pattern = `%${q}%`;
+      const data = await sql`
+        SELECT * FROM public.ms_barang
+        WHERE (nama ILIKE ${pattern} OR merk ILIKE ${pattern} OR barcode ILIKE ${pattern} OR kategori ILIKE ${pattern})
+          AND qty > 0
+        ORDER BY nama ASC
+        LIMIT 20;
+      `;
+      return NextResponse.json({ ok: true, data });
+    }
+
+    if (action === 'searchBarcode') {
+      const barcode = searchParams.get('barcode') || '';
+      const pattern = `%${barcode}%`;
+      const data = await sql`
+        SELECT * FROM public.ms_barang
+        WHERE (barcode ILIKE ${barcode} OR id::text = ${barcode} OR nama ILIKE ${pattern})
+          AND qty > 0
+        ORDER BY (barcode = ${barcode}) DESC, nama ASC
+        LIMIT 1;
+      `;
+      return NextResponse.json({ ok: true, data: data[0] || null });
+    }
+
     // --- GET PENJUALAN LENGKAP DENGAN DETAIL ---
     if (action === 'getPenjualan') {
       const from = searchParams.get('from');

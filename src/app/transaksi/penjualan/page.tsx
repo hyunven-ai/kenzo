@@ -78,13 +78,15 @@ export default function PenjualanPage() {
 
   const handleInputChange = async (val: string) => {
     setBarcode(val);
-    if (val.trim().length >= 2) {
+    setSearchError('');
+    if (val.trim().length >= 1) {
       try {
         const results = await searchProductsByName(val.trim());
         setSearchResults(results.slice(0, 10));
-        setShowSuggestions(true);
+        setShowSuggestions(results.length > 0);
       } catch {
         setSearchResults([]);
+        setShowSuggestions(false);
       }
     } else {
       setSearchResults([]);
@@ -124,7 +126,13 @@ export default function PenjualanPage() {
     setSearching(true);
     setSearchError('');
     try {
-      const result = await searchBarcode(scannedValue.trim());
+      let result = await searchBarcode(scannedValue.trim());
+      if (!result) {
+        const matches = await searchProductsByName(scannedValue.trim());
+        if (matches && matches.length > 0) {
+          result = matches[0];
+        }
+      }
       if (!result) {
         setSearchError(`Barang dengan kode "${scannedValue}" tidak ditemukan atau stok habis`);
         return;
@@ -161,11 +169,15 @@ export default function PenjualanPage() {
     setSearching(true);
     setSearchError('');
     try {
-      const result = await searchBarcode(barcode.trim());
+      let result = await searchBarcode(barcode.trim());
       if (!result) {
-        setSearchError(`Barang dengan kode "${barcode}" tidak ditemukan atau stok habis`);
-        setBarcode('');
-        barcodeRef.current?.focus();
+        const matches = await searchProductsByName(barcode.trim());
+        if (matches && matches.length > 0) {
+          result = matches[0];
+        }
+      }
+      if (!result) {
+        setSearchError(`Barang dengan kata kunci "${barcode}" tidak ditemukan atau stok habis`);
         return;
       }
       // Check if already in cart
@@ -173,7 +185,6 @@ export default function PenjualanPage() {
       if (existing >= 0) {
         if (cart[existing].qty >= (result.max_qty ?? 1)) {
           setSearchError(`Stok maksimal ${result.max_qty} unit`);
-          setBarcode('');
           return;
         }
         setCart(prev => prev.map((c, i) => i === existing ? { ...c, qty: c.qty + 1 } : c));
@@ -181,6 +192,7 @@ export default function PenjualanPage() {
         setCart(prev => [...prev, result]);
       }
       setBarcode('');
+      setShowSuggestions(false);
       barcodeRef.current?.focus();
     } catch (e: unknown) {
       setSearchError(e instanceof Error ? e.message : 'Gagal mencari barang');
@@ -360,14 +372,14 @@ export default function PenjualanPage() {
         {/* Left: Barcode search + item list */}
         <div className="pos-products">
           {/* Barcode Input */}
-          <div style={{ padding: 16, borderBottom: '1px solid #eee', background: '#fafafa' }} id="pos-barcode-container">
+          <div style={{ padding: 16, borderBottom: '1px solid var(--border-light, #2e2e36)', background: 'var(--bg-card, #1c1c22)' }} id="pos-barcode-container">
             <div style={{ display: 'flex', gap: 8 }}>
               <div className="barcode-input-wrap" style={{ flex: 1, position: 'relative' }}>
                 <input
                   ref={barcodeRef}
                   type="text"
                   className="form-control form-control-lg barcode-input"
-                  placeholder="Ketik nama barang atau scan barcode / IMEI / SN..."
+                  placeholder="Ketik nama produk (misal: Kaos, Beras, Indomie) atau scan barcode..."
                   value={barcode}
                   onChange={e => handleInputChange(e.target.value)}
                   onKeyDown={e => e.key === 'Enter' && handleBarcodeSearch()}
@@ -380,12 +392,12 @@ export default function PenjualanPage() {
                     top: '100%',
                     left: 0,
                     right: 0,
-                    background: 'white',
-                    border: '1px solid #ddd',
+                    background: 'var(--bg-card, #1c1c22)',
+                    border: '1px solid var(--border-light, #3f3f46)',
                     borderRadius: 8,
-                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.4)',
                     zIndex: 1000,
-                    maxHeight: 250,
+                    maxHeight: 280,
                     overflowY: 'auto',
                     marginTop: 4
                   }}>
@@ -395,7 +407,7 @@ export default function PenjualanPage() {
                         className="suggestion-item"
                         style={{
                           padding: '10px 14px',
-                          borderBottom: '1px solid #f0f0f0',
+                          borderBottom: '1px solid var(--border-light, #2a2a32)',
                           cursor: 'pointer',
                           display: 'flex',
                           justifyContent: 'space-between',
@@ -405,13 +417,14 @@ export default function PenjualanPage() {
                         onClick={() => handleSelectSuggestion(item)}
                       >
                         <div>
-                          <div style={{ fontWeight: 600, fontSize: 13, color: '#333' }}>{item.nama_barang}</div>
-                          <div style={{ fontSize: 11, color: '#888', marginTop: 2 }}>
+                          <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-primary, #ffffff)' }}>{item.nama_barang}</div>
+                          <div style={{ fontSize: 11, color: 'var(--text-secondary, #9ca3af)', marginTop: 2 }}>
                             <span className="badge badge-sm badge-info" style={{ marginRight: 6, fontSize: 9, padding: '2px 6px' }}>{item.kategori}</span>
                             <code>{item.code || 'Tanpa Barcode'}</code>
+                            <span style={{ marginLeft: 8, color: '#22c55e', fontWeight: 600 }}>Stok: {item.max_qty}</span>
                           </div>
                         </div>
-                        <div style={{ fontWeight: 700, color: '#1565c0', fontSize: 13 }}>
+                        <div style={{ fontWeight: 700, color: '#f87171', fontSize: 14 }}>
                           {formatRupiah(item.harga_jual)}
                         </div>
                       </div>
