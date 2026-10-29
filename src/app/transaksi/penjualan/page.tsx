@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import Link from 'next/link';
-import { searchBarcode, createPenjualan, searchProductsByName } from '@/lib/db';
+import { searchBarcode, createPenjualan, searchProductsByName, getBarangs } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
 import { formatRupiah, generateInvoiceNo, today } from '@/lib/utils';
 import type { CartItem, MetodePembayaran } from '@/lib/types';
@@ -59,6 +59,20 @@ export default function PenjualanPage() {
   const [scannerOpen, setScannerOpen] = useState(false);
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [catalog, setCatalog] = useState<any[]>([]);
+  const [selectedSuggestionIndex, setSelectedSuggestionIndex] = useState(-1);
+  const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const loadCatalog = useCallback(async () => {
+    try {
+      const items = await getBarangs();
+      setCatalog(items || []);
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    loadCatalog();
+  }, [loadCatalog]);
 
   // E-Wallet modal state
   const [ewalletModal, setEwalletModal] = useState(false);
@@ -76,18 +90,60 @@ export default function PenjualanPage() {
   const [serviceModal_hargaModal, setServiceModal_hargaModal] = useState('');
   const [serviceModal_hargaJual, setServiceModal_hargaJual] = useState('');
 
-  const handleInputChange = async (val: string) => {
+  const handleInputChange = (val: string) => {
     setBarcode(val);
     setSearchError('');
-    if (val.trim().length >= 1) {
-      try {
-        const results = await searchProductsByName(val.trim());
-        setSearchResults(results.slice(0, 10));
-        setShowSuggestions(results.length > 0);
-      } catch {
-        setSearchResults([]);
-        setShowSuggestions(false);
-      }
+    setSelectedSuggestionIndex(-1);
+    const q = val.trim().toLowerCase();
+
+    if (q.length > 0) {
+      // 1. INSTANT LOCAL FILTER DARI CATALOG (0 milidetik!)
+      const localMatches = catalog
+        .filter(item =>
+          item.qty > 0 && (
+            item.nama.toLowerCase().includes(q) ||
+            (item.merk && item.merk.toLowerCase().includes(q)) ||
+            (item.barcode && item.barcode.toLowerCase().includes(q)) ||
+            (item.kategori && item.kategori.toLowerCase().includes(q))
+          )
+        )
+        .map(item => ({
+          idbarang: item.id,
+          kategori: item.kategori,
+          code: item.barcode,
+          nama_barang: `${item.merk ? item.merk + ' ' : ''}${item.nama}${item.ukuran ? ` (${item.ukuran})` : ''}`,
+          qty: 1,
+          harga_modal: item.harga_modal,
+          harga_jual: item.harga_jual,
+          supplier: item.supplier,
+          max_qty: item.qty,
+        }));
+
+      setSearchResults(localMatches);
+      setShowSuggestions(localMatches.length > 0);
+
+      // 2. Debounced background query ke Neon DB
+      if (debounceTimeoutRef.current) clearTimeout(debounceTimeoutRef.current);
+      debounceTimeoutRef.current = setTimeout(async () => {
+        try {
+          const remoteResults = await searchProductsByName(val.trim());
+          if (remoteResults && remoteResults.length > 0) {
+            setSearchResults(prev => {
+              const seen = new Set(prev.map(p => p.code || p.idbarang));
+              const fresh = [...prev];
+              remoteResults.forEach(r => {
+                const k = r.code || r.idbarang;
+                if (!seen.has(k)) {
+                  seen.add(k);
+                  fresh.push(r);
+                }
+              });
+              return fresh;
+            });
+            setShowSuggestions(true);
+          }
+        } catch {}
+      }, 200);
     } else {
       setSearchResults([]);
       setShowSuggestions(false);
@@ -339,6 +395,7 @@ export default function PenjualanPage() {
       const dy = String(d.getDate()).padStart(2, '0');
       setTanggalTransaksi(`${yr}-${mt}-${dy}`);
       setCatatan('');
+      loadCatalog();
     } catch (e: unknown) {
       alert(e instanceof Error ? e.message : 'Gagal checkout');
     } finally {
@@ -382,7 +439,35 @@ export default function PenjualanPage() {
                   placeholder="Ketik nama produk (misal: Kaos, Beras, Indomie) atau scan barcode..."
                   value={barcode}
                   onChange={e => handleInputChange(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && handleBarcodeSearch()}
+                  onFocus={() => {
+                    if (barcode.trim().length > 0 && searchResults.length > 0) {
+                      setShowSuggestions(true);
+                    }
+                  }}
+                  onKeyDown={e => {
+                    if (e.key === 'ArrowDown') {
+                      e.preventDefault();
+                      if (searchResults.length > 0) {
+                        setSelectedSuggestionIndex(prev => (prev + 1) % searchResults.length);
+                      }
+                    } else if (e.key === 'ArrowUp') {
+                      e.preventDefault();
+                      if (searchResults.length > 0) {
+                        setSelectedSuggestionIndex(prev => (prev - 1 + searchResults.length) % searchResults.length);
+                      }
+                    } else if (e.key === 'Enter') {
+                      e.preventDefault();
+                      if (selectedSuggestionIndex >= 0 && selectedSuggestionIndex < searchResults.length) {
+                        handleSelectSuggestion(searchResults[selectedSuggestionIndex]);
+                      } else if (searchResults.length === 1) {
+                        handleSelectSuggestion(searchResults[0]);
+                      } else {
+                        handleBarcodeSearch();
+                      }
+                    } else if (e.key === 'Escape') {
+                      setShowSuggestions(false);
+                    }
+                  }}
                   id="pos-barcode-input"
                   autoFocus
                 />
@@ -401,34 +486,42 @@ export default function PenjualanPage() {
                     overflowY: 'auto',
                     marginTop: 4
                   }}>
-                    {searchResults.map((item, idx) => (
-                      <div
-                        key={idx}
-                        className="suggestion-item"
-                        style={{
-                          padding: '10px 14px',
-                          borderBottom: '1px solid var(--border-light, #2a2a32)',
-                          cursor: 'pointer',
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          textAlign: 'left'
-                        }}
-                        onClick={() => handleSelectSuggestion(item)}
-                      >
-                        <div>
-                          <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-primary, #ffffff)' }}>{item.nama_barang}</div>
-                          <div style={{ fontSize: 11, color: 'var(--text-secondary, #9ca3af)', marginTop: 2 }}>
-                            <span className="badge badge-sm badge-info" style={{ marginRight: 6, fontSize: 9, padding: '2px 6px' }}>{item.kategori}</span>
-                            <code>{item.code || 'Tanpa Barcode'}</code>
-                            <span style={{ marginLeft: 8, color: '#22c55e', fontWeight: 600 }}>Stok: {item.max_qty}</span>
+                    {searchResults.map((item, idx) => {
+                      const isSelected = idx === selectedSuggestionIndex;
+                      return (
+                        <div
+                          key={idx}
+                          className="suggestion-item"
+                          style={{
+                            padding: '10px 14px',
+                            borderBottom: '1px solid var(--border-light, #2a2a32)',
+                            background: isSelected ? 'rgba(239, 68, 68, 0.15)' : 'transparent',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            textAlign: 'left',
+                            transition: 'background 0.1s',
+                          }}
+                          onMouseEnter={() => setSelectedSuggestionIndex(idx)}
+                          onClick={() => handleSelectSuggestion(item)}
+                        >
+                          <div>
+                            <div style={{ fontWeight: 600, fontSize: 13, color: isSelected ? 'var(--brand-primary, #ef4444)' : 'var(--text-primary, #ffffff)' }}>
+                              {item.nama_barang}
+                            </div>
+                            <div style={{ fontSize: 11, color: 'var(--text-secondary, #9ca3af)', marginTop: 2 }}>
+                              <span className="badge badge-sm badge-info" style={{ marginRight: 6, fontSize: 9, padding: '2px 6px' }}>{item.kategori}</span>
+                              <code>{item.code || 'Tanpa Barcode'}</code>
+                              <span style={{ marginLeft: 8, color: '#22c55e', fontWeight: 600 }}>Stok: {item.max_qty}</span>
+                            </div>
+                          </div>
+                          <div style={{ fontWeight: 700, color: '#f87171', fontSize: 14 }}>
+                            {formatRupiah(item.harga_jual)}
                           </div>
                         </div>
-                        <div style={{ fontWeight: 700, color: '#f87171', fontSize: 14 }}>
-                          {formatRupiah(item.harga_jual)}
-                        </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -512,12 +605,153 @@ export default function PenjualanPage() {
 
           {/* Cart items in main area */}
           <div style={{ flex: 1, overflowY: 'auto', padding: 0 }}>
-            {cart.length === 0 ? (
-              <div className="empty-state" style={{ height: '100%' }}>
-                <div className="empty-state-icon" style={{ fontSize: 60 }}>🛒</div>
-                <div className="empty-state-text">Keranjang kosong</div>
-                <div style={{ fontSize: 12, color: '#bbb', marginTop: 8 }}>
-                  Scan barcode atau ketik kode barang untuk menambah item
+            {barcode.trim().length > 0 && searchResults.length > 0 ? (
+              /* LIVE SEARCH RESULTS GRID */
+              <div style={{ padding: 16 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)' }}>
+                    🔍 HASIL PENCARIAN UNTUK &quot;<span style={{ color: 'var(--brand-primary, #ef4444)' }}>{barcode}</span>&quot; ({searchResults.length} item ditemukan)
+                  </div>
+                  <button 
+                    onClick={() => { setBarcode(''); setSearchResults([]); setShowSuggestions(false); }}
+                    className="btn btn-outline btn-sm"
+                    style={{ fontSize: 11, padding: '3px 8px' }}
+                  >
+                    ✕ Tutup Pencarian / Lihat Keranjang
+                  </button>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(210px, 1fr))', gap: 12 }}>
+                  {searchResults.map((item, idx) => (
+                    <div
+                      key={idx}
+                      onClick={() => handleSelectSuggestion(item)}
+                      style={{
+                        background: 'var(--bg-elevated, #24242c)',
+                        border: '1px solid var(--border-light, #2e2e36)',
+                        borderRadius: 8,
+                        padding: 12,
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                      }}
+                      onMouseEnter={e => {
+                        e.currentTarget.style.borderColor = 'var(--brand-primary, #ef4444)';
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                        e.currentTarget.style.boxShadow = '0 6px 16px rgba(0,0,0,0.25)';
+                      }}
+                      onMouseLeave={e => {
+                        e.currentTarget.style.borderColor = 'var(--border-light, #2e2e36)';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = 'none';
+                      }}
+                    >
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                          <span className="badge badge-sm badge-info" style={{ fontSize: 9 }}>{item.kategori}</span>
+                          <span style={{ fontSize: 10, color: '#22c55e', fontWeight: 600 }}>Stok: {item.max_qty}</span>
+                        </div>
+                        <div style={{ fontWeight: 600, fontSize: 13, color: 'var(--text-primary)', marginBottom: 4, lineHeight: 1.3 }}>
+                          {item.nama_barang}
+                        </div>
+                        <code style={{ fontSize: 10, color: 'var(--text-secondary)' }}>{item.code || '-'}</code>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 12, paddingTop: 8, borderTop: '1px solid var(--border-light, #2a2a30)' }}>
+                        <span style={{ fontWeight: 700, color: '#4ade80', fontSize: 14 }}>
+                          {formatRupiah(item.harga_jual)}
+                        </span>
+                        <button
+                          className="btn btn-primary btn-sm"
+                          style={{ padding: '4px 10px', fontSize: 11, fontWeight: 600 }}
+                          onClick={(e) => { e.stopPropagation(); handleSelectSuggestion(item); }}
+                        >
+                          + Tambah
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : barcode.trim().length > 0 && searchResults.length === 0 ? (
+              /* KETIKA PENCARIAN TIDAK DITEMUKAN */
+              <div className="empty-state" style={{ height: '100%', padding: '3rem 1rem' }}>
+                <div className="empty-state-icon" style={{ fontSize: 48 }}>🔎</div>
+                <div className="empty-state-text" style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)' }}>
+                  Tidak ada barang dengan kata kunci &quot;{barcode}&quot;
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 6 }}>
+                  Pastikan ejaan benar atau periksa stok barang di menu Stock
+                </div>
+              </div>
+            ) : cart.length === 0 ? (
+              /* KETIKA KERANJANG KOSONG: KATALOG CEPAT PRODUK SIAP JUAL */
+              <div style={{ padding: 16 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                    📦 Produk Tersedia (Klik untuk langsung tambah ke keranjang):
+                  </div>
+                  <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                    {catalog.filter(p => p.qty > 0).length} produk aktif
+                  </div>
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 10 }}>
+                  {catalog.filter(p => p.qty > 0).slice(0, 16).map((item, idx) => (
+                    <div
+                      key={idx}
+                      onClick={() => handleSelectSuggestion({
+                        idbarang: item.id,
+                        kategori: item.kategori,
+                        code: item.barcode,
+                        nama_barang: `${item.merk ? item.merk + ' ' : ''}${item.nama}${item.ukuran ? ` (${item.ukuran})` : ''}`,
+                        qty: 1,
+                        harga_modal: item.harga_modal,
+                        harga_jual: item.harga_jual,
+                        supplier: item.supplier,
+                        max_qty: item.qty,
+                      })}
+                      style={{
+                        background: 'var(--bg-card, #1c1c22)',
+                        border: '1px solid var(--border-light, #2e2e36)',
+                        borderRadius: 8,
+                        padding: 10,
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'space-between',
+                      }}
+                      onMouseEnter={e => {
+                        e.currentTarget.style.borderColor = 'var(--brand-primary, #ef4444)';
+                        e.currentTarget.style.transform = 'translateY(-2px)';
+                      }}
+                      onMouseLeave={e => {
+                        e.currentTarget.style.borderColor = 'var(--border-light, #2e2e36)';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                      }}
+                    >
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                          <span className="badge badge-sm badge-info" style={{ fontSize: 9 }}>{item.kategori}</span>
+                          <span style={{ fontSize: 10, color: '#22c55e', fontWeight: 600 }}>Stok: {item.qty}</span>
+                        </div>
+                        <div style={{ fontWeight: 600, fontSize: 12, color: 'var(--text-primary)', marginBottom: 2 }}>
+                          {item.nama}
+                        </div>
+                        <div style={{ fontSize: 10, color: 'var(--text-muted)' }}>
+                          {item.merk || item.barcode || '-'}
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8, paddingTop: 6, borderTop: '1px solid var(--border-light, #2a2a30)' }}>
+                        <span style={{ fontWeight: 700, color: '#4ade80', fontSize: 13 }}>
+                          {formatRupiah(item.harga_jual)}
+                        </span>
+                        <span style={{ fontSize: 11, color: 'var(--brand-primary, #ef4444)', fontWeight: 600 }}>
+                          + Tambah
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
             ) : (
