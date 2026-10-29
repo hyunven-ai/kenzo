@@ -1151,7 +1151,7 @@ export default function PenjualanPage() {
       {/* Checkout Confirmation Modal */}
       {checkoutModal && (
         <div className="modal-backdrop">
-          <div className="modal" style={{ maxWidth: 520 }}>
+          <div className="modal checkout-confirm-modal">
             <div className="modal-header">
               <h2 className="modal-title">Konfirmasi Checkout</h2>
               <button className="modal-close" onClick={() => !processing && setCheckoutModal(false)}>✕</button>
@@ -1200,58 +1200,41 @@ export default function PenjualanPage() {
                 </div>
               )}
             </div>
-            <div className="modal-footer" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <div className="checkout-modal-footer">
               <button 
                 type="button"
-                className="btn btn-secondary" 
+                className="btn btn-secondary btn-cancel" 
                 onClick={() => setCheckoutModal(false)}
                 disabled={processing}
                 id="btn-cancel-checkout"
               >
                 Batal
               </button>
-              <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+              <div className="checkout-primary-actions">
                 <button 
                   type="button"
-                  className="btn btn-outline" 
+                  className="btn btn-pay-only" 
                   onClick={() => handleCheckout(false)} 
                   disabled={processing} 
                   id="btn-confirm-pay"
-                  style={{ 
-                    fontWeight: 600, 
-                    borderColor: 'rgba(74, 222, 128, 0.4)', 
-                    color: '#4ade80',
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    padding: '8px 14px'
-                  }}
                   title="Simpan transaksi tanpa mencetak struk"
                 >
                   {processing && checkoutMode === 'pay_only' ? (
-                    <><div className="spinner" style={{ width: 14, height: 14 }} /> Memproses...</>
+                    <><div className="spinner" style={{ width: 14, height: 14, marginRight: 6 }} /> Memproses...</>
                   ) : (
                     '✅ Konfirmasi Bayar'
                   )}
                 </button>
                 <button 
                   type="button"
-                  className="btn btn-success" 
+                  className="btn btn-success btn-pay-print" 
                   onClick={() => handleCheckout(true)} 
                   disabled={processing} 
                   id="btn-confirm-pay-and-print"
-                  style={{ 
-                    fontWeight: 700, 
-                    display: 'inline-flex', 
-                    alignItems: 'center', 
-                    gap: 6, 
-                    boxShadow: '0 2px 8px rgba(76, 175, 80, 0.3)',
-                    padding: '8px 16px'
-                  }}
                   title="Simpan transaksi dan langsung cetak struk"
                 >
                   {processing && checkoutMode === 'pay_print' ? (
-                    <><div className="spinner" style={{ width: 14, height: 14 }} /> Memproses & Cetak...</>
+                    <><div className="spinner" style={{ width: 14, height: 14, marginRight: 6 }} /> Memproses & Cetak...</>
                   ) : (
                     '🖨️ Konfirmasi Bayar & Cetak Struk'
                   )}
