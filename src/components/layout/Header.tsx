@@ -1,7 +1,9 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { AuthUser } from '@/lib/types';
 import { getRoleLabel } from '@/lib/auth';
+import { getOfflineSales, syncPendingSalesToNeon } from '@/lib/db';
 
 interface HeaderProps {
   user: AuthUser;
@@ -12,6 +14,42 @@ interface HeaderProps {
 }
 
 export default function Header({ user, isDarkMode, onToggleDarkMode, onToggleSidebar, onLogout }: HeaderProps) {
+  const [online, setOnline] = useState(true);
+  const [pendingCount, setPendingCount] = useState(0);
+  const [syncing, setSyncing] = useState(false);
+
+  useEffect(() => {
+    const checkStatus = () => {
+      setOnline(navigator.onLine);
+      const pending = getOfflineSales().filter(s => !s.synced).length;
+      setPendingCount(pending);
+    };
+
+    checkStatus();
+    window.addEventListener('online', checkStatus);
+    window.addEventListener('offline', checkStatus);
+    const interval = setInterval(checkStatus, 4000);
+
+    return () => {
+      window.removeEventListener('online', checkStatus);
+      window.removeEventListener('offline', checkStatus);
+      clearInterval(interval);
+    };
+  }, []);
+
+  const handleManualSync = async () => {
+    setSyncing(true);
+    try {
+      await syncPendingSalesToNeon();
+      const pending = getOfflineSales().filter(s => !s.synced).length;
+      setPendingCount(pending);
+    } catch {
+      // ignore
+    } finally {
+      setSyncing(false);
+    }
+  };
+
   return (
     <header className="app-header">
       <div className="header-left">
@@ -22,10 +60,44 @@ export default function Header({ user, isDarkMode, onToggleDarkMode, onToggleSid
             <line x1="3" y1="18" x2="21" y2="18" />
           </svg>
         </button>
-        <span className="header-title">Series Ponsel</span>
+        <span className="header-title">Kasir Pintar</span>
       </div>
 
       <div className="header-right">
+        {/* Neon DB / Offline Status Badge */}
+        {online ? (
+          <div
+            className="badge badge-success"
+            style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, padding: '4px 10px' }}
+            title="Database Neon Cloud Terhubung"
+          >
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981', display: 'inline-block' }} />
+            <span>Neon Online</span>
+          </div>
+        ) : (
+          <div
+            className="badge badge-error"
+            style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, padding: '4px 10px' }}
+            title="Internet terputus - transaksi disimpan aman secara lokal"
+          >
+            <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#ef4444', display: 'inline-block' }} />
+            <span>Offline (Lokal)</span>
+          </div>
+        )}
+
+        {/* Sync Button if there are pending offline sales */}
+        {pendingCount > 0 && (
+          <button
+            className="btn btn-warning btn-sm"
+            style={{ padding: '4px 10px', fontSize: 12, fontWeight: 600 }}
+            onClick={handleManualSync}
+            disabled={syncing || !online}
+            title="Ada transaksi offline yang belum disinkronkan ke Neon DB"
+          >
+            {syncing ? 'Menyinkronkan...' : `🔄 Sync (${pendingCount})`}
+          </button>
+        )}
+
         <div className="header-user-btn">
           <div className="header-avatar">
             {user.nama_lengkap.charAt(0).toUpperCase()}

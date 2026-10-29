@@ -68,19 +68,41 @@ function saveLocalKategoris(data: MsKategori[]) {
   }
 }
 
-export async function getKategoris(): Promise<MsKategori[]> {
+// ============================================
+// NEON DB CLOUD & OFFLINE HELPER
+// ============================================
+
+export async function callNeonApi(action: string, payload?: any, method: 'GET' | 'POST' = 'GET') {
+  if (typeof window === 'undefined') return null;
   try {
-    const { data, error } = await supabase
-      .from('ms_kategori')
-      .select('*')
-      .order('nama');
-    if (error || !data || data.length === 0) {
-      return getLocalKategoris();
-    }
-    return data as MsKategori[];
+    const url = method === 'GET'
+      ? `/api/neon?action=${action}${payload ? '&' + new URLSearchParams(payload).toString() : ''}`
+      : '/api/neon';
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 4000);
+    const res = await fetch(url, {
+      method,
+      headers: { 'Content-Type': 'application/json' },
+      body: method === 'POST' ? JSON.stringify({ action, payload }) : undefined,
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+    if (!res.ok) return null;
+    const json = await res.json();
+    return json.ok ? json.data : null;
   } catch {
-    return getLocalKategoris();
+    // Offline / Network Error - fallback to local storage
+    return null;
   }
+}
+
+export async function getKategoris(): Promise<MsKategori[]> {
+  const neonData = await callNeonApi('getKategoris');
+  if (neonData && Array.isArray(neonData) && neonData.length > 0) {
+    saveLocalKategoris(neonData as MsKategori[]);
+    return neonData as MsKategori[];
+  }
+  return getLocalKategoris();
 }
 
 export async function createKategori(payload: Omit<MsKategori, 'id' | 'create_time'>): Promise<MsKategori> {
@@ -93,18 +115,10 @@ export async function createKategori(payload: Omit<MsKategori, 'id' | 'create_ti
     create_time: new Date().toISOString(),
   };
 
-  try {
-    const { data, error } = await supabase
-      .from('ms_kategori')
-      .insert(payload)
-      .select()
-      .single();
-    if (!error && data) {
-      saveLocalKategoris([...localList, data as MsKategori]);
-      return data as MsKategori;
-    }
-  } catch {
-    // fallback to local
+  const neonRes = await callNeonApi('createKategori', payload, 'POST');
+  if (neonRes) {
+    saveLocalKategoris([...localList, neonRes as MsKategori]);
+    return neonRes as MsKategori;
   }
 
   const updated = [...localList, newRecord];
@@ -122,20 +136,11 @@ export async function updateKategori(id: number, payload: Partial<MsKategori>): 
     update_time: new Date().toISOString(),
   };
 
-  try {
-    const { data, error } = await supabase
-      .from('ms_kategori')
-      .update({ ...payload, update_time: new Date().toISOString() })
-      .eq('id', id)
-      .select()
-      .single();
-    if (!error && data) {
-      if (index >= 0) localList[index] = data as MsKategori;
-      saveLocalKategoris(localList);
-      return data as MsKategori;
-    }
-  } catch {
-    // fallback
+  const neonRes = await callNeonApi('updateKategori', { id, ...payload }, 'POST');
+  if (neonRes) {
+    if (index >= 0) localList[index] = neonRes as MsKategori;
+    saveLocalKategoris(localList);
+    return neonRes as MsKategori;
   }
 
   if (index >= 0) {
@@ -146,11 +151,7 @@ export async function updateKategori(id: number, payload: Partial<MsKategori>): 
 }
 
 export async function deleteKategori(id: number): Promise<void> {
-  try {
-    await supabase.from('ms_kategori').delete().eq('id', id);
-  } catch {
-    // fallback
-  }
+  await callNeonApi('deleteKategori', { id }, 'POST');
   const localList = getLocalKategoris().filter(k => k.id !== id);
   saveLocalKategoris(localList);
 }
@@ -233,21 +234,13 @@ export function saveLocalBarangs(data: MsBarang[]) {
 }
 
 export async function getBarangs(kategori?: string): Promise<MsBarang[]> {
-  try {
-    let query = supabase.from('ms_barang').select('*').order('create_time', { ascending: false });
-    if (kategori && kategori !== 'semua') {
-      query = query.eq('kategori', kategori);
-    }
-    const { data, error } = await query;
-    if (error || !data || data.length === 0) {
-      const locals = getLocalBarangs();
-      return (kategori && kategori !== 'semua') ? locals.filter(b => b.kategori === kategori) : locals;
-    }
-    return data as MsBarang[];
-  } catch {
-    const locals = getLocalBarangs();
-    return (kategori && kategori !== 'semua') ? locals.filter(b => b.kategori === kategori) : locals;
+  const neonData = await callNeonApi('getBarangs', kategori ? { kategori } : undefined);
+  if (neonData && Array.isArray(neonData) && neonData.length > 0) {
+    saveLocalBarangs(neonData as MsBarang[]);
+    return neonData as MsBarang[];
   }
+  const locals = getLocalBarangs();
+  return (kategori && kategori !== 'semua') ? locals.filter(b => b.kategori === kategori) : locals;
 }
 
 export async function createBarang(payload: Omit<MsBarang, 'id' | 'create_time'>): Promise<MsBarang> {
@@ -259,14 +252,10 @@ export async function createBarang(payload: Omit<MsBarang, 'id' | 'create_time'>
     create_time: new Date().toISOString(),
   };
 
-  try {
-    const { data, error } = await supabase.from('ms_barang').insert(payload).select().single();
-    if (!error && data) {
-      saveLocalBarangs([data as MsBarang, ...locals]);
-      return data as MsBarang;
-    }
-  } catch {
-    // fallback
+  const neonRes = await callNeonApi('createBarang', payload, 'POST');
+  if (neonRes) {
+    saveLocalBarangs([neonRes as MsBarang, ...locals]);
+    return neonRes as MsBarang;
   }
 
   saveLocalBarangs([newRecord, ...locals]);
@@ -283,20 +272,11 @@ export async function updateBarang(id: number, payload: Partial<MsBarang>): Prom
     update_time: new Date().toISOString(),
   };
 
-  try {
-    const { data, error } = await supabase
-      .from('ms_barang')
-      .update({ ...payload, update_time: new Date().toISOString() })
-      .eq('id', id)
-      .select()
-      .single();
-    if (!error && data) {
-      if (index >= 0) locals[index] = data as MsBarang;
-      saveLocalBarangs(locals);
-      return data as MsBarang;
-    }
-  } catch {
-    // fallback
+  const neonRes = await callNeonApi('updateBarang', { id, ...payload }, 'POST');
+  if (neonRes) {
+    if (index >= 0) locals[index] = neonRes as MsBarang;
+    saveLocalBarangs(locals);
+    return neonRes as MsBarang;
   }
 
   if (index >= 0) {
@@ -307,11 +287,7 @@ export async function updateBarang(id: number, payload: Partial<MsBarang>): Prom
 }
 
 export async function deleteBarang(id: number): Promise<void> {
-  try {
-    await supabase.from('ms_barang').delete().eq('id', id);
-  } catch {
-    // fallback
-  }
+  await callNeonApi('deleteBarang', { id }, 'POST');
   const locals = getLocalBarangs().filter(b => b.id !== id);
   saveLocalBarangs(locals);
 }
@@ -829,31 +805,109 @@ export async function getPenjualan(from?: string, to?: string) {
   return allData;
 }
 
+export interface OfflineSale {
+  invoice: string;
+  header: any;
+  items: any[];
+  synced: boolean;
+  timestamp: string;
+}
+
+export function getOfflineSales(): OfflineSale[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    return JSON.parse(localStorage.getItem('local_offline_sales') || '[]');
+  } catch {
+    return [];
+  }
+}
+
+export async function syncPendingSalesToNeon(): Promise<number> {
+  const all = getOfflineSales();
+  const pending = all.filter(s => !s.synced);
+  if (pending.length === 0) return 0;
+
+  let count = 0;
+  for (const sale of pending) {
+    try {
+      const res = await callNeonApi('syncPenjualan', { header: sale.header, items: sale.items }, 'POST');
+      if (res) {
+        sale.synced = true;
+        count++;
+      }
+    } catch {
+      // still offline
+    }
+  }
+
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('local_offline_sales', JSON.stringify(all));
+  }
+  return count;
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('online', () => {
+    syncPendingSalesToNeon().catch(console.error);
+  });
+}
+
 export async function createPenjualan(
   header: Omit<TrsPenjualanHdr, 'id' | 'create_time' | 'details'>,
   items: Omit<TrsPenjualanDtl, 'id' | 'idhdr' | 'create_time'>[]
 ) {
-  const { data: hdr, error: hdrErr } = await supabase
-    .from('trs_penjualan_hdr')
-    .insert(header)
-    .select()
-    .single();
-  if (hdrErr) throw hdrErr;
-
-  const dtls = items.map(item => ({ ...item, idhdr: hdr.id }));
-  const { error: dtlErr } = await supabase
-    .from('trs_penjualan_dtl')
-    .insert(dtls);
-  if (dtlErr) throw dtlErr;
-
-  // Kurangi stok
+  // 1. Kurangi stok lokal terlebih dahulu (agar kasir offline langsung akurat)
   for (const item of items) {
     await kurangiStok(item.idbarang, item.kategori as string, item.qty, item.code);
   }
 
+  // 2. Simpan transaksi ke antrean lokal (offline queue)
+  const saleRecord: OfflineSale = {
+    invoice: header.nomor_invoice,
+    header,
+    items,
+    synced: false,
+    timestamp: new Date().toISOString(),
+  };
+
+  if (typeof window !== 'undefined') {
+    const existing = getOfflineSales();
+    localStorage.setItem('local_offline_sales', JSON.stringify([saleRecord, ...existing]));
+  }
+
+  // 3. Coba kirim langsung ke Neon DB
+  try {
+    const neonRes = await callNeonApi('syncPenjualan', { header, items }, 'POST');
+    if (neonRes) {
+      saleRecord.synced = true;
+      if (typeof window !== 'undefined') {
+        const existing = getOfflineSales();
+        const updated = existing.map(s => s.invoice === header.nomor_invoice ? { ...s, synced: true } : s);
+        localStorage.setItem('local_offline_sales', JSON.stringify(updated));
+      }
+    }
+  } catch {
+    // Offline mode: transaksi tetap aman di localStorage, akan disinkronkan otomatis saat online
+  }
+
+  // Coba Supabase jika ada
+  try {
+    const { data: hdr } = await supabase.from('trs_penjualan_hdr').insert(header).select().single();
+    if (hdr) {
+      const dtls = items.map(item => ({ ...item, idhdr: hdr.id }));
+      await supabase.from('trs_penjualan_dtl').insert(dtls);
+    }
+  } catch {
+    // ignore
+  }
+
   await writeLog('INSERT', 'trs_penjualan_hdr', `Penjualan ${header.nomor_invoice} — Total: ${formatRupiah(header.total_harga || 0)}`);
 
-  return hdr as TrsPenjualanHdr;
+  return {
+    ...header,
+    id: Date.now(),
+    create_time: new Date().toISOString(),
+  } as TrsPenjualanHdr;
 }
 
 async function kurangiStok(idbarang: number, kategori: string, qty: number, code: string) {
