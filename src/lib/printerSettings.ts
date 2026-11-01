@@ -17,6 +17,7 @@ export interface PrinterSettings {
   activeDeviceId?: string;
   printEngine?: 'auto' | 'bluetooth_ble' | 'usb_otg' | 'browser';
   paperWidth: '58mm' | '80mm';
+  feedLines?: number; // Jumlah baris kosong di bawah struk (default: 2 untuk POS-58 hemat kertas)
   autoPrint: boolean;
   printCopies: number;
   shopName: string;
@@ -38,6 +39,7 @@ export const DEFAULT_PRINTER_SETTINGS: PrinterSettings = {
   devices: [],
   printEngine: 'auto',
   paperWidth: '58mm',
+  feedLines: 2,
   autoPrint: false,
   printCopies: 1,
   shopName: 'Kenzo',

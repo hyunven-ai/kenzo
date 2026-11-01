@@ -8,6 +8,13 @@ import { formatRupiah, formatDateTime, today, daysAgo } from '@/lib/utils';
 import type { TrsPenjualanHdr, TrsPenjualanDtl, MetodePembayaran, MsMerk } from '@/lib/types';
 import PrintReceipt from '@/components/ui/PrintReceipt';
 import { getCurrentUser } from '@/lib/auth';
+import { executeThermalPrint } from '@/lib/printerManager';
+import {
+  connectBluetoothPrinter,
+  getActiveBluetoothPrinter,
+  isWebBluetoothSupported,
+  BluetoothPrinterInfo
+} from '@/lib/bluetoothPrinter';
 
 export default function DetailPenjualanPage() {
   const user = getCurrentUser();
@@ -50,6 +57,34 @@ export default function DetailPenjualanPage() {
     create_by: true,
   });
   const [showColDropdown, setShowColDropdown] = useState(false);
+
+  const [btPrinter, setBtPrinter] = useState<BluetoothPrinterInfo | null>(null);
+  const [connectingBt, setConnectingBt] = useState(false);
+  const [printingInvoice, setPrintingInvoice] = useState<string | null>(null);
+  const [printStatusToast, setPrintStatusToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    const updateBt = () => setBtPrinter(getActiveBluetoothPrinter());
+    updateBt();
+    window.addEventListener('bluetooth-printer-status-changed', updateBt);
+    return () => window.removeEventListener('bluetooth-printer-status-changed', updateBt);
+  }, []);
+
+  const handleConnectBt = async () => {
+    setConnectingBt(true);
+    try {
+      const info = await connectBluetoothPrinter();
+      setBtPrinter(info);
+      setPrintStatusToast(`✅ Printer "${info.name}" terhubung!`);
+      setTimeout(() => setPrintStatusToast(null), 3000);
+    } catch (err: any) {
+      if (err.name !== 'NotFoundError') {
+        alert(err.message || 'Gagal menghubungkan printer Bluetooth.');
+      }
+    } finally {
+      setConnectingBt(false);
+    }
+  };
 
   const startEdit = (row: TrsPenjualanHdr) => {
     setEditCustomer(row.customer);
@@ -150,9 +185,77 @@ export default function DetailPenjualanPage() {
     load(f, t);
   };
 
-  const handlePrint = (row: TrsPenjualanHdr) => {
+  const handlePrint = async (row: TrsPenjualanHdr) => {
     setSelected(row);
-    setTimeout(() => window.print(), 200);
+    setPrintingInvoice(row.nomor_invoice);
+
+    const dtls: TrsPenjualanDtl[] = (row as any).details ?? (row as any).trs_penjualan_dtl ?? [];
+    const items = dtls.map(d => ({
+      nama_barang: d.nama_barang,
+      qty: d.qty,
+      harga_jual: d.harga_jual,
+      kategori: d.kategori,
+      code: d.code,
+    }));
+
+    // Jika di Android/Chrome Web Bluetooth didukung namun belum terkoneksi, tawarkan koneksi langsung
+    if (isWebBluetoothSupported() && !btPrinter?.connected) {
+      const wantBt = confirm('Printer Bluetooth belum terhubung.\n\nKlik "OK" untuk menghubungkan printer Bluetooth POS-58 secara langsung,\natau "Batal" untuk dialog cetak browser biasa.');
+      if (wantBt) {
+        try {
+          const info = await connectBluetoothPrinter();
+          setBtPrinter(info);
+          setPrintStatusToast(`✅ Printer "${info.name}" terhubung!`);
+
+          const res = await executeThermalPrint({
+            invoiceNo: row.nomor_invoice,
+            customer: row.customer,
+            tanggalPenjualan: row.tanggal_penjualan,
+            metodePembayaran: row.metode_pembayaran,
+            items,
+            total: row.total_harga ?? 0,
+            bayar: (row as any).bayar ?? row.total_harga ?? 0,
+          });
+
+          if (res.success && res.method === 'bluetooth_ble') {
+            setPrintStatusToast(`✅ Cetak ulang struk berhasil ke ${info.name}!`);
+            setTimeout(() => setPrintStatusToast(null), 3500);
+          }
+          setPrintingInvoice(null);
+          return;
+        } catch (cErr: any) {
+          if (cErr.name === 'NotFoundError') {
+            setPrintingInvoice(null);
+            return;
+          }
+          console.warn('Bluetooth connect failed:', cErr);
+        }
+      }
+    }
+
+    try {
+      const res = await executeThermalPrint({
+        invoiceNo: row.nomor_invoice,
+        customer: row.customer,
+        tanggalPenjualan: row.tanggal_penjualan,
+        metodePembayaran: row.metode_pembayaran,
+        items,
+        total: row.total_harga ?? 0,
+        bayar: (row as any).bayar ?? row.total_harga ?? 0,
+      });
+
+      if (res.success && res.method === 'bluetooth_ble') {
+        setPrintStatusToast(`✅ Cetak ulang struk berhasil ke ${btPrinter?.name || 'POS-58'}!`);
+        setTimeout(() => setPrintStatusToast(null), 3500);
+      } else if (!res.success && res.method === 'bluetooth_ble') {
+        alert(`Gagal cetak ke Bluetooth: ${res.error || res.message}`);
+      }
+    } catch (err: any) {
+      console.warn('Thermal print failed, fallback to window.print():', err);
+      setTimeout(() => window.print(), 150);
+    } finally {
+      setPrintingInvoice(null);
+    }
   };
 
   // Filter client-side
@@ -267,7 +370,19 @@ export default function DetailPenjualanPage() {
       render: (row: TrsPenjualanHdr) => (
         <div className="table-actions">
           <button className="btn btn-outline btn-sm" onClick={() => { setSelected(row); setDtlModal(true); setIsEditing(false); }} id={`btn-dtl-${row.id}`}>Detail</button>
-          <button className="btn btn-secondary btn-sm" onClick={() => handlePrint(row)} id={`btn-print-${row.id}`}>🖨️</button>
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={() => handlePrint(row)}
+            disabled={printingInvoice === row.nomor_invoice}
+            title={btPrinter?.connected ? 'Cetak langsung ke POS-58 (Bluetooth)' : 'Cetak struk'}
+            id={`btn-print-${row.id}`}
+            style={{
+              borderColor: btPrinter?.connected ? '#10b981' : undefined,
+              color: btPrinter?.connected ? '#10b981' : undefined,
+            }}
+          >
+            {printingInvoice === row.nomor_invoice ? '⏳' : '🖨️'}
+          </button>
         </div>
       ),
     },
@@ -305,8 +420,35 @@ export default function DetailPenjualanPage() {
 
   return (
     <div>
-      <div className="page-header">
-        <h1 className="page-title">Detail Penjualan</h1>
+      <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+        <h1 className="page-title" style={{ margin: 0 }}>Detail Penjualan</h1>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {isWebBluetoothSupported() && (
+            btPrinter?.connected ? (
+              <div
+                className="badge badge-success"
+                style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, padding: '6px 12px', cursor: 'pointer' }}
+                title="Printer POS-58 terhubung dan siap cetak langsung"
+                onClick={handleConnectBt}
+              >
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981' }} />
+                <span>ᛒ {btPrinter.name} (Siap)</span>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="btn btn-outline btn-sm"
+                onClick={handleConnectBt}
+                disabled={connectingBt}
+                style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, borderColor: '#3b82f6', color: '#3b82f6', fontWeight: 600 }}
+                title="Hubungkan Printer Bluetooth POS-58 langsung tanpa aplikasi"
+              >
+                <span>ᛒ</span>
+                <span>{connectingBt ? 'Mencari...' : 'Hubungkan POS-58'}</span>
+              </button>
+            )
+          )}
+        </div>
       </div>
 
       {/* Filter */}
@@ -459,7 +601,41 @@ export default function DetailPenjualanPage() {
                 )}
               </div>
               <div style={{ display: 'flex', gap: 8 }}>
-                <button className="btn btn-secondary" onClick={() => handlePrint(selected!)} id="btn-reprint">🖨️ Cetak Ulang Struk</button>
+                {isWebBluetoothSupported() && !btPrinter?.connected && (
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm"
+                    onClick={handleConnectBt}
+                    disabled={connectingBt}
+                    style={{ fontSize: 12, borderColor: '#3b82f6', color: '#3b82f6', fontWeight: 600 }}
+                    title="Hubungkan Printer Bluetooth POS-58"
+                  >
+                    ᛒ {connectingBt ? 'Menghubungkan...' : 'Hubungkan POS-58'}
+                  </button>
+                )}
+                <button
+                  className="btn btn-secondary"
+                  onClick={() => handlePrint(selected!)}
+                  disabled={printingInvoice === selected?.nomor_invoice}
+                  id="btn-reprint"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    fontWeight: 600,
+                    borderColor: btPrinter?.connected ? '#10b981' : undefined,
+                    color: btPrinter?.connected ? '#10b981' : undefined,
+                  }}
+                >
+                  <span>🖨️</span>
+                  <span>
+                    {printingInvoice === selected?.nomor_invoice
+                      ? 'Mencetak...'
+                      : btPrinter?.connected
+                      ? 'Cetak Ulang POS-58 (Direct)'
+                      : 'Cetak Ulang Struk'}
+                  </span>
+                </button>
                 <button className="btn btn-outline" onClick={() => { setDtlModal(false); setIsEditing(false); }}>Tutup</button>
               </div>
             </div>
@@ -549,6 +725,28 @@ export default function DetailPenjualanPage() {
           }))}
           total={selected.total_harga ?? 0}
         />
+      )}
+      {/* Floating Toast Notification */}
+      {printStatusToast && (
+        <div style={{
+          position: 'fixed',
+          bottom: 24,
+          right: 24,
+          background: 'rgba(15, 23, 42, 0.95)',
+          color: '#ffffff',
+          padding: '12px 20px',
+          borderRadius: 8,
+          boxShadow: '0 10px 25px rgba(0,0,0,0.3)',
+          border: '1px solid rgba(16, 185, 129, 0.4)',
+          zIndex: 99999,
+          fontSize: 13,
+          fontWeight: 600,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 10,
+        }}>
+          {printStatusToast}
+        </div>
       )}
     </div>
   );

@@ -727,6 +727,26 @@ export default function PrinterSettingsPage() {
                   <option value="browser">Dialog Browser (window.print)</option>
                 </select>
               </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>Sisa Kertas Bawah:</span>
+                <select
+                  className="form-control"
+                  style={{ minWidth: 200 }}
+                  value={settings.feedLines !== undefined ? settings.feedLines : 2}
+                  onChange={e => {
+                    const lines = Number(e.target.value);
+                    handleChange('feedLines', lines);
+                    savePrinterSettings({ feedLines: lines });
+                  }}
+                  title="Atur jarak kertas kosong di bawah struk setelah teks selesai agar hemat kertas"
+                >
+                  <option value={1}>1 Baris (Paling Hemat Kertas)</option>
+                  <option value={2}>2 Baris (Rekomendasi POS-58 Pas Gigi Sobek)</option>
+                  <option value={3}>3 Baris (Sedang)</option>
+                  <option value={4}>4 Baris (Lebar)</option>
+                </select>
+              </div>
             </div>
           </div>
         </div>

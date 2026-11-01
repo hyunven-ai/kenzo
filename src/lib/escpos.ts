@@ -129,11 +129,14 @@ export class EscPosBuilder {
   }
 
   /**
-   * Feed paper lines and cut (if supported)
+   * Feed paper lines just enough for manual tear or auto-cut.
+   * On manual-tear thermal printers (like POS-58), feeding 1-2 lines is ideal to reach the tear bar without wasting blank paper.
    */
-  cut(feedLines: number = 4): this {
+  cut(feedLines: number = 2, autoCut: boolean = false): this {
     this.newLine(feedLines);
-    this.buffer.push(0x1d, 0x56, 0x41, 0x00); // GS V A 0 (full/partial cut)
+    if (autoCut) {
+      this.buffer.push(0x1d, 0x56, 0x00); // GS V 0 (instant cut without extra 30mm feed)
+    }
     return this;
   }
 
@@ -257,8 +260,9 @@ export function buildReceiptEscPos(
     builder.bold(false);
   }
 
-  // 6. Feed Kertas & Cut
-  builder.cut(4);
+  // 6. Feed Kertas Hemat & Presisi (cukup 1-2 baris agar pas di gigi pemotong POS-58 tanpa membuang kertas)
+  const feedCount = typeof settings.feedLines === 'number' ? settings.feedLines : 2;
+  builder.cut(feedCount, false);
 
   return builder.build();
 }
@@ -298,7 +302,7 @@ export function buildTestPrintEscPos(settings: PrinterSettings): Uint8Array {
   builder.bold(false);
   builder.textLine('Kasir Pintar POS System');
 
-  builder.cut(4);
+  builder.cut(2, false);
   return builder.build();
 }
 
