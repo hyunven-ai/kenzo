@@ -92,3 +92,4 @@ export async function printRawUsb(data: Uint8Array): Promise<void> {
     await activeUsbDevice.transferOut(activeUsbEndpoint, chunk);
   }
 }
+

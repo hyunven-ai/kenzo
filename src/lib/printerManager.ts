@@ -179,3 +179,4 @@ export async function executeTestThermalPrint(
     message: 'Gagal melakukan tes cetak.',
   };
 }
+

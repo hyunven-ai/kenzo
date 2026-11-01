@@ -301,3 +301,4 @@ export function buildTestPrintEscPos(settings: PrinterSettings): Uint8Array {
   builder.cut(4);
   return builder.build();
 }
+

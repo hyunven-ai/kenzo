@@ -197,3 +197,4 @@ export async function printRawBluetooth(data: Uint8Array): Promise<void> {
     await new Promise(resolve => setTimeout(resolve, 25));
   }
 }
+
