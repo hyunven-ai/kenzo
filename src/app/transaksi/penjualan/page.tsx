@@ -10,6 +10,13 @@ import PrintReceipt from '@/components/ui/PrintReceipt';
 import BarcodeScannerModal from '@/components/ui/BarcodeScannerModal';
 import NumericInput from '@/components/ui/NumericInput';
 import { getPrinterSettings } from '@/lib/printerSettings';
+import { executeThermalPrint } from '@/lib/printerManager';
+import {
+  connectBluetoothPrinter,
+  getActiveBluetoothPrinter,
+  isWebBluetoothSupported,
+  BluetoothPrinterInfo
+} from '@/lib/bluetoothPrinter';
 
 const METODE_OPTIONS: MetodePembayaran[] = ['Tunai', 'Debit', 'Transfer', 'QRIS'];
 
@@ -57,6 +64,10 @@ export default function PenjualanPage() {
     bayar?: number;
   } | null>(null);
 
+  const [btPrinter, setBtPrinter] = useState<BluetoothPrinterInfo | null>(null);
+  const [connectingBt, setConnectingBt] = useState(false);
+  const [printStatusToast, setPrintStatusToast] = useState<string | null>(null);
+
   const [scannerOpen, setScannerOpen] = useState(false);
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
@@ -74,6 +85,29 @@ export default function PenjualanPage() {
   useEffect(() => {
     loadCatalog();
   }, [loadCatalog]);
+
+  useEffect(() => {
+    const updateBt = () => setBtPrinter(getActiveBluetoothPrinter());
+    updateBt();
+    window.addEventListener('bluetooth-printer-status-changed', updateBt);
+    return () => window.removeEventListener('bluetooth-printer-status-changed', updateBt);
+  }, []);
+
+  const handleConnectBt = async () => {
+    setConnectingBt(true);
+    try {
+      const info = await connectBluetoothPrinter();
+      setBtPrinter(info);
+      setPrintStatusToast(`✅ Printer "${info.name}" terhubung!`);
+      setTimeout(() => setPrintStatusToast(null), 3000);
+    } catch (err: any) {
+      if (err.name !== 'NotFoundError') {
+        alert(err.message || 'Gagal menghubungkan printer Bluetooth.');
+      }
+    } finally {
+      setConnectingBt(false);
+    }
+  };
 
   // E-Wallet modal state
   const [ewalletModal, setEwalletModal] = useState(false);
@@ -372,7 +406,22 @@ export default function PenjualanPage() {
 
       // Picu cetak struk instan jika opsi cetak dipilih
       if (withPrint) {
-        setTimeout(() => window.print(), 150);
+        executeThermalPrint({
+          invoiceNo,
+          customer,
+          tanggalPenjualan: transactionDateTime.toISOString(),
+          metodePembayaran: metode,
+          items: checkoutItems,
+          total: checkoutTotal,
+          bayar: checkoutBayar,
+        }).then(res => {
+          if (res.success && res.method === 'bluetooth_ble') {
+            setPrintStatusToast(`✅ ${res.message}`);
+            setTimeout(() => setPrintStatusToast(null), 3000);
+          }
+        }).catch(() => {
+          setTimeout(() => window.print(), 150);
+        });
       }
 
       // Reset keranjang belanja & form kasir
@@ -420,26 +469,93 @@ export default function PenjualanPage() {
     }
   };
 
-  const handlePrint = () => {
-    window.print();
+  const handlePrint = async () => {
+    if (!printData) {
+      window.print();
+      return;
+    }
+    const res = await executeThermalPrint({
+      invoiceNo: printData.invoiceNo,
+      customer: printData.customer,
+      tanggalPenjualan: printData.tanggalPenjualan,
+      metodePembayaran: printData.metodePembayaran,
+      items: printData.items,
+      total: printData.total,
+      bayar: printData.bayar,
+    });
+    if (res.success && res.method === 'bluetooth_ble') {
+      setPrintStatusToast(`✅ ${res.message}`);
+      setTimeout(() => setPrintStatusToast(null), 3000);
+    }
   };
 
   return (
     <div>
+      {/* Toast Notifikasi Status Cetak */}
+      {printStatusToast && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 70,
+            right: 20,
+            zIndex: 9999,
+            background: '#10b981',
+            color: '#fff',
+            padding: '10px 18px',
+            borderRadius: 8,
+            boxShadow: '0 4px 14px rgba(0,0,0,0.25)',
+            fontSize: 13,
+            fontWeight: 600,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+          }}
+        >
+          {printStatusToast}
+        </div>
+      )}
+
       <div className="page-header">
         <div>
           <h1 className="page-title">Kasir</h1>
           <p className="page-subtitle">{today()} | {user?.nama_lengkap}</p>
         </div>
-        <Link 
-          href="/pengaturan/printer" 
-          className="btn btn-secondary" 
-          style={{ fontSize: 13, gap: 6, textDecoration: 'none' }}
-          title="Pengaturan Kertas & Struk Kasir"
-        >
-          <span>🖨️</span>
-          <span>Pengaturan Printer</span>
-        </Link>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          {isWebBluetoothSupported() && (
+            btPrinter?.connected ? (
+              <div
+                className="badge badge-success"
+                style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, padding: '6px 12px', cursor: 'pointer' }}
+                title="Printer POS-58 terhubung dan siap cetak langsung"
+                onClick={handleConnectBt}
+              >
+                <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#10b981' }} />
+                <span>ᛒ {btPrinter.name} (Siap)</span>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="btn btn-outline btn-sm"
+                onClick={handleConnectBt}
+                disabled={connectingBt}
+                style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 6, borderColor: '#3b82f6', color: '#3b82f6', fontWeight: 600 }}
+                title="Hubungkan Printer Bluetooth POS-58 langsung tanpa aplikasi"
+              >
+                <span>ᛒ</span>
+                <span>{connectingBt ? 'Menghubungkan...' : 'Hubungkan POS-58'}</span>
+              </button>
+            )
+          )}
+          <Link 
+            href="/pengaturan/printer" 
+            className="btn btn-secondary" 
+            style={{ fontSize: 13, gap: 6, textDecoration: 'none' }}
+            title="Pengaturan Kertas & Struk Kasir"
+          >
+            <span>🖨️</span>
+            <span>Pengaturan Printer</span>
+          </Link>
+        </div>
       </div>
 
       <div className="pos-layout">
@@ -1268,8 +1384,24 @@ export default function PenjualanPage() {
               <h2 style={{ fontFamily: 'Outfit', fontSize: 20, fontWeight: 700, marginBottom: 8 }}>Transaksi Berhasil!</h2>
               <p style={{ color: '#888', fontSize: 13 }}>No. Invoice: <strong>{lastInvoice}</strong></p>
               <p style={{ color: '#888', fontSize: 13, marginBottom: 24 }}>Total: <strong style={{ color: '#1565c0' }}>{formatRupiah(printData?.total ?? 0)}</strong></p>
-              <div style={{ display: 'flex', gap: 10 }}>
-                <button className="btn btn-outline w-full" onClick={handlePrint} id="btn-print-receipt">🖨️ Cetak Struk</button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <button
+                  className="btn btn-outline w-full"
+                  onClick={handlePrint}
+                  id="btn-print-receipt"
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 6,
+                    fontWeight: 600,
+                    borderColor: btPrinter?.connected ? '#10b981' : undefined,
+                    color: btPrinter?.connected ? '#10b981' : undefined,
+                  }}
+                >
+                  <span>🖨️</span>
+                  <span>{btPrinter?.connected ? 'Cetak Struk POS-58 (Direct)' : 'Cetak Struk'}</span>
+                </button>
                 <button className="btn btn-primary w-full" onClick={() => { setSuccessModal(false); barcodeRef.current?.focus(); }} id="btn-close-success">
                   Transaksi Baru
                 </button>

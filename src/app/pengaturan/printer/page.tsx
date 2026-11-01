@@ -13,6 +13,15 @@ import {
   PrinterConnectionType,
   DEFAULT_PRINTER_SETTINGS
 } from '@/lib/printerSettings';
+import { executeTestThermalPrint } from '@/lib/printerManager';
+import {
+  connectBluetoothPrinter,
+  disconnectBluetoothPrinter,
+  getActiveBluetoothPrinter,
+  isWebBluetoothSupported,
+  BluetoothPrinterInfo
+} from '@/lib/bluetoothPrinter';
+import { connectUsbPrinter, isWebUsbSupported, getActiveUsbPrinterName } from '@/lib/usbPrinter';
 import PrintReceipt from '@/components/ui/PrintReceipt';
 import Modal from '@/components/ui/Modal';
 
@@ -21,6 +30,8 @@ export default function PrinterSettingsPage() {
   const [activeTab, setActiveTab] = useState<'devices' | 'receipt'>('devices');
   const [savedSuccess, setSavedSuccess] = useState<string | null>(null);
   const [testPrintActive, setTestPrintActive] = useState(false);
+  const [btPrinter, setBtPrinter] = useState<BluetoothPrinterInfo | null>(null);
+  const [connectingBt, setConnectingBt] = useState(false);
   const logoInputRef = useRef<HTMLInputElement>(null);
 
   // Modal Tambah Printer
@@ -39,13 +50,18 @@ export default function PrinterSettingsPage() {
 
   const refreshSettings = () => {
     setSettings(getPrinterSettings());
+    setBtPrinter(getActiveBluetoothPrinter());
   };
 
   useEffect(() => {
     refreshSettings();
     const handleUpdate = () => refreshSettings();
     window.addEventListener('printer-settings-updated', handleUpdate);
-    return () => window.removeEventListener('printer-settings-updated', handleUpdate);
+    window.addEventListener('bluetooth-printer-status-changed', handleUpdate);
+    return () => {
+      window.removeEventListener('printer-settings-updated', handleUpdate);
+      window.removeEventListener('bluetooth-printer-status-changed', handleUpdate);
+    };
   }, []);
 
   const handleChange = (field: keyof PrinterSettings, value: any) => {
@@ -152,27 +168,20 @@ export default function PrinterSettingsPage() {
     setStepModal('form');
   };
 
-  // Web Bluetooth Scan
+  // Web Bluetooth Scan & Connect
   const handleScanBluetooth = async () => {
     setBluetoothError(null);
     setScanningBluetooth(true);
     try {
-      if (!(navigator as any).bluetooth) {
-        setBluetoothError('Browser ini belum mendukung Web Bluetooth secara langsung. Anda dapat memasukkan nama printer manual (misal: RPP02N atau POS-58).');
+      if (!isWebBluetoothSupported()) {
+        setBluetoothError('Browser ini belum mendukung Web Bluetooth secara langsung. Gunakan Chrome di Android / PC.');
         return;
       }
-      const device = await (navigator as any).bluetooth.requestDevice({
-        acceptAllDevices: true,
-        optionalServices: [
-          '000018f0-0000-1000-8000-00805f9b34fb',
-          'e7810a71-73ae-499d-8c15-faa9aef0c3f2',
-          '49535343-fe7d-4ae5-8fa9-9fafd205e455',
-        ],
-      });
-      if (device && device.name) {
-        setNewPrinterName(device.name);
-        setNewPrinterAddress(device.id || 'Bluetooth Paired');
-      }
+      const info = await connectBluetoothPrinter();
+      setNewPrinterName(info.name);
+      setNewPrinterAddress(info.id || 'Bluetooth Native Connected');
+      setSavedSuccess(`Printer "${info.name}" berhasil terhubung via Bluetooth Native!`);
+      setTimeout(() => setSavedSuccess(null), 3000);
     } catch (err: any) {
       if (err.name !== 'NotFoundError') {
         setBluetoothError(err.message || 'Gagal memindai perangkat Bluetooth.');
@@ -180,6 +189,67 @@ export default function PrinterSettingsPage() {
     } finally {
       setScanningBluetooth(false);
     }
+  };
+
+  const handleConnectDirectBt = async () => {
+    setConnectingBt(true);
+    try {
+      const info = await connectBluetoothPrinter();
+      setSavedSuccess(`Printer "${info.name}" terhubung! Siap mencetak langsung.`);
+      setTimeout(() => setSavedSuccess(null), 3000);
+
+      // Otomatis simpan perangkat ke daftar printer jika belum ada
+      if (!settings.devices.some(d => d.connectionType === 'bluetooth')) {
+        addPrinterDevice({
+          name: info.name,
+          connectionType: 'bluetooth',
+          paperWidth: settings.paperWidth || '58mm',
+          targetAddress: info.id,
+          isDefault: true,
+          status: 'connected',
+        });
+      }
+    } catch (err: any) {
+      if (err.name !== 'NotFoundError') {
+        alert(err.message || 'Gagal menghubungkan printer Bluetooth.');
+      }
+    } finally {
+      setConnectingBt(false);
+    }
+  };
+
+  const handleDisconnectDirectBt = async () => {
+    await disconnectBluetoothPrinter();
+    setSavedSuccess('Printer Bluetooth terputus.');
+    setTimeout(() => setSavedSuccess(null), 3000);
+  };
+
+  const handleTestPrint = async (deviceName?: string) => {
+    setSavedSuccess('Mengirim tes cetak...');
+    try {
+      const res = await executeTestThermalPrint(settings);
+      if (res.success) {
+        setSavedSuccess(res.message);
+        setTimeout(() => setSavedSuccess(null), 4000);
+      } else {
+        alert(res.message + (res.error ? `\nDetail: ${res.error}` : ''));
+      }
+    } catch (err: any) {
+      // Fallback
+      setTestPrintActive(true);
+      setTimeout(() => {
+        window.print();
+        setTimeout(() => setTestPrintActive(false), 1000);
+      }, 200);
+    }
+  };
+
+  const handleTestPrintBrowser = () => {
+    setTestPrintActive(true);
+    setTimeout(() => {
+      window.print();
+      setTimeout(() => setTestPrintActive(false), 1000);
+    }, 200);
   };
 
   const handleSaveNewPrinter = () => {
@@ -215,14 +285,6 @@ export default function PrinterSettingsPage() {
     setDefaultPrinterDevice(id);
     setSavedSuccess(`Printer "${name}" sekarang menjadi printer utama.`);
     setTimeout(() => setSavedSuccess(null), 3000);
-  };
-
-  const handleTestPrint = (deviceName?: string) => {
-    setTestPrintActive(true);
-    setTimeout(() => {
-      window.print();
-      setTimeout(() => setTestPrintActive(false), 1000);
-    }, 200);
   };
 
   const activeDevice = settings.devices.find(d => d.id === settings.activeDeviceId) || settings.devices[0];
@@ -327,6 +389,91 @@ export default function PrinterSettingsPage() {
       {/* TAB 1: PERANGKAT PRINTER */}
       {activeTab === 'devices' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+          {/* BANNER KHUSUS PRINTER BLUETOOTH POS-58 (NATIVE ZERO-APP) */}
+          <div
+            className="card"
+            style={{
+              padding: '16px 20px',
+              border: btPrinter?.connected ? '2px solid #10b981' : '1px solid #3b82f6',
+              background: btPrinter?.connected ? 'rgba(16, 185, 129, 0.06)' : 'rgba(59, 130, 246, 0.05)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 12,
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                <div
+                  style={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: 10,
+                    background: btPrinter?.connected ? 'rgba(16, 185, 129, 0.18)' : 'rgba(59, 130, 246, 0.15)',
+                    color: btPrinter?.connected ? '#10b981' : '#3b82f6',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 22,
+                    fontWeight: 800,
+                  }}
+                >
+                  ᛒ
+                </div>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>
+                      Printer Bluetooth POS-58 (Direct Native Web)
+                    </span>
+                    {btPrinter?.connected ? (
+                      <span className="badge badge-success" style={{ fontSize: 11 }}>🟢 Terhubung Siap Cetak</span>
+                    ) : (
+                      <span className="badge badge-gray" style={{ fontSize: 11 }}>🔴 Belum Terhubung</span>
+                    )}
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 2 }}>
+                    {btPrinter?.connected
+                      ? `Perangkat "${btPrinter.name}" terhubung via Web Bluetooth BLE. Struk kasir akan keluar seketika tanpa membuka dialog print Android.`
+                      : 'Cetak langsung ke printer POS-58 di HP/Tablet Android tanpa aplikasi pihak ketiga (RawBT dll).'}
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                {btPrinter?.connected ? (
+                  <>
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={() => handleTestPrint(btPrinter.name)}
+                      style={{ background: '#10b981', fontWeight: 600, fontSize: 13 }}
+                    >
+                      ⚡ Tes Cetak Native (POS-58)
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary"
+                      onClick={handleDisconnectDirectBt}
+                      style={{ fontSize: 12 }}
+                    >
+                      Putuskan
+                    </button>
+                  </>
+                ) : (
+                  <button
+                    type="button"
+                    className="btn btn-primary"
+                    onClick={handleConnectDirectBt}
+                    disabled={connectingBt}
+                    style={{ background: '#2563eb', fontWeight: 600, fontSize: 13, gap: 6 }}
+                  >
+                    <span>ᛒ</span>
+                    <span>{connectingBt ? 'Menghubungkan...' : 'Hubungkan Bluetooth POS-58'}</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
 
           {/* Status summary banner */}
           <div className="card" style={{ padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -559,6 +706,25 @@ export default function PrinterSettingsPage() {
                 >
                   <option value={1}>1 Rangkap</option>
                   <option value={2}>2 Rangkap</option>
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', whiteSpace: 'nowrap' }}>Metode Cetak:</span>
+                <select
+                  className="form-control"
+                  style={{ minWidth: 220 }}
+                  value={settings.printEngine || 'auto'}
+                  onChange={e => {
+                    const eng = e.target.value as any;
+                    handleChange('printEngine', eng);
+                    savePrinterSettings({ printEngine: eng });
+                  }}
+                >
+                  <option value="auto">Otomatis (Bluetooth Native BLE / Browser)</option>
+                  <option value="bluetooth_ble">Direct Bluetooth Native (POS-58)</option>
+                  <option value="usb_otg">Direct USB OTG Native</option>
+                  <option value="browser">Dialog Browser (window.print)</option>
                 </select>
               </div>
             </div>

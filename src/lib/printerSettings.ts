@@ -15,6 +15,7 @@ export interface PrinterDevice {
 export interface PrinterSettings {
   devices: PrinterDevice[];
   activeDeviceId?: string;
+  printEngine?: 'auto' | 'bluetooth_ble' | 'usb_otg' | 'browser';
   paperWidth: '58mm' | '80mm';
   autoPrint: boolean;
   printCopies: number;
@@ -35,6 +36,7 @@ export interface PrinterSettings {
 
 export const DEFAULT_PRINTER_SETTINGS: PrinterSettings = {
   devices: [],
+  printEngine: 'auto',
   paperWidth: '58mm',
   autoPrint: false,
   printCopies: 1,
