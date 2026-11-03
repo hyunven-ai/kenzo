@@ -81,6 +81,8 @@ export async function executeThermalPrint(
   // 3. Fallback to Browser Print Dialog (window.print)
   if (typeof window !== 'undefined') {
     try {
+      // Berikan jeda agar DOM dan layout @media print selesai dirender oleh browser sebelum dialog cetak terbuka
+      await new Promise(resolve => setTimeout(resolve, 150));
       window.print();
       return {
         success: true,

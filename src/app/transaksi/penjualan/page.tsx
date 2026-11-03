@@ -1413,6 +1413,7 @@ export default function PenjualanPage() {
 
       {printData && (
         <PrintReceipt
+          key={printData.invoiceNo}
           invoiceNo={printData.invoiceNo}
           customer={printData.customer}
           tanggalPenjualan={printData.tanggalPenjualan}

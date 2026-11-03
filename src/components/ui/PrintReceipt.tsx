@@ -32,11 +32,16 @@ export default function PrintReceipt({
   bayar,
   invoiceIndex,
 }: PrintReceiptProps) {
-  const [mounted, setMounted] = useState(false);
-  const [settings, setSettings] = useState<PrinterSettings>(DEFAULT_PRINTER_SETTINGS);
+  const [mounted, setMounted] = useState(() => typeof window !== 'undefined');
+  const [settings, setSettings] = useState<PrinterSettings>(() => {
+    if (typeof window !== 'undefined') {
+      return getPrinterSettings();
+    }
+    return DEFAULT_PRINTER_SETTINGS;
+  });
 
   useEffect(() => {
-    setMounted(true);
+    if (!mounted) setMounted(true);
     setSettings(getPrinterSettings());
 
     const handleUpdate = () => {
@@ -44,7 +49,6 @@ export default function PrintReceipt({
     };
     window.addEventListener('printer-settings-updated', handleUpdate);
     return () => {
-      setMounted(false);
       window.removeEventListener('printer-settings-updated', handleUpdate);
     };
   }, []);

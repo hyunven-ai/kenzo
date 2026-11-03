@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { flushSync } from 'react-dom';
 import DataTable from '@/components/ui/DataTable';
 import Modal from '@/components/ui/Modal';
 import { getPenjualan, deletePenjualan, updatePenjualanHeader, getMerks } from '@/lib/db';
@@ -61,6 +62,21 @@ export default function DetailPenjualanPage() {
   const [btPrinter, setBtPrinter] = useState<BluetoothPrinterInfo | null>(null);
   const [connectingBt, setConnectingBt] = useState(false);
   const [printingInvoice, setPrintingInvoice] = useState<string | null>(null);
+  const [printReceiptData, setPrintReceiptData] = useState<{
+    invoiceNo: string;
+    customer: string;
+    tanggalPenjualan: string;
+    metodePembayaran?: string;
+    items: Array<{
+      nama_barang: string;
+      qty: number;
+      harga_jual: number;
+      kategori?: string;
+      code?: string;
+    }>;
+    total: number;
+    bayar?: number;
+  } | null>(null);
   const [printStatusToast, setPrintStatusToast] = useState<string | null>(null);
 
   useEffect(() => {
@@ -186,7 +202,6 @@ export default function DetailPenjualanPage() {
   };
 
   const handlePrint = async (row: TrsPenjualanHdr) => {
-    setSelected(row);
     setPrintingInvoice(row.nomor_invoice);
 
     const dtls: TrsPenjualanDtl[] = (row as any).details ?? (row as any).trs_penjualan_dtl ?? [];
@@ -198,6 +213,21 @@ export default function DetailPenjualanPage() {
       code: d.code,
     }));
 
+    const receiptData = {
+      invoiceNo: row.nomor_invoice,
+      customer: row.customer,
+      tanggalPenjualan: row.tanggal_penjualan,
+      metodePembayaran: row.metode_pembayaran,
+      items,
+      total: row.total_harga ?? 0,
+      bayar: (row as any).bayar ?? row.total_harga ?? 0,
+    };
+
+    // Segera perbarui state PrintReceipt secara sinkron (flushSync) agar DOM langsung terupdate ke item baru
+    flushSync(() => {
+      setPrintReceiptData(receiptData);
+    });
+
     // Jika di Android/Chrome Web Bluetooth didukung namun belum terkoneksi, tawarkan koneksi langsung
     if (isWebBluetoothSupported() && !btPrinter?.connected) {
       const wantBt = confirm('Printer Bluetooth belum terhubung.\n\nKlik "OK" untuk menghubungkan printer Bluetooth POS-58 secara langsung,\natau "Batal" untuk dialog cetak browser biasa.');
@@ -208,13 +238,13 @@ export default function DetailPenjualanPage() {
           setPrintStatusToast(`✅ Printer "${info.name}" terhubung!`);
 
           const res = await executeThermalPrint({
-            invoiceNo: row.nomor_invoice,
-            customer: row.customer,
-            tanggalPenjualan: row.tanggal_penjualan,
-            metodePembayaran: row.metode_pembayaran,
-            items,
-            total: row.total_harga ?? 0,
-            bayar: (row as any).bayar ?? row.total_harga ?? 0,
+            invoiceNo: receiptData.invoiceNo,
+            customer: receiptData.customer,
+            tanggalPenjualan: receiptData.tanggalPenjualan,
+            metodePembayaran: receiptData.metodePembayaran,
+            items: receiptData.items,
+            total: receiptData.total,
+            bayar: receiptData.bayar,
           });
 
           if (res.success && res.method === 'bluetooth_ble') {
@@ -235,13 +265,13 @@ export default function DetailPenjualanPage() {
 
     try {
       const res = await executeThermalPrint({
-        invoiceNo: row.nomor_invoice,
-        customer: row.customer,
-        tanggalPenjualan: row.tanggal_penjualan,
-        metodePembayaran: row.metode_pembayaran,
-        items,
-        total: row.total_harga ?? 0,
-        bayar: (row as any).bayar ?? row.total_harga ?? 0,
+        invoiceNo: receiptData.invoiceNo,
+        customer: receiptData.customer,
+        tanggalPenjualan: receiptData.tanggalPenjualan,
+        metodePembayaran: receiptData.metodePembayaran,
+        items: receiptData.items,
+        total: receiptData.total,
+        bayar: receiptData.bayar,
       });
 
       if (res.success && res.method === 'bluetooth_ble') {
@@ -710,20 +740,16 @@ export default function DetailPenjualanPage() {
         )}
       </Modal>
 
-      {selected && (
+      {printReceiptData && (
         <PrintReceipt
-          invoiceNo={selected.nomor_invoice}
-          customer={selected.customer}
-          tanggalPenjualan={selected.tanggal_penjualan}
-          metodePembayaran={selected.metode_pembayaran}
-          items={((selected as unknown as { trs_penjualan_dtl?: TrsPenjualanDtl[] }).trs_penjualan_dtl ?? []).map(d => ({
-            nama_barang: d.nama_barang,
-            qty: d.qty,
-            harga_jual: d.harga_jual,
-            kategori: d.kategori,
-            code: d.code,
-          }))}
-          total={selected.total_harga ?? 0}
+          key={printReceiptData.invoiceNo}
+          invoiceNo={printReceiptData.invoiceNo}
+          customer={printReceiptData.customer}
+          tanggalPenjualan={printReceiptData.tanggalPenjualan}
+          metodePembayaran={printReceiptData.metodePembayaran}
+          items={printReceiptData.items}
+          total={printReceiptData.total}
+          bayar={printReceiptData.bayar}
         />
       )}
       {/* Floating Toast Notification */}
