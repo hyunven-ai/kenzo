@@ -1,6 +1,10 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { SkeletonTable } from './Skeleton';
+import EmptyState from './EmptyState';
+import ErrorState from './ErrorState';
+import { findTypoSuggestion } from '@/lib/searchUtils';
 
 interface Column<T> {
   key: string;
@@ -19,6 +23,13 @@ interface DataTableProps<T> {
   addLabel?: string;
   extraActions?: React.ReactNode;
   renderFooter?: (data: T[]) => React.ReactNode;
+  emptyTitle?: string;
+  emptyDescription?: string;
+  emptyIcon?: React.ReactNode;
+  error?: string | null;
+  errorCause?: string;
+  errorSolution?: string;
+  onRetry?: () => void;
 }
 
 export default function DataTable<T extends object>({
@@ -31,6 +42,13 @@ export default function DataTable<T extends object>({
   addLabel = 'Tambah',
   extraActions,
   renderFooter,
+  emptyTitle,
+  emptyDescription,
+  emptyIcon,
+  error,
+  errorCause,
+  errorSolution,
+  onRetry,
 }: DataTableProps<T>) {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(1);
@@ -45,6 +63,20 @@ export default function DataTable<T extends object>({
       Object.values(row).some(v => String(v ?? '').toLowerCase().includes(q))
     );
   }, [data, search]);
+
+  // State 6: Smart typo detection when no search results found
+  const typoSuggestion = useMemo(() => {
+    if (!search.trim() || filtered.length > 0 || data.length === 0) return null;
+    const candidates: string[] = [];
+    for (const item of data) {
+      for (const val of Object.values(item)) {
+        if (typeof val === 'string' && val.trim().length > 1) {
+          candidates.push(val);
+        }
+      }
+    }
+    return findTypoSuggestion(search, candidates);
+  }, [search, filtered.length, data]);
 
   const sorted = useMemo(() => {
     if (!sortKey || !sortOrder) return filtered;
@@ -95,7 +127,7 @@ export default function DataTable<T extends object>({
       <div className="table-toolbar">
         <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
           {searchable && (
-            <div className="table-search">
+            <div className="table-search" style={{ position: 'relative' }}>
               <svg className="table-search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                 <circle cx="11" cy="11" r="8" />
                 <line x1="21" y1="21" x2="16.65" y2="16.65" />
@@ -107,7 +139,30 @@ export default function DataTable<T extends object>({
                 value={search}
                 onChange={e => { setSearch(e.target.value); setPage(1); }}
                 id="table-search"
+                style={{ paddingRight: search ? '28px' : undefined }}
               />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => { setSearch(''); setPage(1); }}
+                  style={{
+                    position: 'absolute',
+                    right: 8,
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: 'var(--text-muted)',
+                    fontSize: 14,
+                    lineHeight: 1,
+                    padding: 2,
+                  }}
+                  title="Hapus pencarian"
+                >
+                  ✕
+                </button>
+              )}
             </div>
           )}
           
@@ -142,6 +197,31 @@ export default function DataTable<T extends object>({
         </div>
       </div>
 
+      {/* State 6: Typo / Did You Mean Suggestion Bar */}
+      {typoSuggestion && filtered.length === 0 && (
+        <div className="search-suggestion-bar">
+          <div>
+            <span>Tidak ditemukan hasil untuk &quot;<strong>{search}</strong>&quot;. Mungkin maksud Anda: </span>
+            <button
+              type="button"
+              className="search-suggestion-btn"
+              onClick={() => { setSearch(typoSuggestion); setPage(1); }}
+            >
+              {typoSuggestion}
+            </button>
+            <span>?</span>
+          </div>
+          <button
+            type="button"
+            className="btn btn-outline btn-sm"
+            style={{ fontSize: '11.5px', padding: '3px 8px', height: '24px' }}
+            onClick={() => { setSearch(''); setPage(1); }}
+          >
+            Reset Pencarian
+          </button>
+        </div>
+      )}
+
       <div style={{ overflowX: 'auto' }}>
         <table className="data-table">
           <thead>
@@ -175,20 +255,66 @@ export default function DataTable<T extends object>({
           </thead>
           <tbody>
             {loading ? (
+              /* State 2: Loading State - Shimmer Skeleton Rows */
+              <SkeletonTable
+                columns={columns}
+                rows={Math.min(pageSize, 5)}
+                hasActions={columns.some(c => c.key === 'actions' || c.label.toLowerCase() === 'aksi')}
+              />
+            ) : error ? (
+              /* State 3: Error State - What went wrong, whose fault, and how to fix it */
               <tr>
-                <td colSpan={columns.length + 1} style={{ textAlign: 'center', padding: 40 }}>
-                  <div className="spinner" style={{ margin: '0 auto' }} />
+                <td colSpan={columns.length + 1} style={{ padding: '24px 16px' }}>
+                  <ErrorState
+                    message={error}
+                    cause={errorCause}
+                    solution={errorSolution || 'Periksa koneksi jaringan internet atau muat ulang halaman.'}
+                    onRetry={onRetry}
+                    compact
+                  />
                 </td>
               </tr>
             ) : paginated.length === 0 ? (
+              /* State 6 & State 1: No Search Results vs Empty State */
               <tr>
-                <td colSpan={columns.length + 1}>
-                  <div className="empty-state">
-                    <div className="empty-state-icon">📭</div>
-                    <div className="empty-state-text">
-                      {search ? 'Tidak ada data yang cocok' : 'Belum ada data'}
-                    </div>
-                  </div>
+                <td colSpan={columns.length + 1} style={{ padding: '24px 16px' }}>
+                  {search.trim() ? (
+                    <EmptyState
+                      icon="🔍"
+                      title={typoSuggestion ? `Mungkin maksud Anda "${typoSuggestion}"?` : 'Tidak Ditemukan Hasil'}
+                      description={
+                        typoSuggestion
+                          ? `Tidak ada data untuk "${search}". Klik saran di bawah untuk mencari "${typoSuggestion}" atau hapus pencarian.`
+                          : `Tidak ditemukan data yang sesuai dengan "${search}". Periksa ejaan atau gunakan kata kunci lain.`
+                      }
+                      actionLabel={typoSuggestion ? `Cari "${typoSuggestion}"` : 'Hapus Pencarian'}
+                      onAction={() => {
+                        if (typoSuggestion) {
+                          setSearch(typoSuggestion);
+                        } else {
+                          setSearch('');
+                        }
+                        setPage(1);
+                      }}
+                      secondaryActionLabel={typoSuggestion ? 'Hapus Pencarian' : undefined}
+                      onSecondaryAction={typoSuggestion ? () => { setSearch(''); setPage(1); } : undefined}
+                      compact
+                    />
+                  ) : (
+                    <EmptyState
+                      icon={emptyIcon || '📦'}
+                      title={emptyTitle || 'Belum Ada Data'}
+                      description={
+                        emptyDescription ||
+                        (onAdd
+                          ? `Data masih kosong. Klik tombol "${addLabel}" di bawah untuk membuat data pertama Anda.`
+                          : 'Belum ada data yang tercatat di sistem pada kategori ini.')
+                      }
+                      actionLabel={onAdd ? addLabel : undefined}
+                      onAction={onAdd}
+                      compact
+                    />
+                  )}
                 </td>
               </tr>
             ) : (

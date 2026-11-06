@@ -73,6 +73,10 @@
   --transition-fast: 150ms ease;
   --transition-normal: 250ms ease;
   --transition-slow: 400ms ease;
+
+  /* Skeleton Loading */
+  --skeleton-bg: #e2e8f0;
+  --skeleton-shimmer: #f8fafc;
 }
 
 /* ============================================
@@ -114,6 +118,10 @@ html.dark {
   --shadow-md: 0 4px 12px rgba(0,0,0,0.7);
   --shadow-lg: 0 8px 24px rgba(0,0,0,0.8);
   --shadow-card: 0 2px 8px rgba(0,0,0,0.6);
+
+  /* Skeleton Loading Dark */
+  --skeleton-bg: #27272a;
+  --skeleton-shimmer: #3f3f46;
 }
 
 
@@ -2294,4 +2302,78 @@ code {
   border-radius: 4px;
   transition: background-color var(--transition-normal), border-color var(--transition-normal);
 }
+
+/* ============================================
+   10 UX STATES — Shimmer & Feedback Design System
+   ============================================ */
+
+/* State 2: Skeleton Loading Shimmer */
+@keyframes skeleton-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--skeleton-bg) 25%,
+    var(--skeleton-shimmer) 40%,
+    var(--skeleton-bg) 65%
+  );
+  background-size: 300% 100%;
+  animation: skeleton-shimmer 1.5s ease-in-out infinite;
+  border-radius: 4px;
+}
+
+.skeleton-row {
+  border-bottom: 1px solid var(--border-light);
+}
+
+/* State 1: Empty State Container */
+.empty-state-container {
+  animation: fadeIn 0.25s ease-out;
+}
+
+/* State 3: Error State Card */
+.error-state-card {
+  animation: fadeIn 0.25s ease-out;
+}
+
+/* State 6: Typo / Did You Mean Suggestion Bar */
+.search-suggestion-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 14px;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  border-radius: 6px;
+  font-size: 13px;
+  color: #0369a1;
+  margin-bottom: 12px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+html.dark .search-suggestion-bar {
+  background: #082f49;
+  border-color: #0369a1;
+  color: #7dd3fc;
+}
+
+.search-suggestion-btn {
+  background: none;
+  border: none;
+  color: var(--brand-primary);
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0 4px;
+}
+
 

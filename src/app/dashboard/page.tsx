@@ -6,6 +6,9 @@ import { Bar, Doughnut } from 'react-chartjs-2';
 import { getDashboardStats, getChartData, getKategoriSales } from '@/lib/db';
 import { formatRupiah, formatChartDate, today, daysAgo } from '@/lib/utils';
 import type { DashboardStats, ChartDataPoint, KategoriSales } from '@/lib/types';
+import { Skeleton } from '@/components/ui/Skeleton';
+import EmptyState from '@/components/ui/EmptyState';
+import ErrorState from '@/components/ui/ErrorState';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend);
 
@@ -216,9 +219,17 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {error && !stats && (
-        <div className="alert alert-warning mb-16">
-          ⚠️ {error} — Menampilkan data demo.
+      {error && (
+        <div style={{ marginBottom: 16 }}>
+          <ErrorState
+            title="Kendala Memuat Ringkasan"
+            message={error}
+            cause="Gagal mengambil statistik dari server database."
+            solution="Periksa koneksi internet Anda atau klik Coba Lagi untuk memuat ulang data terbaru."
+            onRetry={() => loadData(fromDate, toDate)}
+            retryLabel="Muat Ulang"
+            compact
+          />
         </div>
       )}
 
@@ -227,19 +238,19 @@ export default function DashboardPage() {
         <div className="metric-card metric-card-blue">
           <div className="metric-card-label">Total Pemasukan</div>
           <div className="metric-card-value">
-            {loading ? '...' : formatRupiah(stats?.total_pemasukan ?? 0)}
+            {loading ? <Skeleton width="140px" height="28px" borderRadius="4px" /> : formatRupiah(stats?.total_pemasukan ?? 0)}
           </div>
         </div>
         <div className="metric-card metric-card-red">
           <div className="metric-card-label">Total Pengeluaran</div>
           <div className="metric-card-value">
-            {loading ? '...' : formatRupiah(stats?.total_pengeluaran ?? 0)}
+            {loading ? <Skeleton width="140px" height="28px" borderRadius="4px" /> : formatRupiah(stats?.total_pengeluaran ?? 0)}
           </div>
         </div>
         <div className="metric-card metric-card-green">
           <div className="metric-card-label">Total Keuntungan</div>
           <div className="metric-card-value">
-            {loading ? '...' : formatRupiah(stats?.total_keuntungan ?? 0)}
+            {loading ? <Skeleton width="140px" height="28px" borderRadius="4px" /> : formatRupiah(stats?.total_keuntungan ?? 0)}
           </div>
         </div>
       </div>
@@ -249,13 +260,13 @@ export default function DashboardPage() {
         <div className="metric-card metric-card-yellow">
           <div className="metric-card-label">Total Product</div>
           <div className="metric-card-value" style={{ fontSize: 28 }}>
-            {loading ? '...' : (stats?.total_produk ?? 0).toLocaleString('id-ID')}
+            {loading ? <Skeleton width="90px" height="28px" borderRadius="4px" /> : (stats?.total_produk ?? 0).toLocaleString('id-ID')}
           </div>
         </div>
         <div className="metric-card metric-card-teal">
           <div className="metric-card-label">Total Aset</div>
           <div className="metric-card-value">
-            {loading ? '...' : formatRupiah(stats?.total_aset ?? 0)}
+            {loading ? <Skeleton width="140px" height="28px" borderRadius="4px" /> : formatRupiah(stats?.total_aset ?? 0)}
           </div>
         </div>
       </div>
@@ -266,8 +277,16 @@ export default function DashboardPage() {
           <div className="chart-title">Pemasukan vs Penjualan</div>
           <div style={{ height: 260 }}>
             {loading ? (
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-                <div className="spinner" />
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 14, height: '100%', justifyContent: 'flex-end', padding: '16px' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: 16, height: '180px', width: '100%' }}>
+                  {['60%', '85%', '40%', '95%', '70%', '50%', '80%'].map((h, i) => (
+                    <div key={i} style={{ flex: 1, display: 'flex', gap: 4, height: '100%', alignItems: 'flex-end' }}>
+                      <Skeleton width="50%" height={h} borderRadius="4px" />
+                      <Skeleton width="50%" height={`calc(${h} * 0.7)`} borderRadius="4px" />
+                    </div>
+                  ))}
+                </div>
+                <Skeleton width="100%" height="16px" />
               </div>
             ) : (
               <Bar data={barChartData} options={barOptions} />
@@ -280,15 +299,17 @@ export default function DashboardPage() {
           <div style={{ height: 260 }}>
             {loading ? (
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-                <div className="spinner" />
+                <div style={{ width: 140, height: 140, borderRadius: '50%', border: '16px solid var(--skeleton-bg)', borderTopColor: 'var(--skeleton-shimmer)', animation: 'skeleton-shimmer 1.5s infinite' }} />
               </div>
             ) : kategoriData.length > 0 ? (
               <Doughnut data={donutData} options={donutOptions} />
             ) : (
-              <div className="empty-state">
-                <div className="empty-state-icon">📊</div>
-                <div>Belum ada data penjualan</div>
-              </div>
+              <EmptyState
+                icon="📊"
+                title="Belum Ada Transaksi"
+                description="Belum ada transaksi penjualan pada rentang tanggal ini. Silakan ubah filter tanggal."
+                compact
+              />
             )}
           </div>
         </div>
