@@ -74,3 +74,4 @@ export function findTypoSuggestion(query: string, candidates: string[]): string 
 
   return bestMatch;
 }
+
