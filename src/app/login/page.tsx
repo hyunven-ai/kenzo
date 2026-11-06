@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { login } from '@/lib/auth';
+import { login, getCurrentUser } from '@/lib/auth';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -10,6 +10,21 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    try {
+      const user = getCurrentUser();
+      if (user) {
+        if (user.role === 'kasir') {
+          router.replace('/transaksi/penjualan');
+        } else {
+          router.replace('/dashboard');
+        }
+      }
+    } catch (e) {
+      console.warn('Error reading current user session:', e);
+    }
+  }, [router]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

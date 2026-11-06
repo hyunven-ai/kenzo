@@ -144,9 +144,9 @@ export function logout() {
 
 export function getCurrentUser(): AuthUser | null {
   if (typeof window === 'undefined') return null;
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (!stored) return null;
   try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (!stored) return null;
     return JSON.parse(stored) as AuthUser;
   } catch {
     return null;
