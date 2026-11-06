@@ -2,7 +2,12 @@ const { neon } = require('@neondatabase/serverless');
 const fs = require('fs');
 const path = require('path');
 
-const databaseUrl = process.env.DATABASE_URL || "postgresql://neondb_owner:npg_OnIYyu3qWMZ8@ep-bitter-dream-b32qqe74-pooler.c-4.ap-southeast-1.aws.neon.tech/neondb?sslmode=require";
+const databaseUrl = process.env.DATABASE_URL;
+
+if (!databaseUrl) {
+  console.error('Error: Environment variable DATABASE_URL belum diatur.');
+  process.exit(1);
+}
 
 async function executeSqlFile(sql, filePath) {
   console.log(`Executing ${path.basename(filePath)}...`);
