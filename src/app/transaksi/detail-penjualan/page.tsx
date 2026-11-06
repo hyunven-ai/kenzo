@@ -8,6 +8,7 @@ import { getPenjualan, deletePenjualan, updatePenjualanHeader, getMerks } from '
 import { formatRupiah, formatDateTime, today, daysAgo } from '@/lib/utils';
 import type { TrsPenjualanHdr, TrsPenjualanDtl, MetodePembayaran, MsMerk } from '@/lib/types';
 import PrintReceipt from '@/components/ui/PrintReceipt';
+import DateRangeToggle from '@/components/ui/DateRangeToggle';
 import { getCurrentUser } from '@/lib/auth';
 import { executeThermalPrint } from '@/lib/printerManager';
 import {
@@ -482,38 +483,62 @@ export default function DetailPenjualanPage() {
       </div>
 
       {/* Filter */}
-      <div className="filter-bar" style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'flex-end' }}>
-        <div className="form-group" style={{ minWidth: 140, flex: 1 }}>
-          <label className="form-label">Dari</label>
-          <input type="date" className="form-control" value={tempFrom} onChange={e => setTempFrom(e.target.value)} id="dtl-from" />
+      <div className="filter-bar" style={{ display: 'flex', flexDirection: 'column', gap: 14, alignItems: 'stretch' }}>
+        {/* Preset Toggles: Kemarin, Hari Ini, 1 Minggu, 1 Bulan, 3 Bulan, 1 Tahun */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, paddingBottom: 12, borderBottom: '1px solid var(--border-light, #2e2e36)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)' }}>📅 Rentang Cepat:</span>
+            <DateRangeToggle
+              currentFrom={from}
+              currentTo={to}
+              onSelect={(newFrom, newTo) => {
+                setTempFrom(newFrom);
+                setTempTo(newTo);
+                setFrom(newFrom);
+                setTo(newTo);
+                load(newFrom, newTo);
+              }}
+            />
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+            Periode Aktif: <strong style={{ color: 'var(--text-primary)' }}>{from === to ? from : `${from} s/d ${to}`}</strong>
+          </div>
         </div>
-        <div className="form-group" style={{ minWidth: 140, flex: 1 }}>
-          <label className="form-label">Sampai</label>
-          <input type="date" className="form-control" value={tempTo} onChange={e => setTempTo(e.target.value)} id="dtl-to" />
-        </div>
-        <div className="form-group" style={{ minWidth: 150, flex: 1 }}>
-          <label className="form-label">Kategori Barang</label>
-          <select className="form-control" value={tempKategori} onChange={e => setTempKategori(e.target.value)} id="dtl-kategori">
-            <option value="">Semua Kategori</option>
-            <option value="HP">HP</option>
-            <option value="HP Non Pajak">HP Non Pajak</option>
-            <option value="Aksesoris">Aksesoris</option>
-            <option value="CCTV">CCTV</option>
-            <option value="Kuota">Kuota</option>
-          </select>
-        </div>
-        <div className="form-group" style={{ minWidth: 150, flex: 1 }}>
-          <label className="form-label">Merk</label>
-          <select className="form-control" value={tempMerk} onChange={e => setTempMerk(e.target.value)} id="dtl-merk">
-            <option value="">Semua Merk</option>
-            {Array.from(new Set(merks.map(m => m.nama))).map(merkName => (
-              <option key={merkName} value={merkName}>{merkName}</option>
-            ))}
-          </select>
-        </div>
-        <div style={{ display: 'flex', gap: 8, height: 38 }}>
-          <button className="btn btn-secondary" onClick={handleReset} id="btn-reset-dtl">Reset</button>
-          <button className="btn btn-primary" onClick={handleFilter} id="btn-filter-dtl">Filter</button>
+
+        {/* Inputs */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'flex-end' }}>
+          <div className="form-group" style={{ minWidth: 140, flex: 1, marginBottom: 0 }}>
+            <label className="form-label">Dari</label>
+            <input type="date" className="form-control" value={tempFrom} onChange={e => setTempFrom(e.target.value)} id="dtl-from" />
+          </div>
+          <div className="form-group" style={{ minWidth: 140, flex: 1, marginBottom: 0 }}>
+            <label className="form-label">Sampai</label>
+            <input type="date" className="form-control" value={tempTo} onChange={e => setTempTo(e.target.value)} id="dtl-to" />
+          </div>
+          <div className="form-group" style={{ minWidth: 150, flex: 1, marginBottom: 0 }}>
+            <label className="form-label">Kategori Barang</label>
+            <select className="form-control" value={tempKategori} onChange={e => setTempKategori(e.target.value)} id="dtl-kategori">
+              <option value="">Semua Kategori</option>
+              <option value="HP">HP</option>
+              <option value="HP Non Pajak">HP Non Pajak</option>
+              <option value="Aksesoris">Aksesoris</option>
+              <option value="CCTV">CCTV</option>
+              <option value="Kuota">Kuota</option>
+            </select>
+          </div>
+          <div className="form-group" style={{ minWidth: 150, flex: 1, marginBottom: 0 }}>
+            <label className="form-label">Merk</label>
+            <select className="form-control" value={tempMerk} onChange={e => setTempMerk(e.target.value)} id="dtl-merk">
+              <option value="">Semua Merk</option>
+              {Array.from(new Set(merks.map(m => m.nama))).map(merkName => (
+                <option key={merkName} value={merkName}>{merkName}</option>
+              ))}
+            </select>
+          </div>
+          <div style={{ display: 'flex', gap: 8, height: 38, marginLeft: 'auto', alignSelf: 'flex-end' }}>
+            <button className="btn btn-secondary" onClick={handleReset} id="btn-reset-dtl">Reset</button>
+            <button className="btn btn-primary" onClick={handleFilter} id="btn-filter-dtl">Filter</button>
+          </div>
         </div>
       </div>
 

@@ -9,6 +9,7 @@ import type { DashboardStats, ChartDataPoint, KategoriSales } from '@/lib/types'
 import { Skeleton } from '@/components/ui/Skeleton';
 import EmptyState from '@/components/ui/EmptyState';
 import ErrorState from '@/components/ui/ErrorState';
+import DateRangeToggle, { computePresetRange } from '@/components/ui/DateRangeToggle';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend);
 
@@ -21,15 +22,16 @@ const KATEGORI_COLORS: Record<string, string> = {
 };
 
 export default function DashboardPage() {
+  const defaultRange = computePresetRange('1_bulan');
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
   const [kategoriData, setKategoriData] = useState<KategoriSales[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [fromDate, setFromDate] = useState(daysAgo(30));
-  const [toDate, setToDate] = useState(today());
-  const [tempFrom, setTempFrom] = useState(daysAgo(30));
-  const [tempTo, setTempTo] = useState(today());
+  const [fromDate, setFromDate] = useState(defaultRange.from);
+  const [toDate, setToDate] = useState(defaultRange.to);
+  const [tempFrom, setTempFrom] = useState(defaultRange.from);
+  const [tempTo, setTempTo] = useState(defaultRange.to);
 
   const loadData = async (from: string, to: string) => {
     setLoading(true);
@@ -77,13 +79,12 @@ export default function DashboardPage() {
   };
 
   const handleReset = () => {
-    const f = daysAgo(30);
-    const t = today();
-    setTempFrom(f);
-    setTempTo(t);
-    setFromDate(f);
-    setToDate(t);
-    loadData(f, t);
+    const range = computePresetRange('1_bulan');
+    setTempFrom(range.from);
+    setTempTo(range.to);
+    setFromDate(range.from);
+    setToDate(range.to);
+    loadData(range.from, range.to);
   };
 
   const barChartData = {
@@ -181,8 +182,8 @@ export default function DashboardPage() {
       </div>
 
       {/* Filter Bar */}
-      <div className="filter-bar">
-        <div className="form-group">
+      <div className="filter-bar" style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'flex-end' }}>
+        <div className="form-group" style={{ marginBottom: 0 }}>
           <label className="form-label">Tanggal Dari</label>
           <input
             type="date"
@@ -192,7 +193,7 @@ export default function DashboardPage() {
             id="filter-from"
           />
         </div>
-        <div className="form-group">
+        <div className="form-group" style={{ marginBottom: 0 }}>
           <label className="form-label">Tanggal Sampai</label>
           <input
             type="date"
@@ -202,7 +203,24 @@ export default function DashboardPage() {
             id="filter-to"
           />
         </div>
-        <div className="filter-bar-right" style={{ alignSelf: 'flex-end' }}>
+
+        {/* Date Preset Toggle: Kemarin, Hari Ini, 1 Minggu, 1 Bulan, 3 Bulan, 1 Tahun */}
+        <div className="form-group" style={{ marginBottom: 0 }}>
+          <label className="form-label" style={{ opacity: 0.85 }}>Rentang Cepat</label>
+          <DateRangeToggle
+            currentFrom={fromDate}
+            currentTo={toDate}
+            onSelect={(newFrom, newTo) => {
+              setTempFrom(newFrom);
+              setTempTo(newTo);
+              setFromDate(newFrom);
+              setToDate(newTo);
+              loadData(newFrom, newTo);
+            }}
+          />
+        </div>
+
+        <div className="filter-bar-right" style={{ alignSelf: 'flex-end', marginLeft: 'auto' }}>
           <button className="btn btn-secondary" onClick={handleReset} id="btn-reset">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
