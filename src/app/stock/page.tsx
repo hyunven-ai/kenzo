@@ -7,6 +7,7 @@ import DataTable from '@/components/ui/DataTable';
 import Modal from '@/components/ui/Modal';
 import NumericInput from '@/components/ui/NumericInput';
 import BarcodeScannerModal from '@/components/ui/BarcodeScannerModal';
+import FormField from '@/components/ui/FormField';
 import {
   getBarangs,
   createBarang,
@@ -73,6 +74,7 @@ function StockContent() {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<number | null>(null);
   const [error, setError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [form, setForm] = useState(emptyForm);
   const [scannerOpen, setScannerOpen] = useState(false);
 
@@ -138,6 +140,7 @@ function StockContent() {
       satuan: foundKat?.satuan_default || 'Pcs',
     });
     setError('');
+    setFieldErrors({});
     setModalOpen(true);
   };
 
@@ -158,6 +161,7 @@ function StockContent() {
       keterangan: row.keterangan || '',
     });
     setError('');
+    setFieldErrors({});
     setModalOpen(true);
   };
 
@@ -165,6 +169,7 @@ function StockContent() {
     setModalOpen(false);
     setEditing(null);
     setError('');
+    setFieldErrors({});
   };
 
   const handleKategoriFormChange = (newKatName: string) => {
@@ -178,18 +183,31 @@ function StockContent() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    const errors: Record<string, string> = {};
+
     if (!form.nama.trim()) {
-      setError('Nama barang tidak boleh kosong');
-      return;
+      errors.nama = 'Nama barang wajib diisi. Contoh: Indomie Goreng / Kaos Combed 30s.';
     }
     if (!form.barcode.trim()) {
-      setError('Barcode tidak boleh kosong');
+      errors.barcode = 'Barcode wajib diisi. Klik "⚡ Acak" untuk membuat kode barcode otomatis.';
+    }
+    if (form.qty < 0) {
+      errors.qty = 'Stok fisik tidak boleh bernilai negatif. Masukkan angka minimal 0.';
+    }
+    if (form.harga_modal < 0) {
+      errors.harga_modal = 'Harga modal tidak boleh bernilai negatif.';
+    }
+    if (form.harga_jual < 0) {
+      errors.harga_jual = 'Harga jual tidak boleh bernilai negatif.';
+    } else if (form.harga_jual > 0 && form.harga_modal > 0 && form.harga_jual < form.harga_modal) {
+      errors.harga_jual = `Harga jual (${formatRupiah(form.harga_jual)}) di bawah modal (${formatRupiah(form.harga_modal)}). Naikkan harga jual agar tidak rugi.`;
+    }
+
+    if (Object.keys(errors).length > 0) {
+      setFieldErrors(errors);
       return;
     }
-    if (form.harga_jual < 0 || form.harga_modal < 0) {
-      setError('Harga tidak boleh bernilai negatif');
-      return;
-    }
+    setFieldErrors({});
 
     setSaving(true);
     setError('');
@@ -641,17 +659,27 @@ function StockContent() {
             }}
           >
             {/* Barcode Section */}
-            <div className="form-group">
-              <label className="form-label">Barcode / Kode Produk *</label>
+            <FormField
+              label="Barcode / Kode Produk"
+              required
+              error={fieldErrors.barcode}
+              hint="Scan dengan barcode scanner atau klik ⚡ Acak."
+            >
               <div style={{ display: 'flex', gap: 6 }}>
                 <input
                   type="text"
                   className="form-control font-mono"
-                  style={{ minWidth: 0, flex: 1 }}
+                  style={{
+                    minWidth: 0,
+                    flex: 1,
+                    borderColor: fieldErrors.barcode ? '#ef4444' : undefined,
+                  }}
                   placeholder="Scan barcode..."
                   value={form.barcode}
-                  onChange={e => setForm(f => ({ ...f, barcode: e.target.value }))}
-                  required
+                  onChange={e => {
+                    setForm(f => ({ ...f, barcode: e.target.value }));
+                    if (fieldErrors.barcode) setFieldErrors(prev => ({ ...prev, barcode: '' }));
+                  }}
                   id="input-barcode"
                 />
                 <button
@@ -667,27 +695,36 @@ function StockContent() {
                   type="button"
                   className="btn btn-outline btn-sm"
                   style={{ whiteSpace: 'nowrap', padding: '0 10px' }}
-                  onClick={generateBarcode}
+                  onClick={() => {
+                    generateBarcode();
+                    if (fieldErrors.barcode) setFieldErrors(prev => ({ ...prev, barcode: '' }));
+                  }}
                   title="Buat barcode unik otomatis"
                 >
                   ⚡ Acak
                 </button>
               </div>
-            </div>
+            </FormField>
 
             {/* Nama Barang */}
-            <div className="form-group">
-              <label className="form-label">Nama Barang / Produk *</label>
+            <FormField
+              label="Nama Barang / Produk"
+              required
+              error={fieldErrors.nama}
+            >
               <input
                 type="text"
                 className="form-control"
+                style={{ borderColor: fieldErrors.nama ? '#ef4444' : undefined }}
                 placeholder="Contoh: Beras Rojo Lele 5kg / Kaos Combed 30s..."
                 value={form.nama}
-                onChange={e => setForm(f => ({ ...f, nama: e.target.value }))}
-                required
+                onChange={e => {
+                  setForm(f => ({ ...f, nama: e.target.value }));
+                  if (fieldErrors.nama) setFieldErrors(prev => ({ ...prev, nama: '' }));
+                }}
                 id="input-nama-barang"
               />
-            </div>
+            </FormField>
 
             {/* Kategori */}
             <div className="form-group">
@@ -869,40 +906,59 @@ function StockContent() {
                 gridColumn: '1 / -1',
               }}
             >
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label">Jumlah Stok Fisik *</label>
+              <FormField
+                label="Jumlah Stok Fisik"
+                required
+                error={fieldErrors.qty}
+                style={{ marginBottom: 0 }}
+              >
                 <input
                   type="number"
                   min="0"
                   className="form-control"
+                  style={{ borderColor: fieldErrors.qty ? '#ef4444' : undefined }}
                   value={form.qty}
-                  onChange={e => setForm(f => ({ ...f, qty: Math.max(0, parseInt(e.target.value) || 0) }))}
-                  required
+                  onChange={e => {
+                    setForm(f => ({ ...f, qty: Math.max(0, parseInt(e.target.value) || 0) }));
+                    if (fieldErrors.qty) setFieldErrors(prev => ({ ...prev, qty: '' }));
+                  }}
                   id="input-qty-barang"
                 />
-              </div>
+              </FormField>
 
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label">Harga Modal (Rp) *</label>
+              <FormField
+                label="Harga Modal (Rp)"
+                required
+                error={fieldErrors.harga_modal}
+                style={{ marginBottom: 0 }}
+              >
                 <NumericInput
                   value={form.harga_modal}
-                  onChange={val => setForm(f => ({ ...f, harga_modal: val }))}
+                  onChange={val => {
+                    setForm(f => ({ ...f, harga_modal: val }));
+                    if (fieldErrors.harga_modal) setFieldErrors(prev => ({ ...prev, harga_modal: '' }));
+                  }}
                   placeholder="0"
-                  required
                   id="input-harga-modal"
                 />
-              </div>
+              </FormField>
 
-              <div className="form-group" style={{ marginBottom: 0 }}>
-                <label className="form-label">Harga Jual (Rp) *</label>
+              <FormField
+                label="Harga Jual (Rp)"
+                required
+                error={fieldErrors.harga_jual}
+                style={{ marginBottom: 0 }}
+              >
                 <NumericInput
                   value={form.harga_jual}
-                  onChange={val => setForm(f => ({ ...f, harga_jual: val }))}
+                  onChange={val => {
+                    setForm(f => ({ ...f, harga_jual: val }));
+                    if (fieldErrors.harga_jual) setFieldErrors(prev => ({ ...prev, harga_jual: '' }));
+                  }}
                   placeholder="0"
-                  required
                   id="input-harga-jual"
                 />
-              </div>
+              </FormField>
             </div>
 
             {/* Ukuran & Warna */}

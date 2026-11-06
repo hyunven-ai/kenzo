@@ -11,6 +11,7 @@ import BarcodeScannerModal from '@/components/ui/BarcodeScannerModal';
 import NumericInput from '@/components/ui/NumericInput';
 import { getPrinterSettings } from '@/lib/printerSettings';
 import { executeThermalPrint } from '@/lib/printerManager';
+import { saveDraft, getDraft, clearDraft } from '@/lib/draftManager';
 import {
   connectBluetoothPrinter,
   getActiveBluetoothPrinter,
@@ -67,6 +68,24 @@ export default function PenjualanPage() {
   const [btPrinter, setBtPrinter] = useState<BluetoothPrinterInfo | null>(null);
   const [connectingBt, setConnectingBt] = useState(false);
   const [printStatusToast, setPrintStatusToast] = useState<string | null>(null);
+
+  // State 8: Auto-save work before session expired or sign out
+  const [draftRestorable, setDraftRestorable] = useState<{ cart: CartItem[]; customer?: string; catatan?: string } | null>(null);
+
+  useEffect(() => {
+    const draft = getDraft<{ cart: CartItem[]; customer?: string; catatan?: string }>('pos_cart');
+    if (draft && draft.data && Array.isArray(draft.data.cart) && draft.data.cart.length > 0) {
+      setDraftRestorable(draft.data);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (cart.length > 0) {
+      saveDraft('pos_cart', { cart, customer, catatan });
+    } else if (!draftRestorable) {
+      clearDraft('pos_cart');
+    }
+  }, [cart, customer, catatan, draftRestorable]);
 
   const [scannerOpen, setScannerOpen] = useState(false);
   const [searchResults, setSearchResults] = useState<any[]>([]);
@@ -425,6 +444,8 @@ export default function PenjualanPage() {
       }
 
       // Reset keranjang belanja & form kasir
+      clearDraft('pos_cart');
+      setDraftRestorable(null);
       setCart([]);
       setBayar('');
       setCustomer('Umum');
@@ -820,6 +841,60 @@ export default function PenjualanPage() {
             ) : cart.length === 0 ? (
               /* KETIKA KERANJANG KOSONG: KATALOG CEPAT PRODUK SIAP JUAL */
               <div style={{ padding: 16 }}>
+                {draftRestorable && draftRestorable.cart && draftRestorable.cart.length > 0 && (
+                  <div
+                    style={{
+                      background: 'rgba(59, 130, 246, 0.12)',
+                      border: '1px solid #3b82f6',
+                      borderRadius: 10,
+                      padding: '14px 18px',
+                      marginBottom: 16,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      flexWrap: 'wrap',
+                      gap: 12,
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                      <span style={{ fontSize: 24 }}>💾</span>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: 14, color: 'var(--text-primary)' }}>
+                          Draf Transaksi Sebelumnya Ditemukan!
+                        </div>
+                        <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                          Ada {draftRestorable.cart.length} item dari transaksi sebelumnya yang tersimpan aman.
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm"
+                        style={{ fontWeight: 600, padding: '6px 14px' }}
+                        onClick={() => {
+                          setCart(draftRestorable.cart);
+                          if (draftRestorable.customer) setCustomer(draftRestorable.customer);
+                          if (draftRestorable.catatan) setCatatan(draftRestorable.catatan);
+                          setDraftRestorable(null);
+                        }}
+                      >
+                        🔄 Pulihkan Draf ({draftRestorable.cart.length} Item)
+                      </button>
+                      <button
+                        type="button"
+                        className="btn btn-outline btn-sm"
+                        style={{ fontSize: 12, padding: '6px 12px' }}
+                        onClick={() => {
+                          clearDraft('pos_cart');
+                          setDraftRestorable(null);
+                        }}
+                      >
+                        Abaikan & Hapus
+                      </button>
+                    </div>
+                  </div>
+                )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                   <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                     📦 Produk Tersedia (Klik untuk langsung tambah ke keranjang):
@@ -1076,17 +1151,54 @@ export default function PenjualanPage() {
             {metode === 'Tunai' && (
               <>
                 <div className="form-group mt-12">
-                  <label className="form-label">Uang Dibayar</label>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                    <label className="form-label" style={{ marginBottom: 0 }}>Uang Dibayar</label>
+                    <button
+                      type="button"
+                      style={{
+                        padding: '2px 8px',
+                        fontSize: 11,
+                        color: 'var(--brand-primary, #ef4444)',
+                        border: '1px solid currentColor',
+                        borderRadius: 4,
+                        background: 'transparent',
+                        cursor: 'pointer',
+                        fontWeight: 600,
+                      }}
+                      onClick={() => setBayar(String(total))}
+                    >
+                      Uang Pas
+                    </button>
+                  </div>
                   <NumericInput
                     className="form-control"
                     placeholder="0"
                     value={bayar}
                     onChange={(val, rawStr) => setBayar(rawStr)}
                     id="pos-bayar"
+                    style={bayar && parseInt(bayar) < total ? { borderColor: '#ef4444', background: 'rgba(239, 68, 68, 0.05)' } : undefined}
                   />
+                  {bayar && parseInt(bayar) < total ? (
+                    <div
+                      role="alert"
+                      style={{
+                        marginTop: 6,
+                        fontSize: 12,
+                        color: '#ef4444',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: 4,
+                      }}
+                    >
+                      <span>⚠️</span>
+                      <span>
+                        Kurang {formatRupiah(total - parseInt(bayar))}. Masukkan nominal lebih besar atau klik &quot;Uang Pas&quot;.
+                      </span>
+                    </div>
+                  ) : null}
                 </div>
-                {bayar && (
-                  <div className="pos-total-row mt-8" style={{ color: kembalian >= 0 ? '#2e7d32' : '#e53935', fontWeight: 600 }}>
+                {bayar && parseInt(bayar) >= total && (
+                  <div className="pos-total-row mt-8" style={{ color: '#22c55e', fontWeight: 600 }}>
                     <span>Kembalian</span>
                     <span>{formatRupiah(Math.max(0, kembalian))}</span>
                   </div>
@@ -1097,12 +1209,22 @@ export default function PenjualanPage() {
             <button
               className="btn btn-success w-full mt-12"
               style={{ height: 46, fontSize: 15, fontWeight: 700 }}
-              onClick={() => setCheckoutModal(true)}
-              disabled={cart.length === 0}
+              onClick={() => {
+                if (metode === 'Tunai' && bayar && parseInt(bayar) < total) {
+                  return;
+                }
+                setCheckoutModal(true);
+              }}
+              disabled={cart.length === 0 || (metode === 'Tunai' && Boolean(bayar && parseInt(bayar) < total))}
               id="btn-checkout"
             >
               ✅ Proses Checkout ({cart.length} item)
             </button>
+            {cart.length === 0 && (
+              <div style={{ fontSize: 11, color: 'var(--text-muted)', textAlign: 'center', marginTop: 6 }}>
+                Pilih atau scan minimal 1 barang untuk mulai checkout
+              </div>
+            )}
 
             {cart.length > 0 && (
               <button
@@ -1375,36 +1497,103 @@ export default function PenjualanPage() {
         </div>
       )}
 
-      {/* Success Modal */}
+      {/* State 10: Success State Modal */}
       {successModal && (
         <div className="modal-backdrop">
-          <div className="modal" style={{ maxWidth: 380, textAlign: 'center' }}>
-            <div className="modal-body" style={{ padding: 40 }}>
-              <div style={{ fontSize: 60, marginBottom: 16 }}>✅</div>
-              <h2 style={{ fontFamily: 'Outfit', fontSize: 20, fontWeight: 700, marginBottom: 8 }}>Transaksi Berhasil!</h2>
-              <p style={{ color: '#888', fontSize: 13 }}>No. Invoice: <strong>{lastInvoice}</strong></p>
-              <p style={{ color: '#888', fontSize: 13, marginBottom: 24 }}>Total: <strong style={{ color: '#1565c0' }}>{formatRupiah(printData?.total ?? 0)}</strong></p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <button
-                  className="btn btn-outline w-full"
-                  onClick={handlePrint}
-                  id="btn-print-receipt"
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: 6,
-                    fontWeight: 600,
-                    borderColor: btPrinter?.connected ? '#10b981' : undefined,
-                    color: btPrinter?.connected ? '#10b981' : undefined,
-                  }}
-                >
-                  <span>🖨️</span>
-                  <span>{btPrinter?.connected ? 'Cetak Struk POS-58 (Direct)' : 'Cetak Struk'}</span>
-                </button>
-                <button className="btn btn-primary w-full" onClick={() => { setSuccessModal(false); barcodeRef.current?.focus(); }} id="btn-close-success">
-                  Transaksi Baru
-                </button>
+          <div className="modal" style={{ maxWidth: 440, textAlign: 'center', borderRadius: 16, overflow: 'hidden' }}>
+            <div className="modal-body" style={{ padding: '32px 28px' }}>
+              {/* 1. Confirm: clear visual affirmation */}
+              <div
+                style={{
+                  width: 68,
+                  height: 68,
+                  borderRadius: '50%',
+                  background: 'rgba(34, 197, 94, 0.15)',
+                  color: '#22c55e',
+                  fontSize: 34,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 16px',
+                  border: '2px solid rgba(34, 197, 94, 0.3)',
+                }}
+              >
+                ✓
+              </div>
+
+              <h2 style={{ fontFamily: 'Outfit', fontSize: 22, fontWeight: 800, color: 'var(--text-primary)', marginBottom: 6 }}>
+                Transaksi Berhasil Diterima!
+              </h2>
+
+              {/* 2. Reassure: say what happened & that data and stock are protected */}
+              <div
+                style={{
+                  background: 'var(--bg-elevated, #24242c)',
+                  border: '1px solid var(--border-light, #2e2e36)',
+                  borderRadius: 10,
+                  padding: '14px 16px',
+                  margin: '16px 0',
+                  textAlign: 'left',
+                  fontSize: 13,
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>No. Invoice:</span>
+                  <span style={{ fontWeight: 700, color: 'var(--text-primary)', fontFamily: 'monospace' }}>{lastInvoice}</span>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Total Bayar:</span>
+                  <span style={{ fontWeight: 800, color: '#4ade80', fontSize: 15 }}>{formatRupiah(printData?.total ?? 0)}</span>
+                </div>
+                {printData?.bayar && printData.bayar > (printData.total ?? 0) && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Kembalian:</span>
+                    <span style={{ fontWeight: 700, color: '#38bdf8' }}>{formatRupiah(printData.bayar - printData.total)}</span>
+                  </div>
+                )}
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Metode:</span>
+                  <span style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{printData?.metodePembayaran}</span>
+                </div>
+                <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px dashed var(--border-light, #333)', fontSize: 11, color: '#22c55e', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span>🛡️</span>
+                  <span>Stok barang otomatis terpotong & sinkron ke database cloud.</span>
+                </div>
+              </div>
+
+              {/* 3. Show what happens next */}
+              <div style={{ textAlign: 'left', marginBottom: 6 }}>
+                <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 }}>
+                  Langkah Selanjutnya:
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                  <button
+                    className="btn btn-outline w-full"
+                    onClick={handlePrint}
+                    id="btn-print-receipt"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 8,
+                      fontWeight: 700,
+                      padding: '11px',
+                      borderColor: btPrinter?.connected ? '#10b981' : undefined,
+                      color: btPrinter?.connected ? '#10b981' : undefined,
+                    }}
+                  >
+                    <span>🖨️</span>
+                    <span>{btPrinter?.connected ? 'Cetak Struk POS-58 (Direct Bluetooth)' : '1. Cetak Struk Pelanggan'}</span>
+                  </button>
+                  <button
+                    className="btn btn-primary w-full"
+                    onClick={() => { setSuccessModal(false); barcodeRef.current?.focus(); }}
+                    id="btn-close-success"
+                    style={{ padding: '11px', fontWeight: 700 }}
+                  >
+                    ➕ 2. Transaksi Baru (Layani Pelanggan Berikutnya)
+                  </button>
+                </div>
               </div>
             </div>
           </div>

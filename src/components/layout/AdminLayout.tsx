@@ -5,7 +5,9 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import Sidebar from '@/components/layout/Sidebar';
 import Header from '@/components/layout/Header';
-import { getCurrentUser, logout } from '@/lib/auth';
+import NetworkStatusBanner from '@/components/ui/NetworkStatusBanner';
+import PermissionDenied from '@/components/ui/PermissionDenied';
+import { getCurrentUser, logout, canAccess } from '@/lib/auth';
 import { AuthUser } from '@/lib/types';
 import { Home, ShoppingCart, Package, Menu as MenuIcon } from 'lucide-react';
 
@@ -59,6 +61,21 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     router.push('/login');
   };
 
+  // State 7: Role-based permission check
+  const isAuthorized = (() => {
+    if (!user) return true;
+    if (user.role === 'super_admin') return true;
+
+    // Check module permissions against user role
+    if (pathname.startsWith('/dashboard')) return false;
+    if (pathname.startsWith('/pengaturan/pengguna')) return false;
+    if (pathname.startsWith('/pengaturan/log-')) return false;
+    if (pathname.startsWith('/transaksi') && user.role === 'admin_gudang') return false;
+    if ((pathname.startsWith('/stock') || pathname.startsWith('/master')) && user.role === 'kasir') return false;
+
+    return true;
+  })();
+
   if (isLoading) {
     return (
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh' }}>
@@ -73,6 +90,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
   return (
     <div className="app-shell">
+      {/* State 4 & 5: Offline and Slow Network indicator */}
+      <NetworkStatusBanner />
+
       <Sidebar user={user} collapsed={collapsed} mobileOpen={mobileOpen} onCloseMobile={() => setMobileOpen(false)} />
       
       {/* Mobile Sidebar Backdrop Overlay */}
@@ -96,7 +116,24 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           onLogout={handleLogout}
         />
         <div className="app-content">
-          {children}
+          {!isAuthorized ? (
+            /* State 7: Permission Denied - explain why and give a way back */
+            <PermissionDenied
+              user={user}
+              requiredRole={
+                pathname.startsWith('/dashboard') || pathname.startsWith('/pengaturan/pengguna')
+                  ? 'Super Admin'
+                  : pathname.startsWith('/transaksi')
+                  ? 'Kasir / Super Admin'
+                  : 'Admin Gudang / Super Admin'
+              }
+              currentPath={pathname}
+              onGoBack={() => router.push(user.role === 'kasir' ? '/transaksi/penjualan' : '/dashboard')}
+              onSwitchAccount={handleLogout}
+            />
+          ) : (
+            children
+          )}
         </div>
 
         {/* Native Mobile App Style Bottom Navigation */}

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { login, getCurrentUser } from '@/lib/auth';
+import { getDraft } from '@/lib/draftManager';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -10,6 +11,15 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [savedDraftCount, setSavedDraftCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    // Check saved draft work (State 8: Session expired / sign out work preservation)
+    const draft = getDraft<{ cart: unknown[] }>('pos_cart');
+    if (draft && draft.data && Array.isArray(draft.data.cart) && draft.data.cart.length > 0) {
+      setSavedDraftCount(draft.data.cart.length);
+    }
+  }, []);
 
   useEffect(() => {
     try {
@@ -60,6 +70,31 @@ export default function LoginPage() {
         </div>
 
         <div className="login-title">Masuk ke akun Anda</div>
+
+        {/* State 8: Reassure user that their work was preserved before sign out */}
+        {savedDraftCount && (
+          <div
+            style={{
+              background: 'rgba(59, 130, 246, 0.12)',
+              border: '1px solid #3b82f6',
+              borderRadius: '8px',
+              padding: '10px 14px',
+              fontSize: '12.5px',
+              color: '#93c5fd',
+              marginBottom: '16px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              textAlign: 'left',
+              lineHeight: 1.4,
+            }}
+          >
+            <span style={{ fontSize: '18px' }}>💾</span>
+            <span>
+              <strong>Draf Transaksi Tersimpan:</strong> Draf kasir Anda sebelumnya ({savedDraftCount} barang) telah diamankan otomatis. Silakan masuk untuk melanjutkan transaksi.
+            </span>
+          </div>
+        )}
 
         {error && <div className="login-error">{error}</div>}
 
