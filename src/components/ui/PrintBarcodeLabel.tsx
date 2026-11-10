@@ -58,15 +58,14 @@ export default function PrintBarcodeLabel({
 
   // Compute adaptive font sizes and barcode height based on label dimensions
   const isMini = heightMm <= 18 || widthMm <= 33;
-  const shopFontSize = isMini ? 6.5 : heightMm <= 30 ? 9 : 10.5;
-  const itemFontSize = isMini ? 6 : heightMm <= 30 ? 8 : 9.5;
-  const barcodeHeight = isMini ? 16 : heightMm <= 30 ? 28 : 36;
-  const barcodeWidth = isMini ? 0.95 : widthMm <= 33 ? 1.1 : widthMm <= 40 ? 1.35 : 1.55;
-  const priceFontSize = isMini ? 7.5 : heightMm <= 30 ? 11 : 13;
-  const codeFontSize = isMini ? 6 : 8.5;
+  const shopFontSize = isMini ? 5.5 : heightMm <= 30 ? 9 : 10.5;
+  const itemFontSize = isMini ? 5.8 : heightMm <= 30 ? 8 : 9.5;
+  const barcodeHeight = isMini ? 12 : heightMm <= 30 ? 28 : 36;
+  const barcodeWidth = isMini ? 0.85 : widthMm <= 33 ? 1.1 : widthMm <= 40 ? 1.35 : 1.55;
+  const priceFontSize = isMini ? 7 : heightMm <= 30 ? 11 : 13;
+  const codeFontSize = isMini ? 5.5 : 8.5;
 
   const isContinuous = settings.paperMode === 'continuous_receipt';
-  const isLandscape = settings.orientation === 'landscape';
 
   // Group into pairs if 2 columns (2 Line)
   const rows: (LabelPrintItem | null)[][] = [];
@@ -108,7 +107,7 @@ export default function PrintBarcodeLabel({
           height: `${heightMm}mm`,
           maxHeight: `${heightMm}mm`,
           boxSizing: 'border-box',
-          padding: isMini ? '0.8mm 1.2mm' : '1.5mm 2mm',
+          padding: isMini ? '0.4mm 0.8mm' : '1.5mm 2mm',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -126,9 +125,9 @@ export default function PrintBarcodeLabel({
               fontSize: `${shopFontSize}pt`,
               fontWeight: 800,
               textTransform: 'uppercase',
-              letterSpacing: '0.04em',
-              lineHeight: 1.1,
-              marginBottom: 1,
+              letterSpacing: '0.02em',
+              lineHeight: 1,
+              marginBottom: 0.5,
               whiteSpace: 'nowrap',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
@@ -145,13 +144,13 @@ export default function PrintBarcodeLabel({
             style={{
               fontSize: `${itemFontSize}pt`,
               fontWeight: 600,
-              lineHeight: 1.15,
-              maxHeight: isMini ? '1.3em' : '2.4em',
+              lineHeight: 1.05,
+              maxHeight: isMini ? '1.15em' : '2.4em',
               overflow: 'hidden',
               textOverflow: 'ellipsis',
-              whiteSpace: isMini ? 'nowrap' : 'normal',
+              whiteSpace: 'nowrap',
               width: '100%',
-              marginBottom: 1,
+              marginBottom: 0.5,
             }}
           >
             {item.nama} {variantText ? `(${variantText})` : ''}
@@ -169,34 +168,73 @@ export default function PrintBarcodeLabel({
           />
         </div>
 
-        {/* Kode Barcode Human-Readable */}
-        {settings.showBarcodeText && (
+        {/* Kode Barcode & Harga Jual */}
+        {isMini ? (
           <div
             style={{
-              fontFamily: 'monospace, monospace',
-              fontSize: `${codeFontSize}pt`,
-              fontWeight: 700,
-              letterSpacing: '0.06em',
-              lineHeight: 1,
-              marginBottom: 0.5,
-            }}
-          >
-            {item.barcode}
-          </div>
-        )}
-
-        {/* Harga Jual */}
-        {settings.showPrice && item.harga_jual > 0 && (
-          <div
-            style={{
-              fontSize: `${priceFontSize}pt`,
-              fontWeight: 800,
-              lineHeight: 1.1,
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: settings.showBarcodeText && (settings.showPrice && item.harga_jual > 0) ? 'space-between' : 'center',
               marginTop: 0.5,
+              padding: '0 0.5mm',
+              lineHeight: 1,
             }}
           >
-            {formatRupiah(item.harga_jual)}
+            {settings.showBarcodeText && (
+              <div
+                style={{
+                  fontFamily: 'monospace, monospace',
+                  fontSize: `${codeFontSize}pt`,
+                  fontWeight: 700,
+                  letterSpacing: '0.02em',
+                  lineHeight: 1,
+                }}
+              >
+                {item.barcode}
+              </div>
+            )}
+            {settings.showPrice && item.harga_jual > 0 && (
+              <div
+                style={{
+                  fontSize: `${priceFontSize}pt`,
+                  fontWeight: 800,
+                  lineHeight: 1,
+                }}
+              >
+                {formatRupiah(item.harga_jual)}
+              </div>
+            )}
           </div>
+        ) : (
+          <>
+            {settings.showBarcodeText && (
+              <div
+                style={{
+                  fontFamily: 'monospace, monospace',
+                  fontSize: `${codeFontSize}pt`,
+                  fontWeight: 700,
+                  letterSpacing: '0.06em',
+                  lineHeight: 1,
+                  marginBottom: 0.5,
+                }}
+              >
+                {item.barcode}
+              </div>
+            )}
+            {settings.showPrice && item.harga_jual > 0 && (
+              <div
+                style={{
+                  fontSize: `${priceFontSize}pt`,
+                  fontWeight: 800,
+                  lineHeight: 1.1,
+                  marginTop: 0.5,
+                }}
+              >
+                {formatRupiah(item.harga_jual)}
+              </div>
+            )}
+          </>
         )}
       </div>
     );
@@ -212,7 +250,7 @@ export default function PrintBarcodeLabel({
         }
         @media print {
           @page {
-            ${isLandscape ? 'size: landscape;' : 'size: portrait;'}
+            size: ${totalRowWidthMm}mm ${heightMm}mm;
             margin: 0 !important;
           }
           html, body {
@@ -220,7 +258,8 @@ export default function PrintBarcodeLabel({
             padding: 0 !important;
             background: #ffffff !important;
             color: #000000 !important;
-            width: 100% !important;
+            width: ${totalRowWidthMm}mm !important;
+            height: ${heightMm}mm !important;
           }
           /* Hide regular application layout during label printing */
           .app-shell, .app-sidebar, .app-header, .app-main, .page-header, .pos-layout, .card, .modal-backdrop, .mobile-bottom-nav {
@@ -230,7 +269,7 @@ export default function PrintBarcodeLabel({
             display: flex !important;
             flex-direction: column !important;
             align-items: center !important;
-            width: 100% !important;
+            width: ${totalRowWidthMm}mm !important;
             margin: 0 auto !important;
             padding: 0 !important;
           }

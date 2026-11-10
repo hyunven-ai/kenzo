@@ -747,21 +747,24 @@ export default function BarcodePage() {
                         <BarcodeGenerator
                           value={previewSample.barcode || 'BRG-SAMPLE'}
                           format={settings.barcodeFormat}
-                          width={0.9}
-                          height={18}
+                          width={0.85}
+                          height={14}
                           displayValue={false}
                         />
                       </div>
-                      {settings.showBarcodeText && (
-                        <div style={{ fontFamily: 'monospace', fontSize: 8.5, fontWeight: 700, letterSpacing: '0.04em', marginBottom: 1 }}>
-                          {previewSample.barcode || 'BRG-SAMPLE'}
-                        </div>
-                      )}
-                      {settings.showPrice && previewSample.harga_jual > 0 && (
-                        <div style={{ fontSize: 10, fontWeight: 800, color: '#000000', marginTop: 1 }}>
-                          {formatRupiah(previewSample.harga_jual)}
-                        </div>
-                      )}
+                      {/* Kode Barcode & Harga Jual Sejajar Rapi */}
+                      <div style={{ display: 'flex', justifyContent: settings.showBarcodeText && (settings.showPrice && previewSample.harga_jual > 0) ? 'space-between' : 'center', alignItems: 'center', width: '100%', marginTop: 2, padding: '0 2px' }}>
+                        {settings.showBarcodeText && (
+                          <div style={{ fontFamily: 'monospace', fontSize: 7.5, fontWeight: 700, letterSpacing: '0.02em' }}>
+                            {previewSample.barcode || 'BRG-SAMPLE'}
+                          </div>
+                        )}
+                        {settings.showPrice && previewSample.harga_jual > 0 && (
+                          <div style={{ fontSize: 9, fontWeight: 800, color: '#000000' }}>
+                            {formatRupiah(previewSample.harga_jual)}
+                          </div>
+                        )}
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -828,21 +831,20 @@ export default function BarcodePage() {
                   💡 <strong>Mode Atur Format:</strong> Menampilkan contoh stiker. Anda bisa menyimpan pengaturan ini atau melakukan tes cetak 1 lembar.
                 </div>
               )}
-              <div style={{ marginTop: 8, fontSize: 11, color: '#1e3a8a', background: 'rgba(255,255,255,0.7)', padding: '6px 8px', borderRadius: 6 }}>
-                📌 <strong>Agar Hasil Tidak Miring / Boros Kertas:</strong><br />
+              <div style={{ marginTop: 8, fontSize: 11, color: '#1e3a8a', background: 'rgba(255,255,255,0.85)', padding: '8px 10px', borderRadius: 6, lineHeight: 1.45 }}>
+                📌 <strong>PANDUAN AGAR STIKER PAS &amp; TIDAK LONCAT/BOROS KERTAS:</strong><br />
                 {settings.columns === 2 ? (
-                  <span>
-                    ✅ Mode <strong>2 Line (2 Kolom Berdampingan)</strong> aktif: Barcode dicetak 2 stiker per baris.<br />
-                    Di driver printer, atur ukuran kertas: <strong>Lebar: {settings.widthMm * 2 + (settings.columnGapMm || 2)} mm, Tinggi: {settings.heightMm} mm</strong>.
-                  </span>
+                  <>
+                    <span>1. <strong>Ukuran Kertas di Dialog Cetak:</strong> Klik <em>More settings (Setelan lainnya)</em> → Pilih ukuran kertas <strong>{settings.widthMm * 2 + (settings.columnGapMm || 2)} × {settings.heightMm} mm</strong> (Jangan biarkan default 100×150mm agar tidak buang 7 baris stiker).</span><br />
+                    <span>2. <strong>Margins (Margin):</strong> Wajib pilih <strong>None (Tidak Ada)</strong>.</span><br />
+                    <span>3. <strong>Tata Letak (Layout):</strong> Pilih <strong>Portrait (Tegak)</strong>.</span><br />
+                    <span>4. <strong>Kalibrasi Sensor Printer (Xprinter XP-420B):</strong> Matikan saklar printer, tekan &amp; tahan tombol FEED, nyalakan printer sampai bunyi bip 2x lalu lepas tombol FEED agar sensor membaca celah (gap) stiker.</span>
+                  </>
                 ) : settings.paperMode === 'continuous_receipt' ? (
                   <span>✅ Mode <strong>Kertas Kasir Continuous</strong> aktif: Barcode dicetak beruntun rapat tanpa loncat halaman kosong.</span>
                 ) : (
                   <span>✅ Mode <strong>Roll Stiker</strong> aktif: Mencetak 1 lembar per stiker untuk printer stiker kupas berjarak/gap.</span>
                 )}
-                <div style={{ marginTop: 4, fontWeight: 600 }}>
-                  Pastikan di dialog cetak: <strong>Tata Letak = Potret (Portrait)</strong> &amp; <strong>Margin = Tidak Ada (None)</strong>.
-                </div>
               </div>
             </div>
           </div>
