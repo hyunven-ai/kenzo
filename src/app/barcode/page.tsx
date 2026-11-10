@@ -761,14 +761,14 @@ export default function BarcodePage() {
                         />
                       </div>
                       {/* Kode Barcode & Harga Jual Sejajar Rapi */}
-                      <div style={{ display: 'flex', justifyContent: settings.showBarcodeText && (settings.showPrice && previewSample.harga_jual > 0) ? 'space-between' : 'center', alignItems: 'center', width: '100%', marginTop: 2, padding: '0 2px' }}>
+                      <div style={{ display: 'flex', justifyContent: settings.showBarcodeText && (settings.showPrice && previewSample.harga_jual > 0) ? 'space-between' : 'center', alignItems: 'baseline', width: '100%', marginTop: 3, padding: '0 4px' }}>
                         {settings.showBarcodeText && (
-                          <div style={{ fontFamily: 'monospace', fontSize: 7.5, fontWeight: 700, letterSpacing: '0.02em' }}>
+                          <div style={{ fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace", fontSize: 9.5, fontWeight: 800, letterSpacing: '0.01em', color: '#000000' }}>
                             {previewSample.barcode || 'BRG-SAMPLE'}
                           </div>
                         )}
                         {settings.showPrice && previewSample.harga_jual > 0 && (
-                          <div style={{ fontSize: 9, fontWeight: 800, color: '#000000' }}>
+                          <div style={{ fontSize: 10.5, fontWeight: 900, color: '#000000' }}>
                             {formatRupiah(previewSample.harga_jual)}
                           </div>
                         )}
