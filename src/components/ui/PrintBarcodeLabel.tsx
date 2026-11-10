@@ -97,6 +97,8 @@ export default function PrintBarcodeLabel({
     }
 
     const variantText = [item.ukuran, item.warna].filter(Boolean).join(' / ');
+    const offsetX = settings.offsetXMm || 0;
+    const offsetY = settings.offsetYMm || 0;
 
     return (
       <div
@@ -107,7 +109,7 @@ export default function PrintBarcodeLabel({
           height: `${heightMm}mm`,
           maxHeight: `${heightMm}mm`,
           boxSizing: 'border-box',
-          padding: isMini ? '0.4mm 0.8mm' : '1.5mm 2mm',
+          padding: isMini ? '0.3mm 0.6mm' : '1.5mm 2mm',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -116,6 +118,8 @@ export default function PrintBarcodeLabel({
           background: '#ffffff',
           color: '#000000',
           overflow: 'hidden',
+          position: 'relative',
+          transform: (offsetX !== 0 || offsetY !== 0) ? `translate(${offsetX}mm, ${offsetY}mm)` : undefined,
         }}
       >
         {/* Nama Toko */}
@@ -250,7 +254,7 @@ export default function PrintBarcodeLabel({
         }
         @media print {
           @page {
-            size: portrait;
+            size: ${totalRowWidthMm}mm ${heightMm}mm ${settings.orientation === 'landscape' ? 'landscape' : 'portrait'};
             margin: 0 !important;
           }
           html, body {
@@ -258,7 +262,7 @@ export default function PrintBarcodeLabel({
             padding: 0 !important;
             background: #ffffff !important;
             color: #000000 !important;
-            width: 100% !important;
+            width: ${totalRowWidthMm}mm !important;
             height: auto !important;
           }
           /* Hide regular application layout during label printing */
@@ -283,7 +287,6 @@ export default function PrintBarcodeLabel({
                  break-after: avoid !important;
                  page-break-inside: avoid !important;
                  break-inside: avoid !important;
-                 border-bottom: 1px dashed #666666 !important;
                  margin-bottom: ${settings.gapMm || 2}mm !important;`
               : `height: ${heightMm}mm !important;
                  max-height: ${heightMm}mm !important;
@@ -306,7 +309,6 @@ export default function PrintBarcodeLabel({
           .thermal-label-row:last-child {
             page-break-after: avoid !important;
             break-after: avoid !important;
-            border-bottom: none !important;
             margin-bottom: 0 !important;
           }
         }

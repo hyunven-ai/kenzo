@@ -38,6 +38,8 @@ export interface BarcodeLabelSettings {
   orientation: BarcodeOrientation;
   columns: number; // 1 = 1 Line, 2 = 2 Line (2 kolom stiker berdampingan)
   columnGapMm: number; // Jarak antar kolom stiker (default 2mm)
+  offsetYMm: number; // Kalibrasi geser vertikal atas/bawah (mm, misal +1mm atau -1mm)
+  offsetXMm: number; // Kalibrasi geser horizontal kiri/kanan (mm)
 }
 
 export const DEFAULT_BARCODE_LABEL_SETTINGS: BarcodeLabelSettings = {
@@ -55,6 +57,8 @@ export const DEFAULT_BARCODE_LABEL_SETTINGS: BarcodeLabelSettings = {
   orientation: 'portrait',
   columns: 1,
   columnGapMm: 2,
+  offsetYMm: 0,
+  offsetXMm: 0,
 };
 
 const STORAGE_KEY = 'series_barcode_label_settings';

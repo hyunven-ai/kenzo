@@ -148,6 +148,7 @@ export default function BarcodePage() {
       heightMm: preset.heightMm,
       columns: preset.columns || 1,
       columnGapMm: preset.columnGapMm || 2,
+      paperMode: 'roll_sticker', // Preset stiker otomatis menggunakan Roll Stiker agar pas di gap
     });
   };
 
@@ -728,6 +729,9 @@ export default function BarcodePage() {
                         justifyContent: 'center',
                         textAlign: 'center',
                         boxSizing: 'border-box',
+                        overflow: 'hidden',
+                        transform: (settings.offsetXMm || settings.offsetYMm) ? `translate(${(settings.offsetXMm || 0) * 2}px, ${(settings.offsetYMm || 0) * 2}px)` : undefined,
+                        transition: 'transform 0.15s ease',
                       }}
                     >
                       <div style={{ fontSize: 9, color: '#6b7280', fontWeight: 700, marginBottom: 2 }}>
@@ -832,13 +836,13 @@ export default function BarcodePage() {
                 </div>
               )}
               <div style={{ marginTop: 8, fontSize: 11, color: '#1e3a8a', background: 'rgba(255,255,255,0.85)', padding: '8px 10px', borderRadius: 6, lineHeight: 1.45 }}>
-                📌 <strong>PANDUAN AGAR STIKER PAS &amp; TIDAK LONCAT/BOROS KERTAS:</strong><br />
+                📌 <strong>CARA AGAR STIKER PAS &amp; TIDAK LONCAT/BOROS KERTAS:</strong><br />
                 {settings.columns === 2 ? (
                   <>
-                    <span>1. <strong>Ukuran Kertas di Dialog Cetak:</strong> Klik <em>More settings (Setelan lainnya)</em> → Pilih ukuran kertas <strong>{settings.widthMm * 2 + (settings.columnGapMm || 2)} × {settings.heightMm} mm</strong> (Jangan biarkan default 100×150mm agar tidak buang 7 baris stiker).</span><br />
-                    <span>2. <strong>Margins (Margin):</strong> Wajib pilih <strong>None (Tidak Ada)</strong>.</span><br />
-                    <span>3. <strong>Tata Letak (Layout):</strong> Pilih <strong>Portrait (Tegak)</strong>.</span><br />
-                    <span>4. <strong>Kalibrasi Sensor Printer (Xprinter XP-420B):</strong> Matikan saklar printer, tekan &amp; tahan tombol FEED, nyalakan printer sampai bunyi bip 2x lalu lepas tombol FEED agar sensor membaca celah (gap) stiker.</span>
+                    <span>1. <strong>Wajib Mode:</strong> Pilih <strong>Roll Stiker (Per Lembar)</strong> di samping (JANGAN pilih Continuous).</span><br />
+                    <span>2. <strong>Buat Ukuran di Driver Windows XP-420B:</strong> Buka <em>Printing Preferences → Page Setup → New</em> → Beri nama <code>Label 33x15 2-Line</code> (Width: <strong>68 mm</strong>, Height: <strong>15 mm</strong>, Gap: <strong>2 mm</strong>).</span><br />
+                    <span>3. <strong>Kalibrasi Gap Printer:</strong> Matikan saklar printer, tekan &amp; tahan tombol FEED, hidupkan saklar, lepas setelah bip 2x.</span><br />
+                    <span>4. <strong>Layar Cetak Chrome:</strong> Paper size: <code>Label 33x15 2-Line</code> (atau 68×15 mm), Layout: <strong>Portrait</strong>, Margin: <strong>None</strong>.</span>
                   </>
                 ) : settings.paperMode === 'continuous_receipt' ? (
                   <span>✅ Mode <strong>Kertas Kasir Continuous</strong> aktif: Barcode dicetak beruntun rapat tanpa loncat halaman kosong.</span>
@@ -873,7 +877,7 @@ export default function BarcodePage() {
                 >
                   <div style={{ fontWeight: 700, fontSize: 12 }}>🧾 Kertas Struk Kasir (Continuous)</div>
                   <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 2 }}>
-                    Hemat kertas! Rapat bersambung tanpa loncat halaman kosong (POS-58 / POS-80)
+                    Khusus roll struk polos tanpa stiker/potongan (POS-58 / POS-80)
                   </div>
                 </button>
 
@@ -891,12 +895,20 @@ export default function BarcodePage() {
                     transition: 'all 0.15s ease',
                   }}
                 >
-                  <div style={{ fontWeight: 700, fontSize: 12 }}>🏷️ Roll Stiker (Per Lembar)</div>
+                  <div style={{ fontWeight: 700, fontSize: 12 }}>🏷️ Roll Stiker (Per Lembar) — Rekomendasi</div>
                   <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 2 }}>
-                    Untuk kertas stiker kupas dengan sensor gap (40×30, 50×30mm)
+                    Wajib untuk stiker kupas berjarak/gap (ALGOO 33×15, 40×30, dll)
                   </div>
                 </button>
               </div>
+
+              {settings.paperMode === 'continuous_receipt' && (settings.columns === 2 || settings.heightMm <= 20) && (
+                <div style={{ marginTop: 8, padding: '8px 12px', background: 'rgba(239, 68, 68, 0.15)', border: '1px solid #ef4444', borderRadius: 8, fontSize: 11, color: '#f87171', lineHeight: 1.45 }}>
+                  ⚠️ <strong>PERHATIAN UNTUK STIKER ALGOO 33×15:</strong> Mode <em>Kertas Struk Kasir (Continuous)</em> menyebabkan stiker loncat &amp; boros kertas serta terpotong di garis celah karena printer tidak membaca sensor gap stiker!
+                  <br />
+                  👉 <strong>Silakan klik tombol hijau "Roll Stiker (Per Lembar)" di sebelah kanan</strong> agar posisi stiker presisi dan hemat kertas.
+                </div>
+              )}
             </div>
 
             {/* Arah Cetak (Orientasi) */}
@@ -1077,6 +1089,114 @@ export default function BarcodePage() {
                 onChange={e => handleUpdateSetting('shopName', e.target.value)}
                 placeholder="Contoh: Kenzo Store"
               />
+            </div>
+
+            {/* Kalibrasi Posisi Cetak (Offset Vertikal & Horizontal) */}
+            <div style={{ background: 'var(--bg-elevated)', padding: 12, borderRadius: 8, border: '1px solid var(--border-medium)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <label style={{ fontWeight: 700, fontSize: 12, margin: 0, color: 'var(--text-primary)' }}>
+                  🎯 Kalibrasi Posisi Cetak (Micro Offset mm):
+                </label>
+                {((settings.offsetYMm || 0) !== 0 || (settings.offsetXMm || 0) !== 0) && (
+                  <button
+                    type="button"
+                    className="btn btn-outline btn-sm"
+                    style={{ fontSize: 10, padding: '1px 6px', height: 20 }}
+                    onClick={() => {
+                      handleUpdateSetting('offsetYMm', 0);
+                      handleUpdateSetting('offsetXMm', 0);
+                    }}
+                  >
+                    Reset (0 mm)
+                  </button>
+                )}
+              </div>
+              <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginBottom: 8, lineHeight: 1.3 }}>
+                Gunakan jika hasil print teks sedikit terlalu naik / turun melewati batas fisik stiker:
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 2 }}>
+                    <span>Geser Vertikal (Y):</span>
+                    <strong style={{ color: (settings.offsetYMm || 0) > 0 ? '#4ade80' : (settings.offsetYMm || 0) < 0 ? '#f87171' : 'var(--text-primary)' }}>
+                      {(settings.offsetYMm || 0) > 0 ? `+${settings.offsetYMm}` : (settings.offsetYMm || 0)} mm
+                    </strong>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      style={{ padding: '2px 8px', fontSize: 12, height: 28 }}
+                      onClick={() => handleUpdateSetting('offsetYMm', Math.max(-5, Number(((settings.offsetYMm || 0) - 0.5).toFixed(1))))}
+                      title="Geser ke Atas (-)"
+                    >
+                      ▲ -
+                    </button>
+                    <input
+                      type="range"
+                      min={-5}
+                      max={5}
+                      step={0.5}
+                      value={settings.offsetYMm || 0}
+                      onChange={e => handleUpdateSetting('offsetYMm', parseFloat(e.target.value))}
+                      style={{ flex: 1 }}
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      style={{ padding: '2px 8px', fontSize: 12, height: 28 }}
+                      onClick={() => handleUpdateSetting('offsetYMm', Math.min(5, Number(((settings.offsetYMm || 0) + 0.5).toFixed(1))))}
+                      title="Geser ke Bawah (+)"
+                    >
+                      + ▼
+                    </button>
+                  </div>
+                  <div style={{ fontSize: 9, color: 'var(--text-secondary)', marginTop: 2 }}>
+                    (-) Naik ke atas | (+) Turun ke bawah
+                  </div>
+                </div>
+
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 2 }}>
+                    <span>Geser Horizontal (X):</span>
+                    <strong style={{ color: (settings.offsetXMm || 0) !== 0 ? '#4ade80' : 'var(--text-primary)' }}>
+                      {(settings.offsetXMm || 0) > 0 ? `+${settings.offsetXMm}` : (settings.offsetXMm || 0)} mm
+                    </strong>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      style={{ padding: '2px 8px', fontSize: 12, height: 28 }}
+                      onClick={() => handleUpdateSetting('offsetXMm', Math.max(-5, Number(((settings.offsetXMm || 0) - 0.5).toFixed(1))))}
+                      title="Geser ke Kiri (-)"
+                    >
+                      ◄ -
+                    </button>
+                    <input
+                      type="range"
+                      min={-5}
+                      max={5}
+                      step={0.5}
+                      value={settings.offsetXMm || 0}
+                      onChange={e => handleUpdateSetting('offsetXMm', parseFloat(e.target.value))}
+                      style={{ flex: 1 }}
+                    />
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-sm"
+                      style={{ padding: '2px 8px', fontSize: 12, height: 28 }}
+                      onClick={() => handleUpdateSetting('offsetXMm', Math.min(5, Number(((settings.offsetXMm || 0) + 0.5).toFixed(1))))}
+                      title="Geser ke Kanan (+)"
+                    >
+                      + ►
+                    </button>
+                  </div>
+                  <div style={{ fontSize: 9, color: 'var(--text-secondary)', marginTop: 2 }}>
+                    (-) Geser kiri | (+) Geser kanan
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Opsi Tampilan Elemen */}
