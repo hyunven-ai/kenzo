@@ -724,16 +724,18 @@ export default function BarcodePage() {
                         border: '2px dashed #9ca3af',
                         borderRadius: 6,
                         boxShadow: '0 4px 14px rgba(0,0,0,0.25)',
-                        padding: '6px 8px',
+                        paddingTop: `${Math.max(4, 8 + (settings.offsetYMm || 0) * 3)}px`,
+                        paddingBottom: '6px',
+                        paddingLeft: `${Math.max(4, 8 + (settings.offsetXMm || 0) * 3)}px`,
+                        paddingRight: `${Math.max(4, 8 - (settings.offsetXMm || 0) * 3)}px`,
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
-                        justifyContent: 'center',
+                        justifyContent: 'flex-start',
                         textAlign: 'center',
                         boxSizing: 'border-box',
                         overflow: 'hidden',
-                        transform: (settings.offsetXMm || settings.offsetYMm) ? `translate(${(settings.offsetXMm || 0) * 2}px, ${(settings.offsetYMm || 0) * 2}px)` : undefined,
-                        transition: 'transform 0.15s ease',
+                        transition: 'padding 0.15s ease',
                       }}
                     >
                       <div style={{ fontSize: 9, color: '#6b7280', fontWeight: 700, marginBottom: 2 }}>

@@ -82,10 +82,11 @@ export default function PrintBarcodeLabel({
     }
   }
 
-  const renderLabelContent = (item: LabelPrintItem | null, isSlotEmpty = false) => {
+  const renderLabelContent = (item: LabelPrintItem | null, isSlotEmpty = false, key?: number | string) => {
     if (!item || isSlotEmpty) {
       return (
         <div
+          key={key}
           className="thermal-single-label placeholder-slot"
           style={{
             visibility: 'hidden',
@@ -103,6 +104,7 @@ export default function PrintBarcodeLabel({
 
     return (
       <div
+        key={key}
         className="thermal-single-label"
         style={{
           width: `${widthMm}mm`,
@@ -110,11 +112,14 @@ export default function PrintBarcodeLabel({
           height: `${contentHeightMm}mm`,
           maxHeight: `${contentHeightMm}mm`,
           boxSizing: 'border-box',
-          padding: isMini ? '0.2mm 0.5mm' : '1.5mm 2mm',
+          paddingTop: isMini ? `${Math.max(0.1, 0.45 + offsetY)}mm` : '1.5mm',
+          paddingBottom: isMini ? '0.2mm' : '1.5mm',
+          paddingLeft: isMini ? `${Math.max(0.2, 0.5 + offsetX)}mm` : '2mm',
+          paddingRight: isMini ? `${Math.max(0.2, 0.5 - offsetX)}mm` : '2mm',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          justifyContent: 'center',
+          justifyContent: isMini ? 'flex-start' : 'center',
           textAlign: 'center',
           background: '#ffffff',
           color: '#000000',
@@ -122,7 +127,6 @@ export default function PrintBarcodeLabel({
           position: 'relative',
           pageBreakInside: 'avoid',
           breakInside: 'avoid',
-          transform: (offsetX !== 0 || offsetY !== 0) ? `translate(${offsetX}mm, ${offsetY}mm)` : undefined,
         }}
       >
         {/* Nama Toko */}
@@ -273,14 +277,13 @@ export default function PrintBarcodeLabel({
             display: none !important;
           }
           #print-barcode-portal {
-            display: flex !important;
-            flex-direction: column !important;
-            align-items: center !important;
+            display: block !important;
             width: ${totalRowWidthMm}mm !important;
             margin: 0 auto !important;
             padding: 0 !important;
           }
           .thermal-label-row {
+            display: block !important;
             width: ${totalRowWidthMm}mm !important;
             max-width: ${totalRowWidthMm}mm !important;
             ${isContinuous
@@ -300,30 +303,35 @@ export default function PrintBarcodeLabel({
                  margin: 0 auto !important;`
             }
             box-sizing: border-box !important;
-            display: flex !important;
-            flex-direction: row !important;
-            align-items: center !important;
-            justify-content: ${columns === 2 ? 'space-between' : 'center'} !important;
-            gap: ${columnGapMm}mm !important;
             background: #ffffff !important;
             color: #000000 !important;
             overflow: hidden !important;
+            clear: both !important;
           }
           .thermal-label-row:last-child {
             page-break-after: avoid !important;
             break-after: avoid !important;
             margin-bottom: 0 !important;
           }
+          .thermal-row-inner {
+            display: flex !important;
+            flex-direction: row !important;
+            align-items: center !important;
+            justify-content: ${columns === 2 ? 'space-between' : 'center'} !important;
+            width: 100% !important;
+            height: 100% !important;
+            gap: ${columnGapMm}mm !important;
+            box-sizing: border-box !important;
+            overflow: hidden !important;
+          }
         }
       `}</style>
 
       {rows.map((rowItems, rowIndex) => (
         <div key={rowIndex} className="thermal-label-row">
-          {rowItems.map((item, colIndex) => (
-            <div key={colIndex}>
-              {renderLabelContent(item, item === null)}
-            </div>
-          ))}
+          <div className="thermal-row-inner">
+            {rowItems.map((item, colIndex) => renderLabelContent(item, item === null, colIndex))}
+          </div>
         </div>
       ))}
     </div>
