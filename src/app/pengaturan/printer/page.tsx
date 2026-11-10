@@ -1205,80 +1205,69 @@ export default function PrinterSettingsPage() {
                   padding: '16px 12px',
                   borderRadius: 4,
                   boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
-                  fontFamily: 'Inter, Arial, sans-serif',
+                  fontFamily: "'Courier New', 'Lucida Console', Monaco, Consolas, monospace",
                   fontSize: settings.paperWidth === '80mm' ? '12px' : '10.5px',
-                  lineHeight: 1.35,
+                  lineHeight: 1.25,
                   boxSizing: 'border-box'
                 }}>
-                  {settings.showLogo && Boolean(settings.logoUrl || '/logo-struk.png') && (
+                  {settings.showLogo && Boolean(settings.logoUrl) && (
                     <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 4 }}>
                       <img
-                        src={settings.logoUrl || '/logo-struk.png'}
+                        src={settings.logoUrl}
                         alt="Logo Struk"
-                        style={{ maxWidth: settings.paperWidth === '80mm' ? 65 : 52, maxHeight: settings.paperWidth === '80mm' ? 65 : 52, objectFit: 'contain' }}
+                        style={{ maxWidth: settings.paperWidth === '80mm' ? 65 : 48, maxHeight: settings.paperWidth === '80mm' ? 65 : 48, objectFit: 'contain' }}
                       />
                     </div>
                   )}
 
-                  <div style={{ textAlign: 'center', marginBottom: 6 }}>
-                    <div style={{ fontWeight: 800, fontSize: settings.paperWidth === '80mm' ? '16px' : '14px', margin: '2px 0' }}>
+                  <div style={{ textAlign: 'center', marginBottom: 4 }}>
+                    <div style={{ fontWeight: 900, fontSize: settings.paperWidth === '80mm' ? '18px' : '16px', margin: '2px 0', letterSpacing: 0.5 }}>
                       {settings.shopName || 'Kenzo'}
                     </div>
-                    {settings.addressLine1 && <div style={{ fontSize: 10, color: '#111' }}>{settings.addressLine1}</div>}
-                    {settings.addressLine2 && <div style={{ fontSize: 10, color: '#111' }}>{settings.addressLine2}</div>}
+                    {settings.addressLine1 && <div style={{ fontSize: 9.5, color: '#111' }}>{settings.addressLine1}</div>}
+                    {settings.addressLine2 && <div style={{ fontSize: 9.5, color: '#111' }}>{settings.addressLine2}</div>}
 
                     {settings.whatsappNumber && (
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, marginTop: 4 }}>
-                        <img src="/icon-wa.png" alt="WA" style={{ width: 12, height: 12, objectFit: 'contain' }} />
-                        <span style={{ fontWeight: 700, fontSize: 10.5 }}>{settings.whatsappNumber}</span>
+                      <div style={{ fontWeight: 700, fontSize: 10.5, marginTop: 2 }}>
+                        WA: {settings.whatsappNumber}
                       </div>
                     )}
 
                     {settings.showSocialMedia && (
-                      <div style={{ display: 'flex', justifyContent: 'center', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 1, marginTop: 3, fontSize: 9.5, fontWeight: 600 }}>
                         {settings.facebookName && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                            <img src="/icon-fb.png" alt="FB" style={{ width: 14, height: 14, objectFit: 'contain' }} />
-                            <div style={{ fontSize: 7.5, fontWeight: 700, textAlign: 'left', lineHeight: 1.15, whiteSpace: 'pre-line' }}>
-                              {settings.facebookName}
-                            </div>
-                          </div>
+                          <div>FB: {settings.facebookName.replace(/\n/g, ' / ')}</div>
                         )}
                         {settings.instagramName && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                            <img src="/icon-ig.png" alt="IG" style={{ width: 11, height: 11, objectFit: 'contain' }} />
-                            <span style={{ fontSize: 7.5, fontWeight: 700 }}>{settings.instagramName}</span>
-                          </div>
+                          <div>IG: {settings.instagramName}</div>
                         )}
                         {settings.tiktokName && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                            <span style={{ fontSize: 10 }}>🎵</span>
-                            <span style={{ fontSize: 7.5, fontWeight: 700 }}>{settings.tiktokName}</span>
-                          </div>
+                          <div>TikTok: {settings.tiktokName}</div>
                         )}
                       </div>
                     )}
                   </div>
 
-                  <div style={{ borderTop: '1px dashed #000', margin: '6px 0' }}></div>
+                  <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }}></div>
 
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, fontWeight: 600 }}>
-                    <span>26 Okt 2026, 17.30</span>
+                    <span>26/10/2026 17:30</span>
                     <span>#721</span>
                   </div>
-                  <div style={{ fontSize: 9.5, marginTop: 2 }}>Pembeli: Umum</div>
+                  <div style={{ fontSize: 10, fontWeight: 600 }}>Pembeli: Umum</div>
+                  <div style={{ fontSize: 10, fontWeight: 600 }}>No. Inv: INV/261026/0721</div>
 
-                  <div style={{ borderTop: '1px dashed #000', margin: '6px 0' }}></div>
+                  <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }}></div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                     <div>
                       <div style={{ fontWeight: 700, fontSize: 10.5 }}>1. TECNO SPARK 50 4/128G</div>
                       {settings.showImei && (
-                        <div style={{ fontSize: 9, fontWeight: 'bold', paddingLeft: 6, color: '#111' }}>
+                        <div style={{ fontSize: 9, fontWeight: 600, paddingLeft: 8, color: '#111' }}>
                           IMEI: 350008871828041
                         </div>
                       )}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, paddingLeft: 6, fontWeight: 600 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, paddingLeft: 8, fontWeight: 600 }}>
                         <span>1x 2.799.000</span>
                         <span>2.799.000</span>
                       </div>
@@ -1286,40 +1275,45 @@ export default function PrinterSettingsPage() {
 
                     <div>
                       <div style={{ fontWeight: 700, fontSize: 10.5 }}>2. FOOMEEE CAS 12W MICRO</div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, paddingLeft: 6, fontWeight: 600 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, paddingLeft: 8, fontWeight: 600 }}>
                         <span>1x 70.000</span>
                         <span>70.000</span>
                       </div>
                     </div>
                   </div>
 
-                  <div style={{ borderTop: '1px dashed #000', margin: '6px 0' }}></div>
+                  <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }}></div>
 
-                  <div style={{ fontSize: 9.5, fontWeight: 600 }}>
-                    <div>Produk: 2</div>
-                    <div>Item: 2</div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, fontWeight: 600 }}>
+                    <span>Produk: 2</span>
+                    <span>Total Qty: 2</span>
                   </div>
 
-                  <div style={{ borderTop: '1px dashed #000', margin: '6px 0' }}></div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 1, marginTop: 2 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 900, fontSize: 13, margin: '2px 0' }}>
+                      <span>TOTAL:</span>
+                      <span>Rp 2.869.000</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, fontWeight: 600 }}>
+                      <span>Bayar:</span>
+                      <span>Rp 2.869.000</span>
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, fontWeight: 600 }}>
+                      <span>Metode:</span>
+                      <span>Tunai</span>
+                    </div>
+                  </div>
 
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: 12 }}>
-                    <span>Total</span>
-                    <span>Rp 2.869.000</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, fontWeight: 600, marginTop: 2 }}>
-                    <span>Tunai</span>
-                    <span>Rp 2.869.000</span>
-                  </div>
+                  <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }}></div>
 
                   {settings.warningNote && (
                     <div style={{
-                      border: '1px solid #000',
-                      padding: '3px 2px',
                       textAlign: 'center',
-                      fontWeight: 'bold',
-                      fontSize: 8.5,
-                      marginTop: 8,
-                      lineHeight: 1.2
+                      fontWeight: 600,
+                      fontSize: 9.5,
+                      marginTop: 4,
+                      lineHeight: 1.25,
+                      whiteSpace: 'pre-line'
                     }}>
                       {settings.warningNote}
                     </div>
@@ -1329,10 +1323,8 @@ export default function PrinterSettingsPage() {
                     <div style={{
                       textAlign: 'center',
                       fontWeight: 800,
-                      textDecoration: 'underline',
-                      fontStyle: 'italic',
-                      marginTop: 8,
-                      fontSize: 10
+                      marginTop: 4,
+                      fontSize: 10.5
                     }}>
                       {settings.footerNote}
                     </div>

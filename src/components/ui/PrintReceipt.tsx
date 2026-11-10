@@ -62,6 +62,12 @@ export default function PrintReceipt({
     ? `#${invoiceIndex}`
     : invoiceNo ? `#${invoiceNo.split('/').pop()?.replace(/^0+/, '') || invoiceNo}` : '';
 
+  // Format date identical to ESC/POS: DD/MM/YYYY HH:mm
+  const d = new Date(tanggalPenjualan);
+  const formattedDate = !isNaN(d.getTime())
+    ? `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`
+    : String(tanggalPenjualan);
+
   const cleanBayar = bayar !== undefined ? bayar : total;
   const kembalian = cleanBayar - total;
 
@@ -84,136 +90,125 @@ export default function PrintReceipt({
           '--receipt-width': `${settings.receiptWidthMm ?? 42.5}mm`,
         } as React.CSSProperties}
       >
-      {/* Logo & Header */}
-      <div className="receipt-header">
-        {settings.showLogo && Boolean(settings.logoUrl || '/logo-struk.png') && (
-          <img
-            src={settings.logoUrl || '/logo-struk.png'}
-            alt="Logo Struk"
-            className="receipt-logo"
-            style={{ maxWidth: '65px', maxHeight: '65px', objectFit: 'contain', marginBottom: '4px' }}
-          />
-        )}
+        {/* Header */}
+        <div className="receipt-header">
+          {settings.showLogo && Boolean(settings.logoUrl) && (
+            <img
+              src={settings.logoUrl}
+              alt="Logo Struk"
+              className="receipt-logo"
+            />
+          )}
 
-        <h1 className="receipt-shop-name">{settings.shopName || 'Kenzo'}</h1>
-        {settings.addressLine1 && <p className="receipt-shop-address">{settings.addressLine1}</p>}
-        {settings.addressLine2 && <p className="receipt-shop-address">{settings.addressLine2}</p>}
+          <div className="receipt-shop-name">{settings.shopName || 'Kenzo'}</div>
+          {settings.addressLine1 && <div className="receipt-shop-address">{settings.addressLine1}</div>}
+          {settings.addressLine2 && <div className="receipt-shop-address">{settings.addressLine2}</div>}
 
-        {/* WhatsApp Row */}
-        {settings.whatsappNumber && (
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, marginTop: 4 }}>
-            <img src="/icon-wa.png" alt="WhatsApp" className="receipt-social-icon" style={{ width: '14px', height: '14px', objectFit: 'contain', flexShrink: 0 }} />
-            <span style={{ fontWeight: 700, fontSize: 11.5 }}>{settings.whatsappNumber}</span>
+          {/* WhatsApp Text */}
+          {settings.whatsappNumber && (
+            <div className="receipt-shop-wa">
+              WA: {settings.whatsappNumber}
+            </div>
+          )}
+
+          {/* Social Media Text */}
+          {settings.showSocialMedia && (
+            <div className="receipt-social-container">
+              {settings.facebookName && (
+                <div>FB: {settings.facebookName.replace(/\n/g, ' / ')}</div>
+              )}
+              {settings.instagramName && (
+                <div>IG: {settings.instagramName}</div>
+              )}
+              {settings.tiktokName && (
+                <div>TikTok: {settings.tiktokName}</div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="receipt-divider"></div>
+
+        {/* Informasi Transaksi */}
+        <div className="receipt-meta-section">
+          <div className="receipt-two-cols">
+            <span>{formattedDate}</span>
+            <span>{displayIndex}</span>
           </div>
-        )}
+          <div>Pembeli: {customer || 'Umum'}</div>
+          {invoiceNo && <div>No. Inv: {invoiceNo}</div>}
+        </div>
 
-        {/* Social Media Grid */}
-        {settings.showSocialMedia && (
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 8, flexWrap: 'wrap', marginTop: 8, width: '100%' }}>
-            {/* Facebook */}
-            {settings.facebookName && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <img src="/icon-fb.png" alt="Facebook" className="receipt-social-icon" style={{ width: '17px', height: '17px', objectFit: 'contain', flexShrink: 0 }} />
-                <div style={{ display: 'flex', flexDirection: 'column', textAlign: 'left', lineHeight: 1.15, fontSize: 8, fontWeight: 700, whiteSpace: 'pre-line' }}>
-                  {settings.facebookName.split('\n').map((line, idx) => (
-                    <span key={idx}>{line}</span>
-                  ))}
+        <div className="receipt-divider"></div>
+
+        {/* Daftar Barang */}
+        <div className="receipt-items">
+          {items.map((item, index) => {
+            const cleanName = item.nama_barang.replace(/\s*\(Non Pajak\)/gi, '');
+            return (
+              <div key={index} className="receipt-item-row">
+                <div className="receipt-item-title">
+                  {index + 1}. {cleanName}
+                </div>
+                {settings.showImei && (item.kategori === 'HP' || item.kategori === 'HP Non Pajak') && item.code && (
+                  <div className="receipt-item-imei">
+                    &nbsp;&nbsp;&nbsp;IMEI: {item.code}
+                  </div>
+                )}
+                <div className="receipt-two-cols receipt-item-details">
+                  <span>&nbsp;&nbsp;&nbsp;{item.qty}x {item.harga_jual.toLocaleString('id-ID')}</span>
+                  <span>{(item.qty * item.harga_jual).toLocaleString('id-ID')}</span>
                 </div>
               </div>
-            )}
+            );
+          })}
+        </div>
 
-            {/* Instagram */}
-            {settings.instagramName && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                <img src="/icon-ig.png" alt="Instagram" className="receipt-social-icon" style={{ width: '12px', height: '12px', objectFit: 'contain', flexShrink: 0 }} />
-                <span style={{ fontWeight: 700, fontSize: 8 }}>{settings.instagramName}</span>
-              </div>
-            )}
+        <div className="receipt-divider"></div>
 
-            {/* TikTok */}
-            {settings.tiktokName && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-                <svg viewBox="0 0 24 24" width="13" height="13" fill="#000000">
-                  <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.52-4.06-1.41-.45-.34-.84-.74-1.19-1.19v7.54c.04 3.44-1.89 6.81-5.18 7.91-3.28 1.14-7.23-.33-8.81-3.37-1.58-3.05-.72-7.27 2-9.25 1.99-1.48 4.79-1.78 7.03-.76v4.35c-1.42-.87-3.37-.62-4.52.54-1.15 1.15-1.19 3.16-.1 4.41.98 1.18 2.8 1.51 4.15.77 1.04-.54 1.63-1.63 1.6-2.82V0l.03.02z" />
-                </svg>
-                <span style={{ fontWeight: 700, fontSize: 8 }}>{settings.tiktokName}</span>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      <div className="receipt-meta">
-        <span>{formatDateTime(tanggalPenjualan)}</span>
-        <span>{displayIndex}</span>
-      </div>
-      <div className="receipt-meta" style={{ marginTop: 2 }}>
-        <span>Pembeli: {customer || 'Umum'}</span>
-      </div>
-
-      <div className="receipt-divider"></div>
-
-      <div className="receipt-items">
-        {items.map((item, index) => (
-          <div key={index} className="receipt-item-row">
-            <div className="receipt-item-title">
-              {index + 1}. {item.nama_barang.replace(/\s*\(Non Pajak\)/gi, '')}
-            </div>
-            {settings.showImei && (item.kategori === 'HP' || item.kategori === 'HP Non Pajak') && item.code && (
-              <div className="receipt-item-imei" style={{ fontSize: '10px', color: '#000', fontWeight: 'bold', paddingLeft: '6px', marginTop: '-1px', marginBottom: '1px', whiteSpace: 'pre-line', wordBreak: 'break-all' }}>
-                IMEI: {item.code}
-              </div>
-            )}
-            <div className="receipt-item-details">
-              <span>{item.qty}x {item.harga_jual.toLocaleString('id-ID')}</span>
-              <span>{(item.qty * item.harga_jual).toLocaleString('id-ID')}</span>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="receipt-divider"></div>
-
-      <div className="receipt-summary">
-        <div className="receipt-summary-row">
+        {/* Ringkasan Qty */}
+        <div className="receipt-two-cols receipt-summary">
           <span>Produk: {productCount}</span>
+          <span>Total Qty: {totalQty}</span>
         </div>
-        <div className="receipt-summary-row">
-          <span>Item: {totalQty}</span>
-        </div>
-      </div>
 
-      <div className="receipt-divider"></div>
+        {/* Total & Pembayaran */}
+        <div className="receipt-totals">
+          <div className="receipt-two-cols receipt-total-large">
+            <span>TOTAL:</span>
+            <span>Rp {total.toLocaleString('id-ID')}</span>
+          </div>
+          <div className="receipt-two-cols">
+            <span>Bayar:</span>
+            <span>Rp {cleanBayar.toLocaleString('id-ID')}</span>
+          </div>
+          {kembalian > 0 && (
+            <div className="receipt-two-cols">
+              <span>Kembali:</span>
+              <span>Rp {kembalian.toLocaleString('id-ID')}</span>
+            </div>
+          )}
+          <div className="receipt-two-cols">
+            <span>Metode:</span>
+            <span>{metodePembayaran}</span>
+          </div>
+        </div>
 
-      <div className="receipt-totals">
-        <div className="receipt-total-row bold">
-          <span>Total</span>
-          <span>{formatRupiah(total)}</span>
-        </div>
-        <div className="receipt-total-row">
-          <span>{metodePembayaran}</span>
-          <span>{formatRupiah(cleanBayar)}</span>
-        </div>
-        {metodePembayaran === 'Tunai' && kembalian > 0 && (
-          <div className="receipt-total-row">
-            <span>Kembalian</span>
-            <span>{formatRupiah(kembalian)}</span>
+        <div className="receipt-divider"></div>
+
+        {/* Footer & Kebijakan */}
+        {settings.warningNote && (
+          <div className="receipt-warning-text">
+            {settings.warningNote}
+          </div>
+        )}
+
+        {settings.footerNote && (
+          <div className="receipt-footer-text">
+            {settings.footerNote}
           </div>
         )}
       </div>
-
-      {settings.warningNote && (
-        <div className="receipt-warning-box" style={{ border: '1px solid #000000', padding: '3px 2px', textAlign: 'center', fontWeight: 'bold', fontSize: '9px', marginTop: '10px', boxSizing: 'border-box' }}>
-          {settings.warningNote}
-        </div>
-      )}
-
-      {settings.footerNote && (
-        <div className="receipt-footer" style={{ textDecoration: 'underline', fontStyle: 'italic', marginTop: '10px' }}>
-          {settings.footerNote}
-        </div>
-      )}
-    </div>
     </>,
     document.body
   );

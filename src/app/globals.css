@@ -1462,8 +1462,12 @@ input[type=number]::-webkit-inner-spin-button {
     padding: 0 !important;
     width: 58mm !important;
     background: #fff !important;
-    color: #000 !important;
-    font-family: 'Inter', Arial, sans-serif !important;
+    color: #000000 !important;
+    font-family: 'Courier New', 'Lucida Console', Monaco, Consolas, monospace !important;
+    -webkit-font-smoothing: none !important;
+    -moz-osx-font-smoothing: grayscale !important;
+    font-smooth: never !important;
+    text-rendering: geometricPrecision !important;
     -webkit-print-color-adjust: exact !important;
     print-color-adjust: exact !important;
   }
@@ -1471,9 +1475,16 @@ input[type=number]::-webkit-inner-spin-button {
   .print-receipt-container {
     display: block !important;
     box-sizing: border-box !important;
-    line-height: 1.3 !important;
+    line-height: 1.25 !important;
     word-break: break-word !important;
     overflow: hidden !important;
+    font-family: 'Courier New', 'Lucida Console', Monaco, Consolas, monospace !important;
+    -webkit-font-smoothing: none !important;
+    -moz-osx-font-smoothing: grayscale !important;
+    font-smooth: never !important;
+    text-rendering: geometricPrecision !important;
+    color: #000000 !important;
+    letter-spacing: -0.2px !important;
   }
 
   /* POS-58 (Paper 58mm with physical 48mm print head) */
@@ -1484,8 +1495,8 @@ input[type=number]::-webkit-inner-spin-button {
     margin: 0 !important;
     margin-left: var(--receipt-margin-left, 3.6mm) !important;
     margin-right: auto !important;
-    padding: 0 0.8mm !important;
-    font-size: 8pt !important;
+    padding: 0 0.5mm !important;
+    font-size: 7.8pt !important;
   }
 
   .print-receipt-container.paper-80mm {
@@ -1496,145 +1507,146 @@ input[type=number]::-webkit-inner-spin-button {
     font-size: 9.5pt !important;
   }
 
+  .receipt-header {
+    text-align: center !important;
+    margin-bottom: 2px !important;
+  }
+
   .receipt-logo {
-    width: 52px !important;
-    height: 52px !important;
+    width: 48px !important;
+    height: 48px !important;
     object-fit: contain !important;
-    margin-bottom: 3px !important;
+    margin: 0 auto 3px auto !important;
+    display: block !important;
+    image-rendering: pixelated !important;
     image-rendering: -webkit-optimize-contrast !important;
-    image-rendering: crisp-edges !important;
   }
 
   .receipt-shop-name {
-    font-size: 11pt !important;
-    font-weight: 800 !important;
-    margin: 2px 0 !important;
+    font-size: 13pt !important;
+    font-weight: 900 !important;
+    margin: 0 0 2px 0 !important;
     text-align: center !important;
+    line-height: 1.15 !important;
+    letter-spacing: 0.5px !important;
   }
 
   .receipt-shop-address {
-    font-size: 8pt !important;
-    font-weight: 500 !important;
+    font-size: 7.5pt !important;
+    font-weight: 600 !important;
     text-align: center !important;
     margin: 0 !important;
     line-height: 1.2 !important;
   }
 
-  .receipt-header span {
+  .receipt-shop-wa {
     font-size: 8pt !important;
+    font-weight: 700 !important;
+    text-align: center !important;
+    margin-top: 2px !important;
+    line-height: 1.2 !important;
   }
 
-  .receipt-social-icon {
-    object-fit: contain !important;
-    flex-shrink: 0 !important;
-    image-rendering: -webkit-optimize-contrast !important;
-    image-rendering: crisp-edges !important;
-  }
-
-  .receipt-meta {
-    font-size: 8pt !important;
+  .receipt-social-container {
+    font-size: 7pt !important;
     font-weight: 600 !important;
-    margin-top: 3px !important;
-    display: flex !important;
-    justify-content: space-between !important;
-  }
-
-  .receipt-meta span {
-    font-size: 8pt !important;
+    text-align: center !important;
+    margin-top: 2px !important;
+    line-height: 1.2 !important;
   }
 
   .receipt-divider {
     border-top: 1px dashed #000000 !important;
     margin: 3px 0 !important;
     width: 100% !important;
+    height: 0 !important;
+    border-bottom: none !important;
+    border-left: none !important;
+    border-right: none !important;
+  }
+
+  .receipt-two-cols {
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: baseline !important;
+    width: 100% !important;
+    font-size: 7.5pt !important;
+    font-weight: 600 !important;
+    line-height: 1.25 !important;
+  }
+
+  .receipt-two-cols span:last-child {
+    white-space: nowrap !important;
+    text-align: right !important;
+  }
+
+  .receipt-meta-section {
+    font-size: 7.5pt !important;
+    font-weight: 600 !important;
+    line-height: 1.25 !important;
+    margin: 1px 0 !important;
   }
 
   .receipt-items {
-    margin: 3px 0 !important;
+    margin: 2px 0 !important;
   }
 
   .receipt-item-row {
-    margin-bottom: 4px !important;
+    margin-bottom: 3px !important;
   }
 
   .receipt-item-title {
-    font-size: 8.5pt !important;
+    font-size: 8pt !important;
     font-weight: 700 !important;
     word-break: break-word !important;
     line-height: 1.2 !important;
   }
 
   .receipt-item-imei {
-    font-size: 7.5pt !important;
-    font-weight: 700 !important;
-    padding-left: 4px !important;
+    font-size: 7pt !important;
+    font-weight: 600 !important;
+    line-height: 1.15 !important;
     white-space: pre-line !important;
     word-break: break-all !important;
-    line-height: 1.15 !important;
   }
 
   .receipt-item-details {
-    font-size: 8pt !important;
+    font-size: 7.5pt !important;
     font-weight: 600 !important;
-    display: flex !important;
-    justify-content: space-between !important;
-    padding-left: 2px !important;
-    padding-right: 1px !important;
-  }
-
-  .receipt-item-details span:last-child,
-  .receipt-total-row span:last-child {
-    white-space: nowrap !important;
-    text-align: right !important;
   }
 
   .receipt-summary {
     margin: 2px 0 !important;
-  }
-
-  .receipt-summary-row {
-    font-size: 8pt !important;
+    font-size: 7.5pt !important;
     font-weight: 600 !important;
-    margin: 1px 0 !important;
   }
 
   .receipt-totals {
-    margin: 3px 0 !important;
-  }
-
-  .receipt-total-row {
-    font-size: 8pt !important;
-    font-weight: 600 !important;
-    display: flex !important;
-    justify-content: space-between !important;
     margin: 2px 0 !important;
-    padding-right: 1px !important;
   }
 
-  .receipt-total-row.bold {
-    font-size: 9.5pt !important;
-    font-weight: 800 !important;
-    padding-right: 1px !important;
+  .receipt-total-large {
+    font-size: 11pt !important;
+    font-weight: 900 !important;
+    margin: 2px 0 !important;
+    line-height: 1.15 !important;
   }
 
-  .receipt-footer {
-    font-size: 9pt !important;
-    font-weight: 800 !important;
-    margin-top: 8px !important;
-    text-align: center !important;
-  }
-
-  /* Warning text box styling */
-  .receipt-warning-box {
-    border: 1px solid #000000 !important;
+  .receipt-warning-text {
     font-size: 7.5pt !important;
-    padding: 3px 2px !important;
-    margin-top: 8px !important;
     text-align: center !important;
-    font-weight: 700 !important;
-    box-sizing: border-box !important;
-    width: 100% !important;
+    font-weight: 600 !important;
+    margin-top: 5px !important;
     line-height: 1.25 !important;
+    white-space: pre-line !important;
+  }
+
+  .receipt-footer-text {
+    font-size: 8.5pt !important;
+    font-weight: 800 !important;
+    text-align: center !important;
+    margin-top: 4px !important;
+    line-height: 1.2 !important;
   }
 }
 
