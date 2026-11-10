@@ -1470,46 +1470,54 @@ input[type=number]::-webkit-inner-spin-button {
 
   .print-receipt-container {
     display: block !important;
-    /* POS-58 printer uses 58mm paper but has 48mm physical printable head */
-    width: 48mm !important;
-    max-width: 48mm !important;
-    margin: 0 auto !important;
-    padding: 0 1mm !important;
     box-sizing: border-box !important;
-    font-size: 9pt !important;
-    line-height: 1.35 !important;
+    line-height: 1.3 !important;
     word-break: break-word !important;
     overflow: hidden !important;
+  }
+
+  /* POS-58 (Paper 58mm with physical 48mm print head aligned to left) */
+  .print-receipt-container,
+  .print-receipt-container.paper-58mm {
+    width: 44mm !important;
+    max-width: 44mm !important;
+    margin: 0 !important;
+    margin-left: 1.5mm !important;
+    margin-right: auto !important;
+    padding: 0 0.8mm !important;
+    font-size: 8pt !important;
   }
 
   .print-receipt-container.paper-80mm {
     width: 72mm !important;
     max-width: 72mm !important;
-    font-size: 10pt !important;
+    margin: 0 auto !important;
+    padding: 0 2mm !important;
+    font-size: 9.5pt !important;
   }
 
   .receipt-logo {
-    width: 58px !important;
-    height: 58px !important;
+    width: 52px !important;
+    height: 52px !important;
     object-fit: contain !important;
-    margin-bottom: 4px !important;
+    margin-bottom: 3px !important;
     image-rendering: -webkit-optimize-contrast !important;
     image-rendering: crisp-edges !important;
   }
 
   .receipt-shop-name {
-    font-size: 13pt !important;
+    font-size: 11pt !important;
     font-weight: 800 !important;
-    margin: 3px 0 2px !important;
+    margin: 2px 0 !important;
     text-align: center !important;
   }
 
   .receipt-shop-address {
-    font-size: 8.5pt !important;
+    font-size: 8pt !important;
     font-weight: 500 !important;
     text-align: center !important;
     margin: 0 !important;
-    line-height: 1.25 !important;
+    line-height: 1.2 !important;
   }
 
   .receipt-header span {
@@ -1524,53 +1532,54 @@ input[type=number]::-webkit-inner-spin-button {
   }
 
   .receipt-meta {
-    font-size: 8.5pt !important;
+    font-size: 8pt !important;
     font-weight: 600 !important;
-    margin-top: 4px !important;
+    margin-top: 3px !important;
     display: flex !important;
     justify-content: space-between !important;
   }
 
   .receipt-meta span {
-    font-size: 8.5pt !important;
+    font-size: 8pt !important;
   }
 
   .receipt-divider {
     border-top: 1px dashed #000000 !important;
-    margin: 4px 0 !important;
+    margin: 3px 0 !important;
     width: 100% !important;
   }
 
   .receipt-items {
-    margin: 4px 0 !important;
+    margin: 3px 0 !important;
   }
 
   .receipt-item-row {
-    margin-bottom: 5px !important;
+    margin-bottom: 4px !important;
   }
 
   .receipt-item-title {
-    font-size: 9pt !important;
+    font-size: 8.5pt !important;
     font-weight: 700 !important;
     word-break: break-word !important;
-    line-height: 1.25 !important;
-  }
-
-  .receipt-item-imei {
-    font-size: 8pt !important;
-    font-weight: 700 !important;
-    padding-left: 6px !important;
-    white-space: pre-line !important;
-    word-break: break-all !important;
     line-height: 1.2 !important;
   }
 
+  .receipt-item-imei {
+    font-size: 7.5pt !important;
+    font-weight: 700 !important;
+    padding-left: 4px !important;
+    white-space: pre-line !important;
+    word-break: break-all !important;
+    line-height: 1.15 !important;
+  }
+
   .receipt-item-details {
-    font-size: 8.5pt !important;
+    font-size: 8pt !important;
     font-weight: 600 !important;
     display: flex !important;
     justify-content: space-between !important;
-    padding-left: 6px !important;
+    padding-left: 4px !important;
+    padding-right: 1px !important;
   }
 
   .receipt-summary {
@@ -1578,30 +1587,32 @@ input[type=number]::-webkit-inner-spin-button {
   }
 
   .receipt-summary-row {
-    font-size: 8.5pt !important;
+    font-size: 8pt !important;
     font-weight: 600 !important;
     margin: 1px 0 !important;
   }
 
   .receipt-totals {
-    margin: 4px 0 !important;
+    margin: 3px 0 !important;
   }
 
   .receipt-total-row {
-    font-size: 8.5pt !important;
+    font-size: 8pt !important;
     font-weight: 600 !important;
     display: flex !important;
     justify-content: space-between !important;
     margin: 2px 0 !important;
+    padding-right: 1px !important;
   }
 
   .receipt-total-row.bold {
-    font-size: 11pt !important;
+    font-size: 9.5pt !important;
     font-weight: 800 !important;
+    padding-right: 1px !important;
   }
 
   .receipt-footer {
-    font-size: 9.5pt !important;
+    font-size: 9pt !important;
     font-weight: 800 !important;
     margin-top: 8px !important;
     text-align: center !important;
