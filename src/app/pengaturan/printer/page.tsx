@@ -850,20 +850,20 @@ export default function PrinterSettingsPage() {
                             Margin Kiri (Geser Kiri / Kanan)
                           </label>
                           <span style={{ fontSize: 12, fontWeight: 700, color: '#e53935' }}>
-                            {settings.receiptMarginLeftMm ?? 5.0} mm
+                            {settings.receiptMarginLeftMm ?? 7.0} mm
                           </span>
                         </div>
                         <input
                           type="range"
                           min="0"
-                          max="8"
-                          step="0.2"
-                          value={settings.receiptMarginLeftMm ?? 5.0}
+                          max="12"
+                          step="0.5"
+                          value={settings.receiptMarginLeftMm ?? 7.0}
                           onChange={e => handleChange('receiptMarginLeftMm', parseFloat(e.target.value))}
                           style={{ width: '100%', cursor: 'pointer' }}
                         />
                         <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>
-                          Geser ke kanan jika huruf kiri (misal: "Pembeli", "Total") terpotong. (Default: 5.0 mm)
+                          Geser ke kanan jika huruf kiri (misal: "Pembeli", "Total") terpotong. (Rekomendasi: 7.0 mm)
                         </div>
                       </div>
 
@@ -873,7 +873,7 @@ export default function PrinterSettingsPage() {
                             Lebar Area Cetak
                           </label>
                           <span style={{ fontSize: 12, fontWeight: 700, color: '#e53935' }}>
-                            {settings.receiptWidthMm ?? 41.0} mm
+                            {settings.receiptWidthMm ?? 42.0} mm
                           </span>
                         </div>
                         <input
@@ -881,12 +881,12 @@ export default function PrinterSettingsPage() {
                           min="36"
                           max="48"
                           step="0.5"
-                          value={settings.receiptWidthMm ?? 41.0}
+                          value={settings.receiptWidthMm ?? 42.0}
                           onChange={e => handleChange('receiptWidthMm', parseFloat(e.target.value))}
                           style={{ width: '100%', cursor: 'pointer' }}
                         />
                         <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>
-                          Kecilkan jika angka harga di ujung kanan terpotong. (Default: 41.0 mm)
+                          Kecilkan jika angka harga di ujung kanan terpotong. (Rekomendasi: 42.0 mm)
                         </div>
                       </div>
                     </div>

@@ -86,8 +86,8 @@ export default function PrintReceipt({
       <div
         className={`print-receipt-container ${settings.paperWidth === '80mm' ? 'paper-80mm' : 'paper-58mm'}`}
         style={{
-          '--receipt-margin-left': `${settings.receiptMarginLeftMm ?? 5.0}mm`,
-          '--receipt-width': `${settings.receiptWidthMm ?? 41}mm`,
+          '--receipt-margin-left': `${(settings.receiptMarginLeftMm && settings.receiptMarginLeftMm >= 6.0) ? settings.receiptMarginLeftMm : 7.0}mm`,
+          '--receipt-width': `${settings.receiptWidthMm ?? 42}mm`,
         } as React.CSSProperties}
       >
         {/* Header */}

@@ -57,8 +57,8 @@ export const DEFAULT_PRINTER_SETTINGS: PrinterSettings = {
   showImei: true,
   warningNote: 'Barang yang sudah di beli tidak bisa di kembalikan!!!',
   footerNote: 'TERIMA KASIH BOSKUUU!!!',
-  receiptMarginLeftMm: 5.0,
-  receiptWidthMm: 41,
+  receiptMarginLeftMm: 7.0,
+  receiptWidthMm: 42,
 };
 
 const STORAGE_KEY = 'series_printer_settings';
@@ -71,7 +71,23 @@ export function getPrinterSettings(): PrinterSettings {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return DEFAULT_PRINTER_SETTINGS;
     const parsed = JSON.parse(raw);
-    return { ...DEFAULT_PRINTER_SETTINGS, ...parsed, devices: parsed.devices || [] };
+
+    // Auto-migrate old margin left (< 6.0mm causes clipping on POS-58 Windows drivers)
+    const receiptMarginLeftMm = (typeof parsed.receiptMarginLeftMm === 'number' && parsed.receiptMarginLeftMm >= 6.0)
+      ? parsed.receiptMarginLeftMm
+      : DEFAULT_PRINTER_SETTINGS.receiptMarginLeftMm;
+
+    const receiptWidthMm = (typeof parsed.receiptWidthMm === 'number' && parsed.receiptWidthMm >= 36.0)
+      ? parsed.receiptWidthMm
+      : DEFAULT_PRINTER_SETTINGS.receiptWidthMm;
+
+    return {
+      ...DEFAULT_PRINTER_SETTINGS,
+      ...parsed,
+      receiptMarginLeftMm,
+      receiptWidthMm,
+      devices: parsed.devices || []
+    };
   } catch {
     return DEFAULT_PRINTER_SETTINGS;
   }

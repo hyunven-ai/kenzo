@@ -1490,12 +1490,12 @@ input[type=number]::-webkit-inner-spin-button {
   /* POS-58 (Paper 58mm with physical 48mm print head) */
   .print-receipt-container,
   .print-receipt-container.paper-58mm {
-    width: var(--receipt-width, 41.0mm) !important;
-    max-width: var(--receipt-width, 41.0mm) !important;
+    width: var(--receipt-width, 42.0mm) !important;
+    max-width: var(--receipt-width, 42.0mm) !important;
     margin: 0 !important;
-    margin-left: var(--receipt-margin-left, 5.0mm) !important;
+    margin-left: var(--receipt-margin-left, 7.0mm) !important;
     margin-right: auto !important;
-    padding: 0 !important;
+    padding: 0 1.0mm !important;
     font-size: 8pt !important;
   }
 
