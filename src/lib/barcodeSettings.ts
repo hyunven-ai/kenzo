@@ -7,6 +7,8 @@ export interface BarcodeLabelPreset {
   heightMm: number;
   columns?: number;
   columnGapMm?: number;
+  offsetYMm?: number;
+  offsetXMm?: number;
   description: string;
 }
 
@@ -14,8 +16,8 @@ export const BARCODE_LABEL_PRESETS: BarcodeLabelPreset[] = [
   { id: '40x30', name: '40 mm × 30 mm', widthMm: 40, heightMm: 30, columns: 1, description: 'Standar Toko Baju & Kelontong (Rekomendasi Kenzo)' },
   { id: '50x30', name: '50 mm × 30 mm', widthMm: 50, heightMm: 30, columns: 1, description: 'Sedang / Format Luas' },
   { id: '30x20', name: '30 mm × 20 mm', widthMm: 30, heightMm: 20, columns: 1, description: 'Kecil / Kompak' },
-  { id: '33x15_2line', name: '33 mm × 15 mm (2 Line)', widthMm: 33, heightMm: 15, columns: 2, columnGapMm: 2, description: 'ALGOO / 2 Kolom Berdampingan (Total Lebar ~68mm)' },
-  { id: '33x15', name: '33 mm × 15 mm (1 Line)', widthMm: 33, heightMm: 15, columns: 1, description: 'Mini 1 Kolom / Aksesoris' },
+  { id: '33x15_2line', name: '33 mm × 15 mm (2 Line)', widthMm: 33, heightMm: 15, columns: 2, columnGapMm: 2, offsetYMm: -1.5, description: 'ALGOO / 2 Kolom Berdampingan (Total Lebar ~68mm)' },
+  { id: '33x15', name: '33 mm × 15 mm (1 Line)', widthMm: 33, heightMm: 15, columns: 1, offsetYMm: -1.5, description: 'Mini 1 Kolom / Aksesoris' },
   { id: '58x40', name: '58 mm × 40 mm', widthMm: 58, heightMm: 40, columns: 1, description: 'Besar / Label Ekstra Informasi' },
   { id: 'custom', name: 'Kustom (Bebas mm)', widthMm: 40, heightMm: 30, columns: 1, description: 'Tentukan lebar & tinggi sendiri' },
 ];

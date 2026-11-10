@@ -56,16 +56,17 @@ export default function PrintBarcodeLabel({
   const columnGapMm = settings.columnGapMm || 2;
   const totalRowWidthMm = columns === 2 ? (widthMm * 2 + columnGapMm) : widthMm;
 
+  const isContinuous = settings.paperMode === 'continuous_receipt';
+
   // Compute adaptive font sizes and barcode height based on label dimensions
   const isMini = heightMm <= 18 || widthMm <= 33;
-  const shopFontSize = isMini ? 5.5 : heightMm <= 30 ? 9 : 10.5;
-  const itemFontSize = isMini ? 5.8 : heightMm <= 30 ? 8 : 9.5;
-  const barcodeHeight = isMini ? 12 : heightMm <= 30 ? 28 : 36;
-  const barcodeWidth = isMini ? 0.85 : widthMm <= 33 ? 1.1 : widthMm <= 40 ? 1.35 : 1.55;
-  const priceFontSize = isMini ? 7 : heightMm <= 30 ? 11 : 13;
-  const codeFontSize = isMini ? 5.5 : 8.5;
-
-  const isContinuous = settings.paperMode === 'continuous_receipt';
+  const contentHeightMm = isContinuous ? heightMm : (heightMm <= 18 ? heightMm - 0.8 : heightMm - 0.4);
+  const shopFontSize = isMini ? 5.2 : heightMm <= 30 ? 9 : 10.5;
+  const itemFontSize = isMini ? 5.5 : heightMm <= 30 ? 8 : 9.5;
+  const barcodeHeight = isMini ? 11 : heightMm <= 30 ? 28 : 36;
+  const barcodeWidth = isMini ? 0.82 : widthMm <= 33 ? 1.1 : widthMm <= 40 ? 1.35 : 1.55;
+  const priceFontSize = isMini ? 6.8 : heightMm <= 30 ? 11 : 13;
+  const codeFontSize = isMini ? 5.2 : 8.5;
 
   // Group into pairs if 2 columns (2 Line)
   const rows: (LabelPrintItem | null)[][] = [];
@@ -89,7 +90,7 @@ export default function PrintBarcodeLabel({
           style={{
             visibility: 'hidden',
             width: `${widthMm}mm`,
-            height: `${heightMm}mm`,
+            height: `${contentHeightMm}mm`,
             boxSizing: 'border-box',
           }}
         />
@@ -106,10 +107,10 @@ export default function PrintBarcodeLabel({
         style={{
           width: `${widthMm}mm`,
           maxWidth: `${widthMm}mm`,
-          height: `${heightMm}mm`,
-          maxHeight: `${heightMm}mm`,
+          height: `${contentHeightMm}mm`,
+          maxHeight: `${contentHeightMm}mm`,
           boxSizing: 'border-box',
-          padding: isMini ? '0.3mm 0.6mm' : '1.5mm 2mm',
+          padding: isMini ? '0.2mm 0.5mm' : '1.5mm 2mm',
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -119,6 +120,8 @@ export default function PrintBarcodeLabel({
           color: '#000000',
           overflow: 'hidden',
           position: 'relative',
+          pageBreakInside: 'avoid',
+          breakInside: 'avoid',
           transform: (offsetX !== 0 || offsetY !== 0) ? `translate(${offsetX}mm, ${offsetY}mm)` : undefined,
         }}
       >
@@ -281,15 +284,15 @@ export default function PrintBarcodeLabel({
             width: ${totalRowWidthMm}mm !important;
             max-width: ${totalRowWidthMm}mm !important;
             ${isContinuous
-              ? `min-height: ${heightMm}mm !important;
+              ? `min-height: ${contentHeightMm}mm !important;
                  height: auto !important;
                  page-break-after: avoid !important;
                  break-after: avoid !important;
                  page-break-inside: avoid !important;
                  break-inside: avoid !important;
                  margin-bottom: ${settings.gapMm || 2}mm !important;`
-              : `height: ${heightMm}mm !important;
-                 max-height: ${heightMm}mm !important;
+              : `height: ${contentHeightMm}mm !important;
+                 max-height: ${contentHeightMm}mm !important;
                  page-break-after: always !important;
                  break-after: page !important;
                  page-break-inside: avoid !important;

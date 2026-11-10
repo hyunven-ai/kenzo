@@ -148,6 +148,8 @@ export default function BarcodePage() {
       heightMm: preset.heightMm,
       columns: preset.columns || 1,
       columnGapMm: preset.columnGapMm || 2,
+      offsetYMm: preset.offsetYMm ?? 0,
+      offsetXMm: preset.offsetXMm ?? 0,
       paperMode: 'roll_sticker', // Preset stiker otomatis menggunakan Roll Stiker agar pas di gap
     });
   };
