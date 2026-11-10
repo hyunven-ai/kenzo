@@ -63,10 +63,10 @@ export default function PrintBarcodeLabel({
   const contentHeightMm = isContinuous ? heightMm : (heightMm <= 18 ? heightMm - 1.2 : heightMm - 0.4);
   const shopFontSize = isMini ? 5.6 : heightMm <= 30 ? 9 : 10.5;
   const itemFontSize = isMini ? 5.8 : heightMm <= 30 ? 8 : 9.5;
-  const barcodeHeight = isMini ? 11 : heightMm <= 30 ? 28 : 36;
-  const barcodeWidth = isMini ? 0.82 : widthMm <= 33 ? 1.1 : widthMm <= 40 ? 1.35 : 1.55;
-  const priceFontSize = isMini ? 7.6 : heightMm <= 30 ? 11 : 13;
-  const codeFontSize = isMini ? 6.8 : 8.5;
+  const barcodeHeight = isMini ? 19 : heightMm <= 30 ? 28 : 36;
+  const barcodeWidth = isMini ? 0.85 : widthMm <= 33 ? 1.1 : widthMm <= 40 ? 1.35 : 1.55;
+  const priceFontSize = isMini ? 7.8 : heightMm <= 30 ? 11 : 13;
+  const codeFontSize = isMini ? 7.0 : 8.5;
 
   // Group into pairs if 2 columns (2 Line)
   const rows: (LabelPrintItem | null)[][] = [];
@@ -112,7 +112,7 @@ export default function PrintBarcodeLabel({
           height: `${contentHeightMm}mm`,
           maxHeight: `${contentHeightMm}mm`,
           boxSizing: 'border-box',
-          paddingTop: isMini ? `${Math.max(0.1, 0.45 + offsetY)}mm` : '1.5mm',
+          paddingTop: isMini ? `${Math.max(0.5, 1.45 + offsetY)}mm` : '1.8mm',
           paddingBottom: isMini ? '0.2mm' : '1.5mm',
           paddingLeft: isMini ? `${Math.max(1.0, 1.8 + offsetX)}mm` : '2mm',
           paddingRight: isMini ? `${Math.max(1.0, 1.8 - offsetX)}mm` : '2mm',
@@ -169,7 +169,7 @@ export default function PrintBarcodeLabel({
         )}
 
         {/* Visual Barcode 1D */}
-        <div style={{ width: '100%', display: 'flex', justifyContent: 'center', margin: '0.5px 0' }}>
+        <div style={{ width: '100%', display: 'flex', justifyContent: 'center', margin: '0.4px 0', padding: '0 1.2mm', boxSizing: 'border-box' }}>
           <BarcodeGenerator
             value={item.barcode}
             format={settings.barcodeFormat}
