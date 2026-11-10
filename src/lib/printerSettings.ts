@@ -33,8 +33,8 @@ export interface PrinterSettings {
   showImei: boolean;
   warningNote: string;
   footerNote: string;
-  receiptMarginLeftMm?: number; // Posisi margin kiri struk POS-58 (default: 3.6mm)
-  receiptWidthMm?: number; // Lebar cetak struk POS-58 (default: 43mm)
+  receiptMarginLeftMm?: number; // Posisi margin kiri struk POS-58 (default: 5.0mm)
+  receiptWidthMm?: number; // Lebar cetak struk POS-58 (default: 41mm)
 }
 
 export const DEFAULT_PRINTER_SETTINGS: PrinterSettings = {
@@ -57,8 +57,8 @@ export const DEFAULT_PRINTER_SETTINGS: PrinterSettings = {
   showImei: true,
   warningNote: 'Barang yang sudah di beli tidak bisa di kembalikan!!!',
   footerNote: 'TERIMA KASIH BOSKUUU!!!',
-  receiptMarginLeftMm: 3.6,
-  receiptWidthMm: 43,
+  receiptMarginLeftMm: 5.0,
+  receiptWidthMm: 41,
 };
 
 const STORAGE_KEY = 'series_printer_settings';
