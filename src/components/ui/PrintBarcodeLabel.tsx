@@ -250,7 +250,7 @@ export default function PrintBarcodeLabel({
         }
         @media print {
           @page {
-            size: ${totalRowWidthMm}mm ${heightMm}mm;
+            size: portrait;
             margin: 0 !important;
           }
           html, body {
@@ -258,8 +258,8 @@ export default function PrintBarcodeLabel({
             padding: 0 !important;
             background: #ffffff !important;
             color: #000000 !important;
-            width: ${totalRowWidthMm}mm !important;
-            height: ${heightMm}mm !important;
+            width: 100% !important;
+            height: auto !important;
           }
           /* Hide regular application layout during label printing */
           .app-shell, .app-sidebar, .app-header, .app-main, .page-header, .pos-layout, .card, .modal-backdrop, .mobile-bottom-nav {
