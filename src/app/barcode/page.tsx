@@ -146,6 +146,8 @@ export default function BarcodePage() {
       presetId,
       widthMm: preset.widthMm,
       heightMm: preset.heightMm,
+      columns: preset.columns || 1,
+      columnGapMm: preset.columnGapMm || 2,
     });
   };
 
@@ -692,7 +694,7 @@ export default function BarcodePage() {
               <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-secondary)' }}>👁️ LIVE PREVIEW STIKER</span>
               <div style={{ display: 'flex', gap: 6 }}>
                 <span style={{ fontSize: 11, background: 'rgba(34, 197, 94, 0.15)', color: '#4ade80', padding: '2px 8px', borderRadius: 6, fontWeight: 700 }}>
-                  {settings.widthMm} × {settings.heightMm} mm
+                  {settings.columns === 2 ? `${settings.widthMm * 2 + (settings.columnGapMm || 2)} × ${settings.heightMm} mm (2 Line)` : `${settings.widthMm} × ${settings.heightMm} mm`}
                 </span>
                 <span style={{ fontSize: 11, background: settings.paperMode === 'continuous_receipt' ? 'rgba(59, 130, 246, 0.15)' : 'rgba(234, 179, 8, 0.15)', color: settings.paperMode === 'continuous_receipt' ? '#60a5fa' : '#facc15', padding: '2px 8px', borderRadius: 6, fontWeight: 700 }}>
                   {settings.paperMode === 'continuous_receipt' ? '🧾 Kertas Kasir' : '🏷️ Roll Stiker'}
@@ -701,57 +703,118 @@ export default function BarcodePage() {
             </div>
 
             {/* Authentic Thermal Label Sticker Preview */}
-            <div style={{
-              background: '#ffffff',
-              color: '#000000',
-              width: `${Math.min(270, Math.max(180, settings.widthMm * 5.2))}px`,
-              minHeight: `${Math.max(120, settings.heightMm * 5.2)}px`,
-              border: '2px dashed #9ca3af',
-              borderRadius: 8,
-              boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
-              padding: '10px 12px',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              textAlign: 'center',
-              boxSizing: 'border-box',
-              transition: 'all 0.2s ease',
-            }}>
-              {settings.showShopName && settings.shopName && (
-                <div style={{ fontSize: 12, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 2 }}>
-                  {settings.shopName}
+            {settings.columns === 2 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: '100%', gap: 8 }}>
+                <div style={{ fontSize: 11, color: '#facc15', fontWeight: 700 }}>
+                  🏷️ Preview 2 Line Berdampingan (Total Lebar ~{settings.widthMm * 2 + (settings.columnGapMm || 2)} mm)
                 </div>
-              )}
-
-              {settings.showItemName && (
-                <div style={{ fontSize: 11, fontWeight: 600, lineHeight: 1.2, marginBottom: 4, maxHeight: 32, overflow: 'hidden' }}>
-                  {previewSample.nama} {previewSample.ukuran ? `(${previewSample.ukuran})` : ''}
+                <div style={{ display: 'flex', gap: 8, justifyContent: 'center', width: '100%' }}>
+                  {[1, 2].map(colNum => (
+                    <div
+                      key={colNum}
+                      style={{
+                        background: '#ffffff',
+                        color: '#000000',
+                        flex: 1,
+                        maxWidth: '150px',
+                        minHeight: '100px',
+                        border: '2px dashed #9ca3af',
+                        borderRadius: 6,
+                        boxShadow: '0 4px 14px rgba(0,0,0,0.25)',
+                        padding: '6px 8px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        textAlign: 'center',
+                        boxSizing: 'border-box',
+                      }}
+                    >
+                      <div style={{ fontSize: 9, color: '#6b7280', fontWeight: 700, marginBottom: 2 }}>
+                        Kolom #{colNum}
+                      </div>
+                      {settings.showShopName && settings.shopName && (
+                        <div style={{ fontSize: 9, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>
+                          {settings.shopName}
+                        </div>
+                      )}
+                      {settings.showItemName && (
+                        <div style={{ fontSize: 8.5, fontWeight: 600, lineHeight: 1.15, marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%' }}>
+                          {previewSample.nama}
+                        </div>
+                      )}
+                      <div style={{ width: '100%', margin: '2px 0', display: 'flex', justifyContent: 'center' }}>
+                        <BarcodeGenerator
+                          value={previewSample.barcode || 'BRG-SAMPLE'}
+                          format={settings.barcodeFormat}
+                          width={0.9}
+                          height={18}
+                          displayValue={false}
+                        />
+                      </div>
+                      {settings.showBarcodeText && (
+                        <div style={{ fontFamily: 'monospace', fontSize: 8.5, fontWeight: 700, letterSpacing: '0.04em', marginBottom: 1 }}>
+                          {previewSample.barcode || 'BRG-SAMPLE'}
+                        </div>
+                      )}
+                      {settings.showPrice && previewSample.harga_jual > 0 && (
+                        <div style={{ fontSize: 10, fontWeight: 800, color: '#000000', marginTop: 1 }}>
+                          {formatRupiah(previewSample.harga_jual)}
+                        </div>
+                      )}
+                    </div>
+                  ))}
                 </div>
-              )}
-
-              <div style={{ width: '100%', margin: '4px 0', display: 'flex', justifyContent: 'center' }}>
-                <BarcodeGenerator
-                  value={previewSample.barcode || 'KZ-SAMPLE'}
-                  format={settings.barcodeFormat}
-                  width={1.3}
-                  height={32}
-                  displayValue={false}
-                />
               </div>
-
-              {settings.showBarcodeText && (
-                <div style={{ fontFamily: 'monospace', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', marginBottom: 2 }}>
-                  {previewSample.barcode || 'KZ-SAMPLE'}
+            ) : (
+              <div style={{
+                background: '#ffffff',
+                color: '#000000',
+                width: `${Math.min(270, Math.max(180, settings.widthMm * 5.2))}px`,
+                minHeight: `${Math.max(120, settings.heightMm * 5.2)}px`,
+                border: '2px dashed #9ca3af',
+                borderRadius: 8,
+                boxShadow: '0 8px 24px rgba(0,0,0,0.35)',
+                padding: '10px 12px',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                textAlign: 'center',
+                boxSizing: 'border-box',
+                transition: 'all 0.2s ease',
+              }}>
+                {settings.showShopName && settings.shopName && (
+                  <div style={{ fontSize: 12, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 2 }}>
+                    {settings.shopName}
+                  </div>
+                )}
+                {settings.showItemName && (
+                  <div style={{ fontSize: 11, fontWeight: 600, lineHeight: 1.2, marginBottom: 4, maxHeight: 32, overflow: 'hidden' }}>
+                    {previewSample.nama} {previewSample.ukuran ? `(${previewSample.ukuran})` : ''}
+                  </div>
+                )}
+                <div style={{ width: '100%', margin: '4px 0', display: 'flex', justifyContent: 'center' }}>
+                  <BarcodeGenerator
+                    value={previewSample.barcode || 'KZ-SAMPLE'}
+                    format={settings.barcodeFormat}
+                    width={1.3}
+                    height={32}
+                    displayValue={false}
+                  />
                 </div>
-              )}
-
-              {settings.showPrice && previewSample.harga_jual > 0 && (
-                <div style={{ fontSize: 13, fontWeight: 800, color: '#000000', marginTop: 2 }}>
-                  {formatRupiah(previewSample.harga_jual)}
-                </div>
-              )}
-            </div>
+                {settings.showBarcodeText && (
+                  <div style={{ fontFamily: 'monospace', fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', marginBottom: 2 }}>
+                    {previewSample.barcode || 'KZ-SAMPLE'}
+                  </div>
+                )}
+                {settings.showPrice && previewSample.harga_jual > 0 && (
+                  <div style={{ fontSize: 13, fontWeight: 800, color: '#000000', marginTop: 2 }}>
+                    {formatRupiah(previewSample.harga_jual)}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Print queue info / guidance */}
             <div className="alert alert-info" style={{ width: '100%', fontSize: 12, padding: '12px 14px', lineHeight: 1.5, display: 'block' }}>
@@ -767,7 +830,12 @@ export default function BarcodePage() {
               )}
               <div style={{ marginTop: 8, fontSize: 11, color: '#1e3a8a', background: 'rgba(255,255,255,0.7)', padding: '6px 8px', borderRadius: 6 }}>
                 📌 <strong>Agar Hasil Tidak Miring / Boros Kertas:</strong><br />
-                {settings.paperMode === 'continuous_receipt' ? (
+                {settings.columns === 2 ? (
+                  <span>
+                    ✅ Mode <strong>2 Line (2 Kolom Berdampingan)</strong> aktif: Barcode dicetak 2 stiker per baris.<br />
+                    Di driver printer, atur ukuran kertas: <strong>Lebar: {settings.widthMm * 2 + (settings.columnGapMm || 2)} mm, Tinggi: {settings.heightMm} mm</strong>.
+                  </span>
+                ) : settings.paperMode === 'continuous_receipt' ? (
                   <span>✅ Mode <strong>Kertas Kasir Continuous</strong> aktif: Barcode dicetak beruntun rapat tanpa loncat halaman kosong.</span>
                 ) : (
                   <span>✅ Mode <strong>Roll Stiker</strong> aktif: Mencetak 1 lembar per stiker untuk printer stiker kupas berjarak/gap.</span>
@@ -872,6 +940,59 @@ export default function BarcodePage() {
                   <div style={{ fontWeight: 700, fontSize: 12 }}>🖥️ Mendatar (Landscape)</div>
                   <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 2 }}>
                     Hanya jika printer memerlukan orientasi mendatar
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            {/* Model Baris Kertas: 1 Line vs 2 Line */}
+            <div>
+              <label className="form-label" style={{ fontWeight: 700, marginBottom: 8, display: 'block', fontSize: 13 }}>
+                📑 Model Baris Kertas (Line / Kolom):
+              </label>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <button
+                  type="button"
+                  onClick={() => handleUpdateSetting('columns', 1)}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: 8,
+                    border: `1.5px solid ${settings.columns !== 2 ? '#22c55e' : 'var(--border-medium)'}`,
+                    background: settings.columns !== 2 ? 'rgba(34, 197, 94, 0.12)' : 'var(--bg-card)',
+                    color: settings.columns !== 2 ? '#4ade80' : 'var(--text-primary)',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <div style={{ fontWeight: 700, fontSize: 12 }}>1️⃣ 1 Line (1 Stiker per Baris)</div>
+                  <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 2 }}>
+                    Standar umum 1 kolom (40×30, 50×30, dll)
+                  </div>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    handleUpdateSetting('columns', 2);
+                    if (settings.presetId === '33x15') {
+                      handleApplyPreset('33x15_2line');
+                    }
+                  }}
+                  style={{
+                    padding: '8px 12px',
+                    borderRadius: 8,
+                    border: `1.5px solid ${settings.columns === 2 ? '#22c55e' : 'var(--border-medium)'}`,
+                    background: settings.columns === 2 ? 'rgba(34, 197, 94, 0.12)' : 'var(--bg-card)',
+                    color: settings.columns === 2 ? '#4ade80' : 'var(--text-primary)',
+                    cursor: 'pointer',
+                    textAlign: 'left',
+                    transition: 'all 0.15s ease',
+                  }}
+                >
+                  <div style={{ fontWeight: 700, fontSize: 12 }}>2️⃣ 2 Line (2 Kolom Berdampingan)</div>
+                  <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 2 }}>
+                    Khusus ALGOO 33×15mm 2 line (total roll ~68mm)
                   </div>
                 </button>
               </div>
