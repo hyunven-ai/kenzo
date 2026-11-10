@@ -820,6 +820,78 @@ export default function PrinterSettingsPage() {
                     </span>
                   </label>
                 </div>
+
+                {/* Kalibrasi Margin POS-58 jika teks terpotong */}
+                {settings.paperWidth === '58mm' && (
+                  <div style={{
+                    marginTop: 16,
+                    padding: '12px 14px',
+                    background: 'var(--bg-elevated, #24242c)',
+                    border: '1px solid var(--border-light, #2e2e36)',
+                    borderRadius: 8,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: 12
+                  }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
+                        🎯 Kalibrasi Posisi Cetak POS-58 (Cegah Teks/Harga Terpotong)
+                      </span>
+                      <span className="badge badge-info" style={{ fontSize: 10 }}>Presisi Kasir</span>
+                    </div>
+                    <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.4 }}>
+                      Jika hasil cetak struk terpotong di tepi kiri atau kanan karena perbedaan celah roll printer, Anda dapat menyesuaikan margin di bawah ini:
+                    </p>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                          <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
+                            Margin Kiri (Geser Kiri / Kanan)
+                          </label>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: '#e53935' }}>
+                            {settings.receiptMarginLeftMm ?? 3.6} mm
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="8"
+                          step="0.2"
+                          value={settings.receiptMarginLeftMm ?? 3.6}
+                          onChange={e => handleChange('receiptMarginLeftMm', parseFloat(e.target.value))}
+                          style={{ width: '100%', cursor: 'pointer' }}
+                        />
+                        <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>
+                          Geser ke kanan jika huruf kiri (misal: "Pembeli", "Total") terpotong. (Default: 3.6 mm)
+                        </div>
+                      </div>
+
+                      <div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                          <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
+                            Lebar Area Cetak
+                          </label>
+                          <span style={{ fontSize: 12, fontWeight: 700, color: '#e53935' }}>
+                            {settings.receiptWidthMm ?? 42.5} mm
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          min="38"
+                          max="48"
+                          step="0.5"
+                          value={settings.receiptWidthMm ?? 42.5}
+                          onChange={e => handleChange('receiptWidthMm', parseFloat(e.target.value))}
+                          style={{ width: '100%', cursor: 'pointer' }}
+                        />
+                        <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>
+                          Kecilkan jika angka harga di ujung kanan terpotong. (Default: 42.5 mm)
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

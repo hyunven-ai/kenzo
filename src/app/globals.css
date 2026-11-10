@@ -1476,13 +1476,13 @@ input[type=number]::-webkit-inner-spin-button {
     overflow: hidden !important;
   }
 
-  /* POS-58 (Paper 58mm with physical 48mm print head aligned to left) */
+  /* POS-58 (Paper 58mm with physical 48mm print head) */
   .print-receipt-container,
   .print-receipt-container.paper-58mm {
-    width: 44mm !important;
-    max-width: 44mm !important;
+    width: var(--receipt-width, 42.5mm) !important;
+    max-width: var(--receipt-width, 42.5mm) !important;
     margin: 0 !important;
-    margin-left: 1.5mm !important;
+    margin-left: var(--receipt-margin-left, 3.6mm) !important;
     margin-right: auto !important;
     padding: 0 0.8mm !important;
     font-size: 8pt !important;
@@ -1578,8 +1578,14 @@ input[type=number]::-webkit-inner-spin-button {
     font-weight: 600 !important;
     display: flex !important;
     justify-content: space-between !important;
-    padding-left: 4px !important;
+    padding-left: 2px !important;
     padding-right: 1px !important;
+  }
+
+  .receipt-item-details span:last-child,
+  .receipt-total-row span:last-child {
+    white-space: nowrap !important;
+    text-align: right !important;
   }
 
   .receipt-summary {

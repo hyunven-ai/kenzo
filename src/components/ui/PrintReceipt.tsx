@@ -68,7 +68,22 @@ export default function PrintReceipt({
   if (!mounted) return null;
 
   return createPortal(
-    <div className={`print-receipt-container ${settings.paperWidth === '80mm' ? 'paper-80mm' : 'paper-58mm'}`}>
+    <>
+      <style>{`
+        @media print {
+          @page {
+            size: ${settings.paperWidth === '80mm' ? '80mm' : '58mm'} auto;
+            margin: 0;
+          }
+        }
+      `}</style>
+      <div
+        className={`print-receipt-container ${settings.paperWidth === '80mm' ? 'paper-80mm' : 'paper-58mm'}`}
+        style={{
+          '--receipt-margin-left': `${settings.receiptMarginLeftMm ?? 3.6}mm`,
+          '--receipt-width': `${settings.receiptWidthMm ?? 42.5}mm`,
+        } as React.CSSProperties}
+      >
       {/* Logo & Header */}
       <div className="receipt-header">
         {settings.showLogo && Boolean(settings.logoUrl || '/logo-struk.png') && (
@@ -198,7 +213,8 @@ export default function PrintReceipt({
           {settings.footerNote}
         </div>
       )}
-    </div>,
+    </div>
+    </>,
     document.body
   );
 }
