@@ -213,6 +213,155 @@ export async function GET(request: Request) {
       });
     }
 
+    // --- BEST SELLING PRODUCTS (PRODUK TERLARIS) ---
+    if (action === 'getBestSellingProducts') {
+      const from = searchParams.get('from');
+      const to = searchParams.get('to');
+      const kategori = searchParams.get('kategori');
+      const limitParam = searchParams.get('limit');
+      const limit = limitParam ? Math.min(Number(limitParam), 500) : 100;
+
+      let rows: any[] = [];
+      if (from && to) {
+        if (kategori && kategori !== 'semua') {
+          rows = await sql`
+            SELECT 
+              d.nama_barang,
+              d.kategori,
+              COALESCE(MAX(d.code), MAX(b.barcode), '') AS barcode,
+              MAX(d.idbarang) AS idbarang,
+              COALESCE(MAX(b.qty), 0) AS sisa_stok,
+              SUM(d.qty)::int AS total_qty_terjual,
+              SUM(d.qty * d.harga_jual)::numeric AS total_omset,
+              SUM(d.qty * d.harga_modal)::numeric AS total_modal,
+              SUM(d.qty * (d.harga_jual - d.harga_modal))::numeric AS total_profit,
+              COUNT(DISTINCT h.id)::int AS jumlah_transaksi
+            FROM public.trs_penjualan_hdr h
+            JOIN public.trs_penjualan_dtl d ON d.idhdr = h.id
+            LEFT JOIN public.ms_barang b ON b.id = d.idbarang OR (b.nama = d.nama_barang AND b.kategori = d.kategori)
+            WHERE (h.status IS NULL OR h.status = 1)
+              AND d.kategori = ${kategori}
+              AND h.tanggal_penjualan >= ${from}::timestamp 
+              AND h.tanggal_penjualan <= ${to + ' 23:59:59'}::timestamp
+            GROUP BY d.nama_barang, d.kategori
+            ORDER BY total_qty_terjual DESC, total_omset DESC
+            LIMIT ${limit};
+          `;
+        } else {
+          rows = await sql`
+            SELECT 
+              d.nama_barang,
+              d.kategori,
+              COALESCE(MAX(d.code), MAX(b.barcode), '') AS barcode,
+              MAX(d.idbarang) AS idbarang,
+              COALESCE(MAX(b.qty), 0) AS sisa_stok,
+              SUM(d.qty)::int AS total_qty_terjual,
+              SUM(d.qty * d.harga_jual)::numeric AS total_omset,
+              SUM(d.qty * d.harga_modal)::numeric AS total_modal,
+              SUM(d.qty * (d.harga_jual - d.harga_modal))::numeric AS total_profit,
+              COUNT(DISTINCT h.id)::int AS jumlah_transaksi
+            FROM public.trs_penjualan_hdr h
+            JOIN public.trs_penjualan_dtl d ON d.idhdr = h.id
+            LEFT JOIN public.ms_barang b ON b.id = d.idbarang OR (b.nama = d.nama_barang AND b.kategori = d.kategori)
+            WHERE (h.status IS NULL OR h.status = 1)
+              AND h.tanggal_penjualan >= ${from}::timestamp 
+              AND h.tanggal_penjualan <= ${to + ' 23:59:59'}::timestamp
+            GROUP BY d.nama_barang, d.kategori
+            ORDER BY total_qty_terjual DESC, total_omset DESC
+            LIMIT ${limit};
+          `;
+        }
+      } else {
+        if (kategori && kategori !== 'semua') {
+          rows = await sql`
+            SELECT 
+              d.nama_barang,
+              d.kategori,
+              COALESCE(MAX(d.code), MAX(b.barcode), '') AS barcode,
+              MAX(d.idbarang) AS idbarang,
+              COALESCE(MAX(b.qty), 0) AS sisa_stok,
+              SUM(d.qty)::int AS total_qty_terjual,
+              SUM(d.qty * d.harga_jual)::numeric AS total_omset,
+              SUM(d.qty * d.harga_modal)::numeric AS total_modal,
+              SUM(d.qty * (d.harga_jual - d.harga_modal))::numeric AS total_profit,
+              COUNT(DISTINCT h.id)::int AS jumlah_transaksi
+            FROM public.trs_penjualan_hdr h
+            JOIN public.trs_penjualan_dtl d ON d.idhdr = h.id
+            LEFT JOIN public.ms_barang b ON b.id = d.idbarang OR (b.nama = d.nama_barang AND b.kategori = d.kategori)
+            WHERE (h.status IS NULL OR h.status = 1)
+              AND d.kategori = ${kategori}
+            GROUP BY d.nama_barang, d.kategori
+            ORDER BY total_qty_terjual DESC, total_omset DESC
+            LIMIT ${limit};
+          `;
+        } else {
+          rows = await sql`
+            SELECT 
+              d.nama_barang,
+              d.kategori,
+              COALESCE(MAX(d.code), MAX(b.barcode), '') AS barcode,
+              MAX(d.idbarang) AS idbarang,
+              COALESCE(MAX(b.qty), 0) AS sisa_stok,
+              SUM(d.qty)::int AS total_qty_terjual,
+              SUM(d.qty * d.harga_jual)::numeric AS total_omset,
+              SUM(d.qty * d.harga_modal)::numeric AS total_modal,
+              SUM(d.qty * (d.harga_jual - d.harga_modal))::numeric AS total_profit,
+              COUNT(DISTINCT h.id)::int AS jumlah_transaksi
+            FROM public.trs_penjualan_hdr h
+            JOIN public.trs_penjualan_dtl d ON d.idhdr = h.id
+            LEFT JOIN public.ms_barang b ON b.id = d.idbarang OR (b.nama = d.nama_barang AND b.kategori = d.kategori)
+            WHERE (h.status IS NULL OR h.status = 1)
+            GROUP BY d.nama_barang, d.kategori
+            ORDER BY total_qty_terjual DESC, total_omset DESC
+            LIMIT ${limit};
+          `;
+        }
+      }
+
+      const grandTotalOmset = rows.reduce((sum, r) => sum + Number(r.total_omset || 0), 0);
+      const grandTotalQty = rows.reduce((sum, r) => sum + Number(r.total_qty_terjual || 0), 0);
+      const grandTotalProfit = rows.reduce((sum, r) => sum + Number(r.total_profit || 0), 0);
+
+      const data = rows.map(r => {
+        const omset = Number(r.total_omset || 0);
+        const modal = Number(r.total_modal || 0);
+        const profit = Number(r.total_profit || 0);
+        const sisaStok = Number(r.sisa_stok || 0);
+        const marginPersen = omset > 0 ? (profit / omset) * 100 : 0;
+        const kontribusiPersen = grandTotalOmset > 0 ? (omset / grandTotalOmset) * 100 : 0;
+        const statusStok = sisaStok <= 0 ? 'habis' : sisaStok <= 5 ? 'menipis' : 'aman';
+
+        return {
+          idbarang: r.idbarang ? Number(r.idbarang) : undefined,
+          nama_barang: r.nama_barang,
+          kategori: r.kategori,
+          barcode: r.barcode || '',
+          sisa_stok: sisaStok,
+          total_qty_terjual: Number(r.total_qty_terjual || 0),
+          total_omset: omset,
+          total_modal: modal,
+          total_profit: profit,
+          margin_persen: Math.round(marginPersen * 10) / 10,
+          kontribusi_persen: Math.round(kontribusiPersen * 10) / 10,
+          jumlah_transaksi: Number(r.jumlah_transaksi || 0),
+          status_stok: statusStok,
+        };
+      });
+
+      const summary = {
+        total_unit_terjual: grandTotalQty,
+        total_omset: grandTotalOmset,
+        total_profit: grandTotalProfit,
+        rata_margin_persen: grandTotalOmset > 0 ? Math.round((grandTotalProfit / grandTotalOmset) * 1000) / 10 : 0,
+        total_produk_laku: data.length,
+        top_product_name: data[0]?.nama_barang || '-',
+        top_product_qty: data[0]?.total_qty_terjual || 0,
+        top_product_kontribusi: data[0]?.kontribusi_persen || 0,
+      };
+
+      return NextResponse.json({ ok: true, data, summary });
+    }
+
     // --- USER MANAGEMENT ---
     if (action === 'getUsers') {
       const users = await sql`

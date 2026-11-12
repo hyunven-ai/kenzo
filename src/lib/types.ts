@@ -373,3 +373,34 @@ export interface MsGaransi {
   update_by?: string;
 }
 
+// ============================================
+// BEST SELLING PRODUCT TYPES
+// ============================================
+
+export interface BestSellingProduct {
+  idbarang?: number;
+  nama_barang: string;
+  kategori: string;
+  barcode?: string;
+  sisa_stok: number;
+  total_qty_terjual: number;
+  total_omset: number;
+  total_modal: number;
+  total_profit: number;
+  margin_persen: number;
+  kontribusi_persen: number;
+  jumlah_transaksi: number;
+  status_stok: 'aman' | 'menipis' | 'habis';
+}
+
+export interface BestSellingSummary {
+  total_unit_terjual: number;
+  total_omset: number;
+  total_profit: number;
+  rata_margin_persen: number;
+  total_produk_laku: number;
+  top_product_name: string;
+  top_product_qty: number;
+  top_product_kontribusi: number;
+}
+

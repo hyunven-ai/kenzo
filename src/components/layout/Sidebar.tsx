@@ -111,6 +111,7 @@ export default function Sidebar({ user, collapsed, mobileOpen, onCloseMobile }: 
           { label: 'Kasir', href: '/transaksi/penjualan' },
           { label: 'Detail Penjualan', href: '/transaksi/detail-penjualan' },
           { label: 'Barang Terjual', href: '/transaksi/barang-terjual' },
+          { label: '⭐ Produk Terlaris', href: '/transaksi/produk-terlaris' },
         ],
       },
       {

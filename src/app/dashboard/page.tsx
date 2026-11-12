@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import Link from 'next/link';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, ArcElement, Title, Tooltip, Legend, type TooltipItem } from 'chart.js';
 import { Bar, Doughnut } from 'react-chartjs-2';
-import { getDashboardStats, getChartData, getKategoriSales } from '@/lib/db';
+import { getDashboardStats, getChartData, getKategoriSales, getBestSellingProducts } from '@/lib/db';
 import { formatRupiah, formatChartDate, today, daysAgo } from '@/lib/utils';
-import type { DashboardStats, ChartDataPoint, KategoriSales } from '@/lib/types';
+import type { DashboardStats, ChartDataPoint, KategoriSales, BestSellingProduct } from '@/lib/types';
 import { Skeleton } from '@/components/ui/Skeleton';
 import EmptyState from '@/components/ui/EmptyState';
 import ErrorState from '@/components/ui/ErrorState';
@@ -26,6 +27,7 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [chartData, setChartData] = useState<ChartDataPoint[]>([]);
   const [kategoriData, setKategoriData] = useState<KategoriSales[]>([]);
+  const [topProducts, setTopProducts] = useState<BestSellingProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [fromDate, setFromDate] = useState(defaultRange.from);
@@ -37,17 +39,23 @@ export default function DashboardPage() {
     setLoading(true);
     setError('');
     try {
-      const [s, c, k] = await Promise.all([
+      const [s, c, k, bp] = await Promise.all([
         getDashboardStats(from, to),
         getChartData(from, to),
         getKategoriSales(from, to),
+        getBestSellingProducts(from, to, '', 5).catch(() => ({
+          data: [],
+          summary: { total_qty_terjual: 0, total_omset: 0, total_profit: 0, total_item_terjual: 0 },
+        })),
       ]);
       setStats(s);
       setChartData(c);
       setKategoriData(k);
+      setTopProducts(bp.data || []);
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : 'Gagal memuat data';
       setError(msg);
+      setTopProducts([]);
       // Fallback demo data
       setStats({
         total_pemasukan: 1181192000,
@@ -331,6 +339,148 @@ export default function DashboardPage() {
             )}
           </div>
         </div>
+      </div>
+
+      {/* Top 5 Best Selling Products Widget */}
+      <div className="card" style={{ marginTop: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 8,
+                background: '#fff8e1',
+                color: '#f59e0b',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 18,
+              }}
+            >
+              ⭐
+            </div>
+            <div>
+              <h2 style={{ fontSize: 16, fontWeight: 700, margin: 0, color: 'var(--text-primary)' }}>
+                Top 5 Produk Terlaris
+              </h2>
+              <p style={{ fontSize: 12, margin: 0, color: 'var(--text-secondary)' }}>
+                Barang dengan kuantitas penjualan tertinggi pada periode terpilih
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/transaksi/produk-terlaris"
+            className="btn btn-secondary"
+            style={{ fontSize: 12, padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+          >
+            Lihat Semua Ranking
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M5 12h14M12 5l7 7-7 7" />
+            </svg>
+          </Link>
+        </div>
+
+        {loading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {[1, 2, 3, 4, 5].map((i) => (
+              <Skeleton key={i} width="100%" height="48px" borderRadius="6px" />
+            ))}
+          </div>
+        ) : topProducts.length === 0 ? (
+          <EmptyState
+            icon="🛍️"
+            title="Belum Ada Penjualan"
+            description="Tidak ada data penjualan barang pada rentang tanggal ini."
+            compact
+          />
+        ) : (
+          <div className="table-responsive">
+            <table className="table" style={{ margin: 0 }}>
+              <thead>
+                <tr>
+                  <th style={{ width: 60, textAlign: 'center' }}>Rank</th>
+                  <th>Produk</th>
+                  <th style={{ width: 140 }}>Kategori</th>
+                  <th style={{ width: 120, textAlign: 'right' }}>Terjual</th>
+                  <th style={{ width: 150, textAlign: 'right' }}>Total Omset</th>
+                  <th style={{ width: 120, textAlign: 'center' }}>Sisa Stok</th>
+                </tr>
+              </thead>
+              <tbody>
+                {topProducts.map((p, idx) => {
+                  const rank = idx + 1;
+                  const medal = rank === 1 ? '🥇' : rank === 2 ? '🥈' : rank === 3 ? '🥉' : `#${rank}`;
+                  const isOutOfStock = p.sisa_stok <= 0;
+                  const isLowStock = p.sisa_stok > 0 && p.sisa_stok <= 5;
+
+                  return (
+                    <tr key={p.idbarang || idx}>
+                      <td style={{ textAlign: 'center', fontWeight: 700, fontSize: 14 }}>
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            minWidth: 26,
+                            padding: '2px 6px',
+                            borderRadius: 6,
+                            background: rank === 1 ? '#fef3c7' : rank === 2 ? '#f1f5f9' : rank === 3 ? '#ffedd5' : 'transparent',
+                            color: rank === 1 ? '#b45309' : rank === 2 ? '#475569' : rank === 3 ? '#c2410c' : 'inherit',
+                          }}
+                        >
+                          {medal}
+                        </span>
+                      </td>
+                      <td>
+                        <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{p.nama_barang}</div>
+                        {p.barcode && (
+                          <div style={{ fontSize: 11, color: 'var(--text-secondary)', fontFamily: 'monospace' }}>
+                            {p.barcode}
+                          </div>
+                        )}
+                      </td>
+                      <td>
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            padding: '3px 8px',
+                            borderRadius: 12,
+                            fontSize: 11,
+                            fontWeight: 500,
+                            background: 'var(--bg-secondary, #f1f5f9)',
+                            color: 'var(--text-primary)',
+                          }}
+                        >
+                          {p.kategori || 'Tanpa Kategori'}
+                        </span>
+                      </td>
+                      <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--primary, #1565c0)' }}>
+                        {p.total_qty_terjual.toLocaleString('id-ID')} unit
+                      </td>
+                      <td style={{ textAlign: 'right', fontWeight: 600 }}>
+                        {formatRupiah(p.total_omset)}
+                      </td>
+                      <td style={{ textAlign: 'center' }}>
+                        <span
+                          style={{
+                            display: 'inline-block',
+                            padding: '2px 8px',
+                            borderRadius: 6,
+                            fontSize: 11,
+                            fontWeight: 600,
+                            background: isOutOfStock ? '#fee2e2' : isLowStock ? '#fef3c7' : '#dcfce7',
+                            color: isOutOfStock ? '#dc2626' : isLowStock ? '#d97706' : '#16a34a',
+                          }}
+                        >
+                          {isOutOfStock ? 'Habis (0)' : `${p.sisa_stok} unit`}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
     </div>
   );

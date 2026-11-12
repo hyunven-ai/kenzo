@@ -18,6 +18,8 @@ import type {
   MsKategori,
   MsBarang,
   LogAktivitas,
+  BestSellingProduct,
+  BestSellingSummary,
 } from './types';
 
 // ============================================
@@ -1530,6 +1532,162 @@ export async function getKategoriSales(from?: string, to?: string): Promise<Kate
     return Object.values(grouped);
   } catch {
     return [];
+  }
+}
+
+// ============================================
+// BEST SELLING PRODUCTS (PRODUK TERLARIS)
+// ============================================
+
+export async function getBestSellingProducts(
+  from?: string,
+  to?: string,
+  kategori?: string,
+  limit?: number
+): Promise<{ data: BestSellingProduct[]; summary: BestSellingSummary }> {
+  // 1. Coba ambil dari Neon DB via /api/neon
+  try {
+    const neonRes = await callNeonApi('getBestSellingProducts', {
+      from: from || '',
+      to: to || '',
+      kategori: (kategori && kategori !== 'semua') ? kategori : '',
+      limit: limit ? String(limit) : '100',
+    });
+
+    if (neonRes && Array.isArray(neonRes.data)) {
+      return {
+        data: neonRes.data,
+        summary: neonRes.summary || {
+          total_unit_terjual: 0,
+          total_omset: 0,
+          total_profit: 0,
+          rata_margin_persen: 0,
+          total_produk_laku: 0,
+          top_product_name: '-',
+          top_product_qty: 0,
+          top_product_kontribusi: 0,
+        },
+      };
+    }
+  } catch (err) {
+    console.warn('Neon DB getBestSellingProducts failed, using local calculation:', err);
+  }
+
+  // 2. Fallback perhitungan lokal dari getPenjualan & getBarangs
+  try {
+    const [sales, barangs] = await Promise.all([
+      getPenjualan(from, to),
+      getBarangs().catch(() => []),
+    ]);
+
+    const stockMap = new Map<string, number>();
+    for (const b of barangs) {
+      stockMap.set(`${b.nama}__${b.kategori}`.toLowerCase(), b.qty);
+      if (b.barcode) stockMap.set(b.barcode.toLowerCase(), b.qty);
+    }
+
+    const grouped: Record<string, {
+      nama_barang: string;
+      kategori: string;
+      barcode: string;
+      idbarang?: number;
+      total_qty_terjual: number;
+      total_omset: number;
+      total_modal: number;
+      total_profit: number;
+      transaksiIds: Set<number>;
+    }> = {};
+
+    for (const s of sales) {
+      if (s.status === 0) continue; // Skip void/cancelled
+      const items = s.details || (s as any).trs_penjualan_dtl || [];
+      for (const it of items) {
+        const itemKat = (it.kategori as string) || 'Umum';
+        if (kategori && kategori !== 'semua' && itemKat !== kategori) continue;
+
+        const key = `${it.nama_barang}__${itemKat}`.toLowerCase();
+        if (!grouped[key]) {
+          grouped[key] = {
+            nama_barang: it.nama_barang,
+            kategori: itemKat,
+            barcode: it.code || '',
+            idbarang: it.idbarang,
+            total_qty_terjual: 0,
+            total_omset: 0,
+            total_modal: 0,
+            total_profit: 0,
+            transaksiIds: new Set(),
+          };
+        }
+
+        const qty = it.qty || 1;
+        const omset = (it.harga_jual || 0) * qty;
+        const modal = (it.harga_modal || 0) * qty;
+
+        grouped[key].total_qty_terjual += qty;
+        grouped[key].total_omset += omset;
+        grouped[key].total_modal += modal;
+        grouped[key].total_profit += (omset - modal);
+        if (s.id) grouped[key].transaksiIds.add(s.id);
+        if (it.code && !grouped[key].barcode) grouped[key].barcode = it.code;
+      }
+    }
+
+    const rows = Object.values(grouped).sort((a, b) => b.total_qty_terjual - a.total_qty_terjual);
+    const grandTotalOmset = rows.reduce((acc, r) => acc + r.total_omset, 0);
+    const grandTotalQty = rows.reduce((acc, r) => acc + r.total_qty_terjual, 0);
+    const grandTotalProfit = rows.reduce((acc, r) => acc + r.total_profit, 0);
+
+    const data: BestSellingProduct[] = rows.map(r => {
+      const key = `${r.nama_barang}__${r.kategori}`.toLowerCase();
+      const sisaStok = stockMap.get(key) ?? (r.barcode ? stockMap.get(r.barcode.toLowerCase()) : 0) ?? 0;
+      const marginPersen = r.total_omset > 0 ? (r.total_profit / r.total_omset) * 100 : 0;
+      const kontribusiPersen = grandTotalOmset > 0 ? (r.total_omset / grandTotalOmset) * 100 : 0;
+
+      return {
+        idbarang: r.idbarang,
+        nama_barang: r.nama_barang,
+        kategori: r.kategori,
+        barcode: r.barcode,
+        sisa_stok: sisaStok,
+        total_qty_terjual: r.total_qty_terjual,
+        total_omset: r.total_omset,
+        total_modal: r.total_modal,
+        total_profit: r.total_profit,
+        margin_persen: Math.round(marginPersen * 10) / 10,
+        kontribusi_persen: Math.round(kontribusiPersen * 10) / 10,
+        jumlah_transaksi: r.transaksiIds.size,
+        status_stok: sisaStok <= 0 ? 'habis' : sisaStok <= 5 ? 'menipis' : 'aman',
+      };
+    });
+
+    const summary: BestSellingSummary = {
+      total_unit_terjual: grandTotalQty,
+      total_omset: grandTotalOmset,
+      total_profit: grandTotalProfit,
+      rata_margin_persen: grandTotalOmset > 0 ? Math.round((grandTotalProfit / grandTotalOmset) * 1000) / 10 : 0,
+      total_produk_laku: data.length,
+      top_product_name: data[0]?.nama_barang || '-',
+      top_product_qty: data[0]?.total_qty_terjual || 0,
+      top_product_kontribusi: data[0]?.kontribusi_persen || 0,
+    };
+
+    return { data, summary };
+  } catch (err) {
+    console.error('getBestSellingProducts local fallback error:', err);
+    return {
+      data: [],
+      summary: {
+        total_unit_terjual: 0,
+        total_omset: 0,
+        total_profit: 0,
+        rata_margin_persen: 0,
+        total_produk_laku: 0,
+        top_product_name: '-',
+        top_product_qty: 0,
+        top_product_kontribusi: 0,
+      },
+    };
   }
 }
 
