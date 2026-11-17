@@ -1,0 +1,70 @@
+{
+  "name": "Kenzo — POS & Inventaris",
+  "short_name": "Kasir Kenzo",
+  "description": "Sistem Kasir Point of Sale dan Manajemen Stok Toko Handphone Kenzo",
+  "start_url": "/",
+  "id": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#1565c0",
+  "orientation": "any",
+  "scope": "/",
+  "lang": "id",
+  "categories": ["business", "finance", "productivity", "utilities"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Kasir Penjualan",
+      "short_name": "Kasir",
+      "description": "Buka menu transaksi kasir penjualan",
+      "url": "/transaksi/penjualan",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Stok Barang",
+      "short_name": "Stok",
+      "description": "Kelola inventaris dan stok barang",
+      "url": "/stock",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Dashboard Ringkasan",
+      "short_name": "Dashboard",
+      "description": "Ringkasan penjualan dan omset",
+      "url": "/dashboard",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Produk Terlaris",
+      "short_name": "Terlaris",
+      "description": "Laporan produk terlaris",
+      "url": "/transaksi/produk-terlaris",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}

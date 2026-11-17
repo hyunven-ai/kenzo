@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { AuthUser } from '@/lib/types';
 import { getRoleLabel } from '@/lib/auth';
 import { getOfflineSales, syncPendingSalesToNeon } from '@/lib/db';
+import { promptPwaInstall } from '@/components/pwa/PwaManager';
 
 interface HeaderProps {
   user: AuthUser;
@@ -17,8 +18,14 @@ export default function Header({ user, isDarkMode, onToggleDarkMode, onToggleSid
   const [online, setOnline] = useState(true);
   const [pendingCount, setPendingCount] = useState(0);
   const [syncing, setSyncing] = useState(false);
+  const [canInstallPwa, setCanInstallPwa] = useState(false);
 
   useEffect(() => {
+    const handleCanInstall = (e: any) => {
+      setCanInstallPwa(e.detail?.canInstall ?? true);
+    };
+    window.addEventListener('pwa_can_install', handleCanInstall);
+
     const checkStatus = () => {
       setOnline(navigator.onLine);
       const pending = getOfflineSales().filter(s => !s.synced).length;
@@ -36,6 +43,7 @@ export default function Header({ user, isDarkMode, onToggleDarkMode, onToggleSid
     const interval = setInterval(checkStatus, 3000);
 
     return () => {
+      window.removeEventListener('pwa_can_install', handleCanInstall);
       window.removeEventListener('online', checkStatus);
       window.removeEventListener('offline', checkStatus);
       window.removeEventListener('offline_sales_synced', checkStatus);
@@ -70,6 +78,30 @@ export default function Header({ user, isDarkMode, onToggleDarkMode, onToggleSid
       </div>
 
       <div className="header-right">
+        {/* PWA Install Button */}
+        {canInstallPwa && (
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={promptPwaInstall}
+            title="Install Kenzo POS ke Komputer / HP (Bisa buka tanpa internet)"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 5,
+              padding: '4px 10px',
+              fontSize: 12,
+              fontWeight: 600,
+              background: 'rgba(37, 99, 235, 0.1)',
+              borderColor: '#3b82f6',
+              color: '#3b82f6',
+              cursor: 'pointer',
+            }}
+          >
+            <span>📲</span>
+            <span>Install App</span>
+          </button>
+        )}
+
         {/* Neon DB / Offline Status Badge */}
         {online ? (
           <div

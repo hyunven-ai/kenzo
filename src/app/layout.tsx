@@ -1,10 +1,21 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import PwaManager from "@/components/pwa/PwaManager";
 
 export const metadata: Metadata = {
   title: "Kenzo — POS & Inventaris",
   description: "Sistem Point of Sale dan Manajemen Inventaris Toko Handphone Kenzo",
   keywords: "kasir, POS, inventaris, handphone, Kenzo",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Kasir Kenzo",
+  },
+  icons: {
+    icon: "/favicon.png",
+    apple: "/icon-192.png",
+  },
 };
 
 export const viewport: Viewport = {
@@ -12,6 +23,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
+  themeColor: "#1565c0",
 };
 
 export default function RootLayout({
@@ -29,7 +41,10 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body>{children}</body>
+      <body>
+        {children}
+        <PwaManager />
+      </body>
     </html>
   );
 }
