@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useTransition } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import BarcodeGenerator from '@/components/ui/BarcodeGenerator';
 import PrintBarcodeLabel, { LabelPrintItem } from '@/components/ui/PrintBarcodeLabel';
 import Modal from '@/components/ui/Modal';
@@ -17,6 +18,16 @@ import {
 import type { MsBarang, MsKategori } from '@/lib/types';
 
 export default function BarcodePage() {
+  const router = useRouter();
+
+  const handleBack = () => {
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      router.back();
+    } else {
+      router.push('/dashboard');
+    }
+  };
+
   const [items, setItems] = useState<MsBarang[]>([]);
   const [categories, setCategories] = useState<MsKategori[]>([]);
   const [loading, setLoading] = useState(true);
@@ -265,14 +276,100 @@ export default function BarcodePage() {
   };
 
   return (
-    <div>
+    <div style={{ padding: '20px 24px' }}>
+      {/* Top Back Navigation Bar */}
+      <div
+        className="no-print"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          marginBottom: 16,
+          flexWrap: 'wrap',
+          gap: 12,
+        }}
+      >
+        <button
+          type="button"
+          onClick={handleBack}
+          className="btn btn-secondary"
+          id="btn-back-to-admin"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 8,
+            padding: '8px 16px',
+            fontSize: 13,
+            fontWeight: 700,
+            borderRadius: 8,
+            cursor: 'pointer',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+          }}
+          title="Kembali ke Menu Utama / Admin Panel"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12" />
+            <polyline points="12 19 5 12 12 5" />
+          </svg>
+          <span>Kembali ke Menu Utama</span>
+        </button>
+
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+          <Link
+            href="/dashboard"
+            className="btn btn-secondary"
+            style={{ fontSize: 12, padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+          >
+            <span>🏠 Dashboard</span>
+          </Link>
+          <Link
+            href="/stock"
+            className="btn btn-secondary"
+            style={{ fontSize: 12, padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+          >
+            <span>📦 Kelola Stok</span>
+          </Link>
+          <Link
+            href="/transaksi/penjualan"
+            className="btn btn-secondary"
+            style={{ fontSize: 12, padding: '6px 12px', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+          >
+            <span>🛒 Kasir Penjualan</span>
+          </Link>
+        </div>
+      </div>
+
       {/* Header Page */}
-      <div className="page-header">
-        <div>
-          <h1 className="page-title">🏷️ Database & Cetak Label Barcode</h1>
-          <p className="page-subtitle">
-            Cetak stiker barcode thermal roll (40x30mm & ukuran kustom) untuk produk toko kelontong & baju
-          </p>
+      <div className="page-header" style={{ marginBottom: 20 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <button
+            type="button"
+            onClick={handleBack}
+            className="btn btn-secondary"
+            style={{
+              width: 42,
+              height: 42,
+              borderRadius: 10,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: 0,
+              flexShrink: 0,
+              cursor: 'pointer',
+            }}
+            title="Kembali ke Menu Utama"
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <line x1="19" y1="12" x2="5" y2="12" />
+              <polyline points="12 19 5 12 12 5" />
+            </svg>
+          </button>
+          <div>
+            <h1 className="page-title" style={{ margin: 0 }}>🏷️ Database & Cetak Label Barcode</h1>
+            <p className="page-subtitle" style={{ margin: '4px 0 0 0' }}>
+              Cetak stiker barcode thermal roll (40x30mm & ukuran kustom) untuk produk toko kelontong & baju
+            </p>
+          </div>
         </div>
         <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           <button
