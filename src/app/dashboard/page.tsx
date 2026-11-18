@@ -416,19 +416,8 @@ export default function DashboardPage() {
 
                   return (
                     <tr key={p.idbarang || idx}>
-                      <td style={{ textAlign: 'center', fontWeight: 700, fontSize: 14 }}>
-                        <span
-                          style={{
-                            display: 'inline-block',
-                            minWidth: 26,
-                            padding: '2px 6px',
-                            borderRadius: 6,
-                            background: rank === 1 ? '#fef3c7' : rank === 2 ? '#f1f5f9' : rank === 3 ? '#ffedd5' : 'transparent',
-                            color: rank === 1 ? '#b45309' : rank === 2 ? '#475569' : rank === 3 ? '#c2410c' : 'inherit',
-                          }}
-                        >
-                          {medal}
-                        </span>
+                      <td style={{ textAlign: 'center', fontWeight: 700, fontSize: rank <= 3 ? 16 : 12, color: 'var(--text-secondary)' }}>
+                        {medal}
                       </td>
                       <td>
                         <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{p.nama_barang}</div>
@@ -439,37 +428,20 @@ export default function DashboardPage() {
                         )}
                       </td>
                       <td>
-                        <span
-                          style={{
-                            display: 'inline-block',
-                            padding: '3px 8px',
-                            borderRadius: 12,
-                            fontSize: 11,
-                            fontWeight: 500,
-                            background: 'var(--bg-secondary, #f1f5f9)',
-                            color: 'var(--text-primary)',
-                          }}
-                        >
+                        <span className="badge badge-info" style={{ fontSize: 11 }}>
                           {p.kategori || 'Tanpa Kategori'}
                         </span>
                       </td>
                       <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--primary, #1565c0)' }}>
                         {p.total_qty_terjual.toLocaleString('id-ID')} unit
                       </td>
-                      <td style={{ textAlign: 'right', fontWeight: 600 }}>
+                      <td style={{ textAlign: 'right', fontWeight: 600, color: 'var(--text-primary)' }}>
                         {formatRupiah(p.total_omset)}
                       </td>
                       <td style={{ textAlign: 'center' }}>
                         <span
-                          style={{
-                            display: 'inline-block',
-                            padding: '2px 8px',
-                            borderRadius: 6,
-                            fontSize: 11,
-                            fontWeight: 600,
-                            background: isOutOfStock ? '#fee2e2' : isLowStock ? '#fef3c7' : '#dcfce7',
-                            color: isOutOfStock ? '#dc2626' : isLowStock ? '#d97706' : '#16a34a',
-                          }}
+                          className={`badge ${isOutOfStock ? 'badge-error' : isLowStock ? 'badge-warning' : 'badge-success'}`}
+                          style={{ fontSize: 11 }}
                         >
                           {isOutOfStock ? 'Habis (0)' : `${p.sisa_stok} unit`}
                         </span>
