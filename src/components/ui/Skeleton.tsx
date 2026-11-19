@@ -38,7 +38,7 @@ export function Skeleton({
  * Skeleton table rows to preview tabular data before it loads
  */
 interface SkeletonTableProps {
-  columns: number | Array<{ width?: string; label?: string }>;
+  columns: number | Array<{ width?: string; label?: React.ReactNode }>;
   rows?: number;
   hasCheckbox?: boolean;
   hasActions?: boolean;

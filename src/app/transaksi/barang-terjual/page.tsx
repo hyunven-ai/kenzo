@@ -2,7 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import DataTable from '@/components/ui/DataTable';
-import { getPenjualan, cancelBarangTerjual, deleteBarangTerjual } from '@/lib/db';
+import {
+  getPenjualan,
+  cancelBarangTerjual,
+  deleteBarangTerjual,
+  bulkCancelBarangTerjual,
+  bulkDeleteBarangTerjual,
+} from '@/lib/db';
 import { formatRupiah, formatDateTime, today } from '@/lib/utils';
 import type { TrsPenjualanHdr, TrsPenjualanDtl } from '@/lib/types';
 import { getCurrentUser } from '@/lib/auth';
@@ -29,6 +35,8 @@ export default function BarangTerjualPage() {
   const [tempTo, setTempTo] = useState(today());
   const [search, setSearch] = useState('');
   const [cancellingId, setCancellingId] = useState<number | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Record<number, boolean>>({});
+  const [bulkProcessing, setBulkProcessing] = useState(false);
 
   const [visibleColumns, setVisibleColumns] = useState<Record<string, boolean>>({
     tanggal_penjualan: true,
@@ -48,6 +56,7 @@ export default function BarangTerjualPage() {
 
   const load = async (f: string, t: string) => {
     setLoading(true);
+    setSelectedIds({});
     try {
       const result = await getPenjualan(f, t);
       setRawSales(result);
@@ -63,6 +72,7 @@ export default function BarangTerjualPage() {
   }, []);
 
   const handleFilter = () => {
+    setSelectedIds({});
     setFrom(tempFrom);
     setTo(tempTo);
     load(tempFrom, tempTo);
@@ -70,6 +80,7 @@ export default function BarangTerjualPage() {
 
   const handleReset = () => {
     const f = today(), t = today();
+    setSelectedIds({});
     setTempFrom(f);
     setTempTo(t);
     setFrom(f);
@@ -181,7 +192,109 @@ export default function BarangTerjualPage() {
     return true;
   });
 
+  const selectedCount = Object.values(selectedIds).filter(Boolean).length;
+  const isAllSelected = filteredData.length > 0 && filteredData.every(item => selectedIds[item.id]);
+
+  const toggleSelect = (id: number) => {
+    setSelectedIds(prev => ({ ...prev, [id]: !prev[id] }));
+  };
+
+  const toggleSelectAll = (checked: boolean) => {
+    const updated: Record<number, boolean> = {};
+    if (checked) {
+      filteredData.forEach(item => {
+        updated[item.id] = true;
+      });
+    }
+    setSelectedIds(updated);
+  };
+
+  const handleDeselectAll = () => {
+    setSelectedIds({});
+  };
+
+  const handleBulkCancel = async () => {
+    const selectedItems = filteredData.filter(item => selectedIds[item.id]);
+    if (selectedItems.length === 0) return;
+
+    const totalQty = selectedItems.reduce((acc, cur) => acc + cur.qty, 0);
+    const totalNilai = selectedItems.reduce((acc, cur) => acc + cur.total_jual, 0);
+
+    const confirmation = confirm(
+      `BATAL JUAL MASAL (${selectedItems.length} ITEM TERPILIH)\n\n` +
+      `Total Kuantitas: ${totalQty} unit\n` +
+      `Total Nilai Penjualan: ${formatRupiah(totalNilai)}\n\n` +
+      `Semua barang terpilih akan DIKEMBALIKAN ke dalam stok fisik dan data penjualannya akan dihapus.\n\n` +
+      `Apakah Anda yakin ingin membatalkan penjualan item-item ini?`
+    );
+    if (!confirmation) return;
+
+    setBulkProcessing(true);
+    try {
+      await bulkCancelBarangTerjual(selectedItems);
+      alert(`Berhasil membatalkan penjualan ${selectedItems.length} barang. Stok telah dikembalikan.`);
+      setSelectedIds({});
+      load(from, to);
+    } catch (e: any) {
+      alert(e?.message || 'Gagal membatalkan penjualan masal');
+    } finally {
+      setBulkProcessing(false);
+    }
+  };
+
+  const handleBulkDelete = async () => {
+    const selectedItems = filteredData.filter(item => selectedIds[item.id]);
+    if (selectedItems.length === 0) return;
+
+    const totalQty = selectedItems.reduce((acc, cur) => acc + cur.qty, 0);
+    const totalNilai = selectedItems.reduce((acc, cur) => acc + cur.total_jual, 0);
+
+    const confirmation = confirm(
+      `HAPUS MASAL PERMANEN (${selectedItems.length} ITEM TERPILIH)\n\n` +
+      `Total Kuantitas: ${totalQty} unit\n` +
+      `Total Nilai Penjualan: ${formatRupiah(totalNilai)}\n\n` +
+      `PENTING: Barang TIDAK akan dikembalikan ke dalam stok. Data penjualan item terpilih akan dihapus secara PERMANEN.\n\n` +
+      `Apakah Anda yakin ingin menghapus data-data ini secara permanen?`
+    );
+    if (!confirmation) return;
+
+    setBulkProcessing(true);
+    try {
+      await bulkDeleteBarangTerjual(selectedItems);
+      alert(`Berhasil menghapus ${selectedItems.length} data barang terjual secara permanen.`);
+      setSelectedIds({});
+      load(from, to);
+    } catch (e: any) {
+      alert(e?.message || 'Gagal menghapus data penjualan masal');
+    } finally {
+      setBulkProcessing(false);
+    }
+  };
+
   const columns = [
+    {
+      key: 'select',
+      width: '42px',
+      label: (
+        <input
+          type="checkbox"
+          checked={isAllSelected}
+          onChange={(e) => toggleSelectAll(e.target.checked)}
+          title="Pilih / Lepas Semua Item"
+          style={{ cursor: 'pointer', width: 16, height: 16 }}
+          aria-label="Pilih Semua"
+        />
+      ),
+      render: (row: FlattenedSoldItem) => (
+        <input
+          type="checkbox"
+          checked={Boolean(selectedIds[row.id])}
+          onChange={() => toggleSelect(row.id)}
+          style={{ cursor: 'pointer', width: 16, height: 16 }}
+          aria-label={`Pilih ${row.nama_barang}`}
+        />
+      ),
+    },
     {
       key: 'tanggal_penjualan',
       label: 'Tanggal Penjualan',
@@ -283,12 +396,15 @@ export default function BarangTerjualPage() {
     const totalJualSum = sortedData.reduce((s, row) => s + row.total_jual, 0);
     const totalProfitSum = sortedData.reduce((s, row) => s + row.profit, 0);
 
-    const activeCols = columns.filter(col => col.key === 'actions' || (visibleColumns[col.key] ?? true));
-    const firstColKey = activeCols[0]?.key;
+    const activeCols = columns.filter(col => col.key === 'actions' || col.key === 'select' || (visibleColumns[col.key] ?? true));
+    const firstColKey = activeCols.find(c => c.key !== 'select')?.key;
 
     return (
       <tr style={{ fontWeight: 700, background: '#f8f9fa', borderTop: '2px solid #ccc' }}>
         {activeCols.map((col) => {
+          if (col.key === 'select') {
+            return <td key={col.key}></td>;
+          }
           if (col.key === firstColKey) {
             return <td key={col.key} style={{ color: '#222' }}>Total</td>;
           }
@@ -362,11 +478,102 @@ export default function BarangTerjualPage() {
         </div>
       </div>
 
+      {/* Bulk Action Toolbar */}
+      {selectedCount > 0 && (
+        <div
+          style={{
+            background: 'var(--bg-card, #1e293b)',
+            border: '1px solid #3b82f6',
+            borderRadius: 8,
+            padding: '12px 16px',
+            marginBottom: 16,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 12,
+            boxShadow: '0 4px 14px rgba(0,0,0,0.15)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <span
+              style={{
+                background: '#2563eb',
+                color: '#ffffff',
+                padding: '4px 12px',
+                borderRadius: 16,
+                fontSize: 12,
+                fontWeight: 700,
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+              }}
+            >
+              <span>✓</span>
+              <span>{selectedCount} Item Dipilih</span>
+            </span>
+            <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
+              Tindakan masal untuk item yang ditandai:
+            </span>
+          </div>
+
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              className="btn btn-outline btn-sm"
+              onClick={handleBulkCancel}
+              disabled={bulkProcessing}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                fontWeight: 600,
+                padding: '6px 14px',
+                borderColor: '#f59e0b',
+                color: '#f59e0b',
+              }}
+              title="Batalkan penjualan item terpilih dan kembalikan stoknya"
+            >
+              <span>🔄</span>
+              <span>{bulkProcessing ? 'Memproses...' : `Cancel Jual Terpilih (${selectedCount})`}</span>
+            </button>
+
+            <button
+              type="button"
+              className="btn btn-danger btn-sm"
+              onClick={handleBulkDelete}
+              disabled={bulkProcessing}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                fontWeight: 600,
+                padding: '6px 14px',
+              }}
+              title="Hapus data penjualan item terpilih secara permanen"
+            >
+              <span>🗑️</span>
+              <span>{bulkProcessing ? 'Memproses...' : `Hapus Terpilih (${selectedCount})`}</span>
+            </button>
+
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={handleDeselectAll}
+              disabled={bulkProcessing}
+              style={{ padding: '6px 12px', fontSize: 12 }}
+            >
+              Lepas Pilihan
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Data Table Card */}
       <div className="card">
         <DataTable
           data={filteredData}
-          columns={columns.filter(col => col.key === 'actions' || (visibleColumns[col.key] ?? true))}
+          columns={columns.filter(col => col.key === 'actions' || col.key === 'select' || (visibleColumns[col.key] ?? true))}
           loading={loading}
           renderFooter={renderTableFooter}
           extraActions={

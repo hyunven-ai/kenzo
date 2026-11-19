@@ -8,7 +8,7 @@ import { findTypoSuggestion } from '@/lib/searchUtils';
 
 interface Column<T> {
   key: string;
-  label: string;
+  label: React.ReactNode;
   render?: (row: T) => React.ReactNode;
   width?: string;
 }
@@ -228,7 +228,13 @@ export default function DataTable<T extends object>({
             <tr>
               <th style={{ width: 40 }}>#</th>
               {columns.map(col => {
-                const isSortable = col.key !== 'actions' && col.key !== 'action' && col.label.toLowerCase() !== 'aksi' && col.label.toLowerCase() !== 'actions';
+                const isSortable =
+                  typeof col.label === 'string' &&
+                  col.key !== 'actions' &&
+                  col.key !== 'action' &&
+                  col.key !== 'select' &&
+                  col.label.toLowerCase() !== 'aksi' &&
+                  col.label.toLowerCase() !== 'actions';
                 const isSorted = sortKey === col.key;
                 return (
                   <th
@@ -259,7 +265,7 @@ export default function DataTable<T extends object>({
               <SkeletonTable
                 columns={columns}
                 rows={Math.min(pageSize, 5)}
-                hasActions={columns.some(c => c.key === 'actions' || c.label.toLowerCase() === 'aksi')}
+                hasActions={columns.some(c => c.key === 'actions' || (typeof c.label === 'string' && c.label.toLowerCase() === 'aksi'))}
               />
             ) : error ? (
               /* State 3: Error State - What went wrong, whose fault, and how to fix it */

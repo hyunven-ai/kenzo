@@ -619,6 +619,74 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true });
     }
 
+    if (action === 'bulkCancelBarangTerjual') {
+      const ids: number[] = Array.isArray(payload.ids) ? payload.ids.map(Number).filter(Boolean) : [];
+      if (ids.length === 0) return NextResponse.json({ ok: true, count: 0 });
+
+      const dtls = await sql`SELECT * FROM public.trs_penjualan_dtl WHERE id = ANY(${ids}::int[]);`;
+      const affectedHdrIds = new Set<number>();
+
+      for (const dtl of dtls) {
+        const { idhdr, idbarang, code, qty } = dtl;
+        if (idhdr) affectedHdrIds.add(idhdr);
+        // Kembalikan stok ke ms_barang
+        if (idbarang || code) {
+          await sql`
+            UPDATE public.ms_barang 
+            SET qty = qty + ${qty || 1}, update_time = now()
+            WHERE id = ${idbarang} OR barcode = ${code};
+          `;
+        }
+      }
+
+      await sql`DELETE FROM public.trs_penjualan_dtl WHERE id = ANY(${ids}::int[]);`;
+
+      for (const idhdr of affectedHdrIds) {
+        const remaining = await sql`SELECT id, harga_jual, qty FROM public.trs_penjualan_dtl WHERE idhdr = ${idhdr};`;
+        if (remaining.length === 0) {
+          await sql`DELETE FROM public.trs_penjualan_hdr WHERE id = ${idhdr};`;
+        } else {
+          const newTotal = remaining.reduce((sum, r) => sum + (Number(r.harga_jual) * Number(r.qty)), 0);
+          await sql`
+            UPDATE public.trs_penjualan_hdr 
+            SET total_harga = ${newTotal}, update_time = now() 
+            WHERE id = ${idhdr};
+          `;
+        }
+      }
+
+      return NextResponse.json({ ok: true, count: dtls.length });
+    }
+
+    if (action === 'bulkDeleteBarangTerjual') {
+      const ids: number[] = Array.isArray(payload.ids) ? payload.ids.map(Number).filter(Boolean) : [];
+      if (ids.length === 0) return NextResponse.json({ ok: true, count: 0 });
+
+      const dtls = await sql`SELECT id, idhdr FROM public.trs_penjualan_dtl WHERE id = ANY(${ids}::int[]);`;
+      const affectedHdrIds = new Set<number>();
+      for (const dtl of dtls) {
+        if (dtl.idhdr) affectedHdrIds.add(dtl.idhdr);
+      }
+
+      await sql`DELETE FROM public.trs_penjualan_dtl WHERE id = ANY(${ids}::int[]);`;
+
+      for (const idhdr of affectedHdrIds) {
+        const remaining = await sql`SELECT id, harga_jual, qty FROM public.trs_penjualan_dtl WHERE idhdr = ${idhdr};`;
+        if (remaining.length === 0) {
+          await sql`DELETE FROM public.trs_penjualan_hdr WHERE id = ${idhdr};`;
+        } else {
+          const newTotal = remaining.reduce((sum, r) => sum + (Number(r.harga_jual) * Number(r.qty)), 0);
+          await sql`
+            UPDATE public.trs_penjualan_hdr 
+            SET total_harga = ${newTotal}, update_time = now() 
+            WHERE id = ${idhdr};
+          `;
+        }
+      }
+
+      return NextResponse.json({ ok: true, count: dtls.length });
+    }
+
     if (action === 'updatePenjualanHeader') {
       const res = await sql`
         UPDATE public.trs_penjualan_hdr

@@ -1315,6 +1315,73 @@ export async function deleteBarangTerjual(detailId: number) {
   } catch {}
 }
 
+export async function bulkCancelBarangTerjual(items: { id: number; idbarang: number; kategori: string; qty: number; code?: string; nama_barang?: string }[]) {
+  if (!items || items.length === 0) return;
+
+  const onlineItems = items.filter(i => i.id > 0);
+  const offlineItems = items.filter(i => i.id < 0);
+
+  // 1. Process offline local sales
+  for (const off of offlineItems) {
+    await cancelBarangTerjual(off.id);
+  }
+
+  // 2. Process online cloud sales via Neon batch API
+  if (onlineItems.length > 0) {
+    const ids = onlineItems.map(i => i.id);
+    let neonSucceeded = false;
+    try {
+      const res = await callNeonApi('bulkCancelBarangTerjual', { ids }, 'POST');
+      if (res) neonSucceeded = true;
+    } catch {}
+
+    // Fallback: if neon bulk API failed, loop individually through fallback
+    if (!neonSucceeded) {
+      for (const item of onlineItems) {
+        await cancelBarangTerjual(item.id);
+      }
+    } else {
+      // Local inventory cache update
+      for (const item of onlineItems) {
+        await tambahStok(item.idbarang, item.kategori, item.qty);
+      }
+    }
+  }
+
+  await writeLog('DELETE', 'trs_penjualan_dtl', `Batal terjual masal: ${items.length} item`);
+}
+
+export async function bulkDeleteBarangTerjual(items: { id: number; idbarang: number; kategori: string; qty: number; code?: string; nama_barang?: string }[]) {
+  if (!items || items.length === 0) return;
+
+  const onlineItems = items.filter(i => i.id > 0);
+  const offlineItems = items.filter(i => i.id < 0);
+
+  // 1. Process offline local sales
+  for (const off of offlineItems) {
+    await deleteBarangTerjual(off.id);
+  }
+
+  // 2. Process online cloud sales via Neon batch API
+  if (onlineItems.length > 0) {
+    const ids = onlineItems.map(i => i.id);
+    let neonSucceeded = false;
+    try {
+      const res = await callNeonApi('bulkDeleteBarangTerjual', { ids }, 'POST');
+      if (res) neonSucceeded = true;
+    } catch {}
+
+    // Fallback
+    if (!neonSucceeded) {
+      for (const item of onlineItems) {
+        await deleteBarangTerjual(item.id);
+      }
+    }
+  }
+
+  await writeLog('DELETE', 'trs_penjualan_dtl', `Hapus permanen barang terjual masal: ${items.length} item`);
+}
+
 export async function updatePenjualanHeader(id: number, payload: Partial<TrsPenjualanHdr>) {
   if (id < 0) {
     const localSales = getOfflineSales();
