@@ -2406,4 +2406,103 @@ html.dark .search-suggestion-bar {
   padding: 0 4px;
 }
 
+/* ============================================
+   PRINTER & RECEIPT SETTINGS RESPONSIVE STYLES
+   ============================================ */
+.receipt-settings-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(320px, 0.75fr);
+  gap: 24px;
+  align-items: start;
+  width: 100%;
+}
+
+.receipt-mobile-tabs {
+  display: none;
+}
+
+.receipt-col-form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 0;
+  width: 100%;
+}
+
+.receipt-col-preview {
+  display: block;
+  min-width: 0;
+  width: 100%;
+}
+
+.receipt-preview-sticky {
+  position: sticky;
+  top: 20px;
+}
+
+.receipt-mobile-only-btn {
+  display: none !important;
+}
+
+@media (max-width: 991px) {
+  .receipt-settings-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .receipt-mobile-tabs {
+    display: flex;
+    gap: 6px;
+    background: var(--bg-card, #1e293b);
+    border: 1px solid var(--border-light, #334155);
+    padding: 4px;
+    border-radius: 10px;
+    margin-bottom: 16px;
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .receipt-mobile-tab-btn {
+    flex: 1;
+    min-width: 90px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    border: none;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    background: transparent;
+    color: var(--text-secondary, #94a3b8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    white-space: nowrap;
+    transition: all 0.15s ease;
+  }
+
+  .receipt-mobile-tab-btn.active {
+    background: #e53935;
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(229, 57, 53, 0.35);
+  }
+
+  .receipt-col-form.mobile-hidden,
+  .receipt-col-preview.mobile-hidden {
+    display: none !important;
+  }
+
+  .receipt-preview-sticky {
+    position: static !important;
+    top: unset !important;
+  }
+
+  .receipt-mobile-only-btn {
+    display: inline-flex !important;
+  }
+}
+
+
 

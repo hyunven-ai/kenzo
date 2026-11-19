@@ -28,6 +28,7 @@ import Modal from '@/components/ui/Modal';
 export default function PrinterSettingsPage() {
   const [settings, setSettings] = useState<PrinterSettings>(DEFAULT_PRINTER_SETTINGS);
   const [activeTab, setActiveTab] = useState<'devices' | 'receipt'>('devices');
+  const [receiptMobileTab, setReceiptMobileTab] = useState<'form' | 'preview' | 'all'>('form');
   const [savedSuccess, setSavedSuccess] = useState<string | null>(null);
   const [testPrintActive, setTestPrintActive] = useState(false);
   const [btPrinter, setBtPrinter] = useState<BluetoothPrinterInfo | null>(null);
@@ -299,7 +300,7 @@ export default function PrinterSettingsPage() {
             Kelola printer Bluetooth, Wi-Fi/LAN, dan USB serta sesuaikan identitas struk belanja.
           </p>
         </div>
-        <div style={{ display: 'flex', gap: 10 }}>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
           <button
             type="button"
             className="btn btn-secondary"
@@ -323,7 +324,10 @@ export default function PrinterSettingsPage() {
         display: 'flex',
         gap: 8,
         borderBottom: '1px solid var(--border-light)',
-        marginBottom: 20
+        marginBottom: 20,
+        overflowX: 'auto',
+        WebkitOverflowScrolling: 'touch',
+        scrollbarWidth: 'none',
       }}>
         <button
           type="button"
@@ -335,11 +339,13 @@ export default function PrinterSettingsPage() {
             cursor: 'pointer',
             fontSize: 14,
             fontWeight: 600,
+            whiteSpace: 'nowrap',
             color: activeTab === 'devices' ? '#e53935' : 'var(--text-secondary)',
             borderBottom: activeTab === 'devices' ? '2px solid #e53935' : '2px solid transparent',
             display: 'flex',
             alignItems: 'center',
-            gap: 6
+            gap: 6,
+            flexShrink: 0
           }}
         >
           <span>🖨️</span>
@@ -356,11 +362,13 @@ export default function PrinterSettingsPage() {
             cursor: 'pointer',
             fontSize: 14,
             fontWeight: 600,
+            whiteSpace: 'nowrap',
             color: activeTab === 'receipt' ? '#e53935' : 'var(--text-secondary)',
             borderBottom: activeTab === 'receipt' ? '2px solid #e53935' : '2px solid transparent',
             display: 'flex',
             alignItems: 'center',
-            gap: 6
+            gap: 6,
+            flexShrink: 0
           }}
         >
           <span>📄</span>
@@ -566,7 +574,7 @@ export default function PrinterSettingsPage() {
             </div>
           ) : (
             /* LIST OF ADDED PRINTERS */
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 16 }}>
               {settings.devices.map(device => (
                 <div
                   key={device.id}
@@ -754,594 +762,662 @@ export default function PrinterSettingsPage() {
 
       {/* TAB 2: FORMAT & IDENTITAS STRUK */}
       {activeTab === 'receipt' && (
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'minmax(350px, 1.2fr) minmax(320px, 0.8fr)',
-          gap: 24,
-          alignItems: 'start'
-        }}>
-          {/* Form settings */}
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+        <div style={{ width: '100%' }}>
+          {/* Mobile sub-tabs (Visible on mobile/tablet < 992px) */}
+          <div className="receipt-mobile-tabs" role="tablist" aria-label="Navigasi Pengaturan Struk">
+            <button
+              type="button"
+              className={`receipt-mobile-tab-btn ${receiptMobileTab === 'form' ? 'active' : ''}`}
+              onClick={() => setReceiptMobileTab('form')}
+            >
+              <span>⚙️</span>
+              <span>Edit Format</span>
+            </button>
+            <button
+              type="button"
+              className={`receipt-mobile-tab-btn ${receiptMobileTab === 'preview' ? 'active' : ''}`}
+              onClick={() => setReceiptMobileTab('preview')}
+            >
+              <span>👁️</span>
+              <span>Live Preview ({settings.paperWidth})</span>
+            </button>
+            <button
+              type="button"
+              className={`receipt-mobile-tab-btn ${receiptMobileTab === 'all' ? 'active' : ''}`}
+              onClick={() => setReceiptMobileTab('all')}
+            >
+              <span>📑</span>
+              <span>Keduanya</span>
+            </button>
+          </div>
 
-            {/* Ukuran Kertas */}
-            <div className="card">
-              <div className="card-header">
-                <span className="card-title">📐 Ukuran Kertas Default</span>
-              </div>
-              <div className="card-body">
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                  <label style={{
-                    border: settings.paperWidth === '58mm' ? '2px solid #e53935' : '1px solid var(--border-light)',
-                    borderRadius: 8,
-                    padding: '12px 14px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 4,
-                    cursor: 'pointer',
-                    background: settings.paperWidth === '58mm' ? 'rgba(229,57,53,0.08)' : 'var(--bg-card)'
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <input
-                        type="radio"
-                        name="paperWidth"
-                        value="58mm"
-                        checked={settings.paperWidth === '58mm'}
-                        onChange={() => handleChange('paperWidth', '58mm')}
-                      />
-                      <strong style={{ fontSize: 14, color: 'var(--text-primary)' }}>58 mm (POS-58)</strong>
-                    </div>
-                    <span style={{ fontSize: 12, color: 'var(--text-secondary)', paddingLeft: 24 }}>
-                      Standar printer kasir mini/thermal (lebar print 48mm).
-                    </span>
-                  </label>
+          <div className="receipt-settings-layout">
+            {/* Form settings */}
+            <div
+              className={`receipt-col-form ${receiptMobileTab !== 'form' && receiptMobileTab !== 'all' ? 'mobile-hidden' : ''}`}
+            >
 
-                  <label style={{
-                    border: settings.paperWidth === '80mm' ? '2px solid #e53935' : '1px solid var(--border-light)',
-                    borderRadius: 8,
-                    padding: '12px 14px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: 4,
-                    cursor: 'pointer',
-                    background: settings.paperWidth === '80mm' ? 'rgba(229,57,53,0.08)' : 'var(--bg-card)'
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <input
-                        type="radio"
-                        name="paperWidth"
-                        value="80mm"
-                        checked={settings.paperWidth === '80mm'}
-                        onChange={() => handleChange('paperWidth', '80mm')}
-                      />
-                      <strong style={{ fontSize: 14, color: 'var(--text-primary)' }}>80 mm (POS-80)</strong>
-                    </div>
-                    <span style={{ fontSize: 12, color: 'var(--text-secondary)', paddingLeft: 24 }}>
-                      Printer kasir ukuran sedang/lebar (lebar print 72mm).
-                    </span>
-                  </label>
+              {/* Ukuran Kertas */}
+              <div className="card">
+                <div className="card-header">
+                  <span className="card-title">📐 Ukuran Kertas Default</span>
                 </div>
+                <div className="card-body">
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(135px, 1fr))', gap: 12 }}>
+                    <label style={{
+                      border: settings.paperWidth === '58mm' ? '2px solid #e53935' : '1px solid var(--border-light)',
+                      borderRadius: 8,
+                      padding: '12px 14px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 4,
+                      cursor: 'pointer',
+                      background: settings.paperWidth === '58mm' ? 'rgba(229,57,53,0.08)' : 'var(--bg-card)'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <input
+                          type="radio"
+                          name="paperWidth"
+                          value="58mm"
+                          checked={settings.paperWidth === '58mm'}
+                          onChange={() => handleChange('paperWidth', '58mm')}
+                        />
+                        <strong style={{ fontSize: 14, color: 'var(--text-primary)' }}>58 mm (POS-58)</strong>
+                      </div>
+                      <span style={{ fontSize: 11.5, color: 'var(--text-secondary)', paddingLeft: 22, lineHeight: 1.35 }}>
+                        Standar printer kasir mini/thermal (lebar print 48mm).
+                      </span>
+                    </label>
 
-                {/* Kalibrasi Margin POS-58 jika teks terpotong */}
-                {settings.paperWidth === '58mm' && (
+                    <label style={{
+                      border: settings.paperWidth === '80mm' ? '2px solid #e53935' : '1px solid var(--border-light)',
+                      borderRadius: 8,
+                      padding: '12px 14px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 4,
+                      cursor: 'pointer',
+                      background: settings.paperWidth === '80mm' ? 'rgba(229,57,53,0.08)' : 'var(--bg-card)'
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <input
+                          type="radio"
+                          name="paperWidth"
+                          value="80mm"
+                          checked={settings.paperWidth === '80mm'}
+                          onChange={() => handleChange('paperWidth', '80mm')}
+                        />
+                        <strong style={{ fontSize: 14, color: 'var(--text-primary)' }}>80 mm (POS-80)</strong>
+                      </div>
+                      <span style={{ fontSize: 11.5, color: 'var(--text-secondary)', paddingLeft: 22, lineHeight: 1.35 }}>
+                        Printer kasir ukuran sedang/lebar (lebar print 72mm).
+                      </span>
+                    </label>
+                  </div>
+
+                  {/* Kalibrasi Margin POS-58 jika teks terpotong */}
+                  {settings.paperWidth === '58mm' && (
+                    <div style={{
+                      marginTop: 16,
+                      padding: '12px 14px',
+                      background: 'var(--bg-elevated, #24242c)',
+                      border: '1px solid var(--border-light, #2e2e36)',
+                      borderRadius: 8,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: 12
+                    }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
+                          🎯 Kalibrasi Posisi Cetak POS-58 (Cegah Teks/Harga Terpotong)
+                        </span>
+                        <span className="badge badge-info" style={{ fontSize: 10 }}>Presisi Kasir</span>
+                      </div>
+                      <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.4 }}>
+                        Jika hasil cetak struk terpotong di tepi kiri atau kanan karena perbedaan celah roll printer, Anda dapat menyesuaikan margin di bawah ini:
+                      </p>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
+                        <div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
+                              Margin Kiri (Geser Kiri / Kanan)
+                            </label>
+                            <span style={{ fontSize: 12, fontWeight: 700, color: '#e53935' }}>
+                              {settings.receiptMarginLeftMm ?? 7.0} mm
+                            </span>
+                          </div>
+                          <input
+                            type="range"
+                            min="0"
+                            max="12"
+                            step="0.5"
+                            value={settings.receiptMarginLeftMm ?? 7.0}
+                            onChange={e => handleChange('receiptMarginLeftMm', parseFloat(e.target.value))}
+                            style={{ width: '100%', cursor: 'pointer' }}
+                          />
+                          <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>
+                            Geser ke kanan jika huruf kiri (misal: "Pembeli", "Total") terpotong. (Rekomendasi: 7.0 mm)
+                          </div>
+                        </div>
+
+                        <div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
+                              Lebar Area Cetak
+                            </label>
+                            <span style={{ fontSize: 12, fontWeight: 700, color: '#e53935' }}>
+                              {settings.receiptWidthMm ?? 42.0} mm
+                            </span>
+                          </div>
+                          <input
+                            type="range"
+                            min="36"
+                            max="48"
+                            step="0.5"
+                            value={settings.receiptWidthMm ?? 42.0}
+                            onChange={e => handleChange('receiptWidthMm', parseFloat(e.target.value))}
+                            style={{ width: '100%', cursor: 'pointer' }}
+                          />
+                          <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>
+                            Kecilkan jika angka harga di ujung kanan terpotong. (Rekomendasi: 42.0 mm)
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Identitas Toko & Logo Struk */}
+              <div className="card">
+                <div className="card-header">
+                  <span className="card-title">🏪 Identitas Toko & Logo di Struk</span>
+                </div>
+                <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+                  {/* Opsi Tampilkan Logo & Box CRUD Logo */}
                   <div style={{
-                    marginTop: 16,
-                    padding: '12px 14px',
                     background: 'var(--bg-elevated, #24242c)',
                     border: '1px solid var(--border-light, #2e2e36)',
                     borderRadius: 8,
+                    padding: 14,
                     display: 'flex',
                     flexDirection: 'column',
                     gap: 12
                   }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
-                        🎯 Kalibrasi Posisi Cetak POS-58 (Cegah Teks/Harga Terpotong)
+                    {/* Toggle Tampilkan Logo */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', margin: 0 }}>
+                        <input
+                          type="checkbox"
+                          checked={settings.showLogo}
+                          onChange={e => handleChange('showLogo', e.target.checked)}
+                          style={{ width: 18, height: 18, cursor: 'pointer' }}
+                          id="checkbox-show-logo"
+                        />
+                        <div>
+                          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
+                            Tampilkan Logo di Bagian Atas Struk
+                          </span>
+                          <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>
+                            {settings.showLogo ? 'Logo aktif dan akan dicetak pada struk' : 'Logo disembunyikan (struk hanya menampilkan teks nama toko)'}
+                          </div>
+                        </div>
+                      </label>
+
+                      <span className={`badge ${settings.showLogo ? 'badge-success' : 'badge-gray'}`} style={{ fontSize: 10 }}>
+                        {settings.showLogo ? 'Aktif' : 'Nonaktif'}
                       </span>
-                      <span className="badge badge-info" style={{ fontSize: 10 }}>Presisi Kasir</span>
                     </div>
-                    <p style={{ fontSize: 12, color: 'var(--text-secondary)', margin: 0, lineHeight: 1.4 }}>
-                      Jika hasil cetak struk terpotong di tepi kiri atau kanan karena perbedaan celah roll printer, Anda dapat menyesuaikan margin di bawah ini:
-                    </p>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                      <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                          <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
-                            Margin Kiri (Geser Kiri / Kanan)
-                          </label>
-                          <span style={{ fontSize: 12, fontWeight: 700, color: '#e53935' }}>
-                            {settings.receiptMarginLeftMm ?? 7.0} mm
-                          </span>
-                        </div>
-                        <input
-                          type="range"
-                          min="0"
-                          max="12"
-                          step="0.5"
-                          value={settings.receiptMarginLeftMm ?? 7.0}
-                          onChange={e => handleChange('receiptMarginLeftMm', parseFloat(e.target.value))}
-                          style={{ width: '100%', cursor: 'pointer' }}
-                        />
-                        <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>
-                          Geser ke kanan jika huruf kiri (misal: "Pembeli", "Total") terpotong. (Rekomendasi: 7.0 mm)
-                        </div>
-                      </div>
-
-                      <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
-                          <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>
-                            Lebar Area Cetak
-                          </label>
-                          <span style={{ fontSize: 12, fontWeight: 700, color: '#e53935' }}>
-                            {settings.receiptWidthMm ?? 42.0} mm
-                          </span>
-                        </div>
-                        <input
-                          type="range"
-                          min="36"
-                          max="48"
-                          step="0.5"
-                          value={settings.receiptWidthMm ?? 42.0}
-                          onChange={e => handleChange('receiptWidthMm', parseFloat(e.target.value))}
-                          style={{ width: '100%', cursor: 'pointer' }}
-                        />
-                        <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>
-                          Kecilkan jika angka harga di ujung kanan terpotong. (Rekomendasi: 42.0 mm)
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Identitas Toko & Logo Struk */}
-            <div className="card">
-              <div className="card-header">
-                <span className="card-title">🏪 Identitas Toko & Logo di Struk</span>
-              </div>
-              <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-
-                {/* Opsi Tampilkan Logo & Box CRUD Logo */}
-                <div style={{
-                  background: 'var(--bg-elevated, #24242c)',
-                  border: '1px solid var(--border-light, #2e2e36)',
-                  borderRadius: 8,
-                  padding: 14,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  gap: 12
-                }}>
-                  {/* Toggle Tampilkan Logo */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', margin: 0 }}>
-                      <input
-                        type="checkbox"
-                        checked={settings.showLogo}
-                        onChange={e => handleChange('showLogo', e.target.checked)}
-                        style={{ width: 18, height: 18, cursor: 'pointer' }}
-                        id="checkbox-show-logo"
-                      />
-                      <div>
-                        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
-                          Tampilkan Logo di Bagian Atas Struk
-                        </span>
-                        <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>
-                          {settings.showLogo ? 'Logo aktif dan akan dicetak pada struk' : 'Logo disembunyikan (struk hanya menampilkan teks nama toko)'}
-                        </div>
-                      </div>
-                    </label>
-
-                    <span className={`badge ${settings.showLogo ? 'badge-success' : 'badge-gray'}`} style={{ fontSize: 10 }}>
-                      {settings.showLogo ? 'Aktif' : 'Nonaktif'}
-                    </span>
-                  </div>
-
-                  {/* Panel Kelola (CRUD) Logo */}
-                  <div style={{
-                    borderTop: '1px solid var(--border-light, #2a2a32)',
-                    paddingTop: 12,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 16,
-                    flexWrap: 'wrap'
-                  }}>
-                    {/* Thumbnail Preview */}
+                    {/* Panel Kelola (CRUD) Logo */}
                     <div style={{
-                      width: 76,
-                      height: 76,
-                      borderRadius: 8,
-                      background: '#ffffff',
-                      border: '2px solid var(--border-light, #3f3f46)',
+                      borderTop: '1px solid var(--border-light, #2a2a32)',
+                      paddingTop: 12,
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: 'center',
-                      padding: 4,
-                      flexShrink: 0,
-                      position: 'relative',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+                      gap: 16,
+                      flexWrap: 'wrap'
                     }}>
-                      {(settings.logoUrl || '/logo-struk.png') ? (
-                        <img
-                          src={settings.logoUrl || '/logo-struk.png'}
-                          alt="Logo Preview"
-                          style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
-                        />
-                      ) : (
-                        <span style={{ fontSize: 10, color: '#999', textAlign: 'center' }}>Tanpa Logo</span>
-                      )}
-                    </div>
-
-                    {/* Controls & Status */}
-                    <div style={{ flex: 1, minWidth: 220, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>Status Logo:</span>
-                        <span className={`badge badge-sm ${settings.logoUrl && settings.logoUrl !== '/logo-struk.png' ? 'badge-primary' : 'badge-info'}`} style={{ fontSize: 9 }}>
-                          {settings.logoUrl && settings.logoUrl !== '/logo-struk.png' ? '🎨 Custom Logo Toko' : '🏷️ Logo Standar'}
-                        </span>
-                      </div>
-
-                      {/* Action buttons (CRUD) */}
-                      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
-                        <input
-                          type="file"
-                          ref={logoInputRef}
-                          accept="image/png, image/jpeg, image/jpg, image/webp"
-                          style={{ display: 'none' }}
-                          onChange={handleLogoUpload}
-                          id="file-input-logo"
-                        />
-                        <button
-                          type="button"
-                          className="btn btn-primary btn-sm"
-                          onClick={() => logoInputRef.current?.click()}
-                          style={{ fontSize: 11, padding: '5px 12px', display: 'flex', alignItems: 'center', gap: 5 }}
-                          id="btn-upload-logo"
-                        >
-                          📷 {settings.logoUrl && settings.logoUrl !== '/logo-struk.png' ? 'Ganti Logo' : 'Upload Logo Baru'}
-                        </button>
-
-                        {settings.logoUrl && settings.logoUrl !== '/logo-struk.png' && (
-                          <button
-                            type="button"
-                            className="btn btn-secondary btn-sm"
-                            onClick={handleResetLogoToDefault}
-                            style={{ fontSize: 11, padding: '5px 10px' }}
-                            title="Kembalikan ke logo standar"
-                            id="btn-reset-logo"
-                          >
-                            🔄 Reset Logo Standar
-                          </button>
-                        )}
-
-                        {settings.logoUrl && (
-                          <button
-                            type="button"
-                            className="btn btn-outline btn-sm"
-                            onClick={handleRemoveLogo}
-                            style={{ fontSize: 11, padding: '5px 10px', color: '#ef5350', borderColor: '#ef5350' }}
-                            title="Hapus logo dari struk"
-                            id="btn-remove-logo"
-                          >
-                            🗑️ Hapus Logo
-                          </button>
+                      {/* Thumbnail Preview */}
+                      <div style={{
+                        width: 76,
+                        height: 76,
+                        borderRadius: 8,
+                        background: '#ffffff',
+                        border: '2px solid var(--border-light, #3f3f46)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: 4,
+                        flexShrink: 0,
+                        position: 'relative',
+                        boxShadow: '0 2px 8px rgba(0,0,0,0.15)'
+                      }}>
+                        {(settings.logoUrl || '/logo-struk.png') ? (
+                          <img
+                            src={settings.logoUrl || '/logo-struk.png'}
+                            alt="Logo Preview"
+                            style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+                          />
+                        ) : (
+                          <span style={{ fontSize: 10, color: '#999', textAlign: 'center' }}>Tanpa Logo</span>
                         )}
                       </div>
 
-                      <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 2 }}>
-                        Format disarankan: PNG transparan atau JPG monokrom (rasio persegi, otomatis dioptimasi).
+                      {/* Controls & Status */}
+                      <div style={{ flex: 1, minWidth: 'min(200px, 100%)', display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>Status Logo:</span>
+                          <span className={`badge badge-sm ${settings.logoUrl && settings.logoUrl !== '/logo-struk.png' ? 'badge-primary' : 'badge-info'}`} style={{ fontSize: 9 }}>
+                            {settings.logoUrl && settings.logoUrl !== '/logo-struk.png' ? '🎨 Custom Logo Toko' : '🏷️ Logo Standar'}
+                          </span>
+                        </div>
+
+                        {/* Action buttons (CRUD) */}
+                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 4 }}>
+                          <input
+                            type="file"
+                            ref={logoInputRef}
+                            accept="image/png, image/jpeg, image/jpg, image/webp"
+                            style={{ display: 'none' }}
+                            onChange={handleLogoUpload}
+                            id="file-input-logo"
+                          />
+                          <button
+                            type="button"
+                            className="btn btn-primary btn-sm"
+                            onClick={() => logoInputRef.current?.click()}
+                            style={{ fontSize: 11, padding: '5px 12px', display: 'flex', alignItems: 'center', gap: 5 }}
+                            id="btn-upload-logo"
+                          >
+                            📷 {settings.logoUrl && settings.logoUrl !== '/logo-struk.png' ? 'Ganti Logo' : 'Upload Logo Baru'}
+                          </button>
+
+                          {settings.logoUrl && settings.logoUrl !== '/logo-struk.png' && (
+                            <button
+                              type="button"
+                              className="btn btn-secondary btn-sm"
+                              onClick={handleResetLogoToDefault}
+                              style={{ fontSize: 11, padding: '5px 10px' }}
+                              title="Kembalikan ke logo standar"
+                              id="btn-reset-logo"
+                            >
+                              🔄 Reset Logo Standar
+                            </button>
+                          )}
+
+                          {settings.logoUrl && (
+                            <button
+                              type="button"
+                              className="btn btn-outline btn-sm"
+                              onClick={handleRemoveLogo}
+                              style={{ fontSize: 11, padding: '5px 10px', color: '#ef5350', borderColor: '#ef5350' }}
+                              title="Hapus logo dari struk"
+                              id="btn-remove-logo"
+                            >
+                              🗑️ Hapus Logo
+                            </button>
+                          )}
+                        </div>
+
+                        <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 2 }}>
+                          Format disarankan: PNG transparan atau JPG monokrom (rasio persegi, otomatis dioptimasi).
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="form-group">
-                  <label className="form-label">Nama Toko</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={settings.shopName}
-                    onChange={e => handleChange('shopName', e.target.value)}
-                    placeholder="Kenzo / Nama Toko Anda"
-                  />
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
                   <div className="form-group">
-                    <label className="form-label">Alamat Baris 1</label>
+                    <label className="form-label">Nama Toko</label>
                     <input
                       type="text"
                       className="form-control"
-                      value={settings.addressLine1}
-                      onChange={e => handleChange('addressLine1', e.target.value)}
-                      placeholder="Jalan Pasar Beringin no.05"
+                      value={settings.shopName}
+                      onChange={e => handleChange('shopName', e.target.value)}
+                      placeholder="Kenzo / Nama Toko Anda"
                     />
                   </div>
-                  <div className="form-group">
-                    <label className="form-label">Alamat Baris 2</label>
-                    <input
-                      type="text"
-                      className="form-control"
-                      value={settings.addressLine2}
-                      onChange={e => handleChange('addressLine2', e.target.value)}
-                      placeholder="SUNGAI PINYUH"
-                    />
-                  </div>
-                </div>
 
-                <div className="form-group">
-                  <label className="form-label">Nomor WhatsApp Toko</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={settings.whatsappNumber}
-                    onChange={e => handleChange('whatsappNumber', e.target.value)}
-                    placeholder="0812-5866-6628"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Media Sosial */}
-            <div className="card">
-              <div className="card-header">
-                <span className="card-title">📱 Media Sosial di Struk</span>
-              </div>
-              <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={settings.showSocialMedia}
-                    onChange={e => handleChange('showSocialMedia', e.target.checked)}
-                    style={{ width: 18, height: 18, cursor: 'pointer' }}
-                  />
-                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Tampilkan baris ikon media sosial</span>
-                </label>
-
-                {settings.showSocialMedia && (
-                  <>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
                     <div className="form-group">
-                      <label className="form-label">Akun Facebook</label>
-                      <textarea
+                      <label className="form-label">Alamat Baris 1</label>
+                      <input
+                        type="text"
                         className="form-control"
-                        rows={2}
-                        value={settings.facebookName}
-                        onChange={e => handleChange('facebookName', e.target.value)}
-                        placeholder="MArr LinDa&#10;Vierry Kien'z"
-                        style={{ height: 'auto', minHeight: 60 }}
+                        value={settings.addressLine1}
+                        onChange={e => handleChange('addressLine1', e.target.value)}
+                        placeholder="Jalan Pasar Beringin no.05"
                       />
                     </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                      <div className="form-group">
-                        <label className="form-label">Akun Instagram</label>
-                        <input
-                          type="text"
-                          className="form-control"
-                          value={settings.instagramName}
-                          onChange={e => handleChange('instagramName', e.target.value)}
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label className="form-label">Akun TikTok</label>
-                        <input
-                          type="text"
-                          className="form-control"
-                          value={settings.tiktokName}
-                          onChange={e => handleChange('tiktokName', e.target.value)}
-                        />
-                      </div>
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-
-            {/* Catatan & Footer */}
-            <div className="card">
-              <div className="card-header">
-                <span className="card-title">📝 Catatan & Footer Struk</span>
-              </div>
-              <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={settings.showImei}
-                    onChange={e => handleChange('showImei', e.target.checked)}
-                    style={{ width: 18, height: 18, cursor: 'pointer' }}
-                  />
-                  <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Cetak nomor IMEI untuk barang HP</span>
-                </label>
-
-                <div className="form-group">
-                  <label className="form-label">Pesan Kebijakan / Garansi</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={settings.warningNote}
-                    onChange={e => handleChange('warningNote', e.target.value)}
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Teks Penutup Struk (Footer)</label>
-                  <input
-                    type="text"
-                    className="form-control"
-                    value={settings.footerNote}
-                    onChange={e => handleChange('footerNote', e.target.value)}
-                  />
-                </div>
-
-                <button
-                  type="button"
-                  className="btn btn-primary"
-                  onClick={handleSaveSettings}
-                  style={{ marginTop: 10, fontWeight: 600 }}
-                >
-                  💾 Simpan Perubahan Format Struk
-                </button>
-              </div>
-            </div>
-
-          </div>
-
-          {/* Preview Column */}
-          <div style={{ position: 'sticky', top: 20 }}>
-            <div className="card">
-              <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span className="card-title">👁️ Live Preview Struk</span>
-                <span className="badge badge-info" style={{ fontSize: 11 }}>
-                  Format {settings.paperWidth}
-                </span>
-              </div>
-              <div className="card-body" style={{ background: '#334155', borderRadius: '0 0 8px 8px', padding: 24, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-
-                {/* Paper Simulation Wrapper */}
-                <div style={{
-                  background: '#ffffff',
-                  color: '#000000',
-                  width: settings.paperWidth === '80mm' ? '300px' : '230px',
-                  padding: '16px 12px',
-                  borderRadius: 4,
-                  boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
-                  fontFamily: "'Courier New', 'Lucida Console', Monaco, Consolas, monospace",
-                  fontSize: settings.paperWidth === '80mm' ? '12px' : '10.5px',
-                  lineHeight: 1.25,
-                  boxSizing: 'border-box'
-                }}>
-                  {settings.showLogo && Boolean(settings.logoUrl) && (
-                    <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 4 }}>
-                      <img
-                        src={settings.logoUrl}
-                        alt="Logo Struk"
-                        style={{ maxWidth: settings.paperWidth === '80mm' ? 65 : 48, maxHeight: settings.paperWidth === '80mm' ? 65 : 48, objectFit: 'contain' }}
+                    <div className="form-group">
+                      <label className="form-label">Alamat Baris 2</label>
+                      <input
+                        type="text"
+                        className="form-control"
+                        value={settings.addressLine2}
+                        onChange={e => handleChange('addressLine2', e.target.value)}
+                        placeholder="SUNGAI PINYUH"
                       />
                     </div>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Nomor WhatsApp Toko</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={settings.whatsappNumber}
+                      onChange={e => handleChange('whatsappNumber', e.target.value)}
+                      placeholder="0812-5866-6628"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Media Sosial */}
+              <div className="card">
+                <div className="card-header">
+                  <span className="card-title">📱 Media Sosial di Struk</span>
+                </div>
+                <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={settings.showSocialMedia}
+                      onChange={e => handleChange('showSocialMedia', e.target.checked)}
+                      style={{ width: 18, height: 18, cursor: 'pointer' }}
+                    />
+                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Tampilkan baris ikon media sosial</span>
+                  </label>
+
+                  {settings.showSocialMedia && (
+                    <>
+                      <div className="form-group">
+                        <label className="form-label">Akun Facebook</label>
+                        <textarea
+                          className="form-control"
+                          rows={2}
+                          value={settings.facebookName}
+                          onChange={e => handleChange('facebookName', e.target.value)}
+                          placeholder="MArr LinDa&#10;Vierry Kien'z"
+                          style={{ height: 'auto', minHeight: 60 }}
+                        />
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14 }}>
+                        <div className="form-group">
+                          <label className="form-label">Akun Instagram</label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            value={settings.instagramName}
+                            onChange={e => handleChange('instagramName', e.target.value)}
+                          />
+                        </div>
+                        <div className="form-group">
+                          <label className="form-label">Akun TikTok</label>
+                          <input
+                            type="text"
+                            className="form-control"
+                            value={settings.tiktokName}
+                            onChange={e => handleChange('tiktokName', e.target.value)}
+                          />
+                        </div>
+                      </div>
+                    </>
                   )}
+                </div>
+              </div>
 
-                  <div style={{ textAlign: 'center', marginBottom: 4 }}>
-                    <div style={{ fontWeight: 900, fontSize: settings.paperWidth === '80mm' ? '18px' : '16px', margin: '2px 0', letterSpacing: 0.5 }}>
-                      {settings.shopName || 'Kenzo'}
-                    </div>
-                    {settings.addressLine1 && <div style={{ fontSize: 9.5, color: '#111' }}>{settings.addressLine1}</div>}
-                    {settings.addressLine2 && <div style={{ fontSize: 9.5, color: '#111' }}>{settings.addressLine2}</div>}
+              {/* Catatan & Footer */}
+              <div className="card">
+                <div className="card-header">
+                  <span className="card-title">📝 Catatan & Footer Struk</span>
+                </div>
+                <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+                    <input
+                      type="checkbox"
+                      checked={settings.showImei}
+                      onChange={e => handleChange('showImei', e.target.checked)}
+                      style={{ width: 18, height: 18, cursor: 'pointer' }}
+                    />
+                    <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>Cetak nomor IMEI untuk barang HP</span>
+                  </label>
 
-                    {settings.whatsappNumber && (
-                      <div style={{ fontWeight: 700, fontSize: 10.5, marginTop: 2 }}>
-                        WA: {settings.whatsappNumber}
+                  <div className="form-group">
+                    <label className="form-label">Pesan Kebijakan / Garansi</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={settings.warningNote}
+                      onChange={e => handleChange('warningNote', e.target.value)}
+                    />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Teks Penutup Struk (Footer)</label>
+                    <input
+                      type="text"
+                      className="form-control"
+                      value={settings.footerNote}
+                      onChange={e => handleChange('footerNote', e.target.value)}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 10 }}>
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={handleSaveSettings}
+                      style={{ flex: 1, minWidth: 200, height: 42, fontWeight: 700, background: '#e53935' }}
+                    >
+                      💾 Simpan Perubahan Format Struk
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary receipt-mobile-only-btn"
+                      onClick={() => {
+                        setReceiptMobileTab('preview');
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      style={{ height: 42, fontWeight: 600, alignItems: 'center', gap: 6 }}
+                    >
+                      <span>👁️</span>
+                      <span>Lihat Live Preview →</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+
+            {/* Preview Column */}
+            <div
+              className={`receipt-col-preview receipt-preview-sticky ${receiptMobileTab !== 'preview' && receiptMobileTab !== 'all' ? 'mobile-hidden' : ''}`}
+            >
+              <div className="card">
+                <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <span className="card-title">👁️ Live Preview Struk</span>
+                  <span className="badge badge-info" style={{ fontSize: 11 }}>
+                    Format {settings.paperWidth}
+                  </span>
+                </div>
+                <div
+                  className="card-body"
+                  style={{
+                    background: '#334155',
+                    borderRadius: '0 0 8px 8px',
+                    padding: '20px 12px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    overflowX: 'auto',
+                    maxWidth: '100%',
+                    boxSizing: 'border-box'
+                  }}
+                >
+
+                  {/* Paper Simulation Wrapper */}
+                  <div style={{
+                    background: '#ffffff',
+                    color: '#000000',
+                    width: settings.paperWidth === '80mm' ? 'min(300px, 100%)' : 'min(230px, 100%)',
+                    maxWidth: '100%',
+                    padding: '16px 12px',
+                    borderRadius: 4,
+                    boxShadow: '0 8px 24px rgba(0,0,0,0.3)',
+                    fontFamily: "'Courier New', 'Lucida Console', Monaco, Consolas, monospace",
+                    fontSize: settings.paperWidth === '80mm' ? '12px' : '10.5px',
+                    lineHeight: 1.25,
+                    boxSizing: 'border-box'
+                  }}>
+                    {settings.showLogo && Boolean(settings.logoUrl) && (
+                      <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 4 }}>
+                        <img
+                          src={settings.logoUrl}
+                          alt="Logo Struk"
+                          style={{ maxWidth: settings.paperWidth === '80mm' ? 65 : 48, maxHeight: settings.paperWidth === '80mm' ? 65 : 48, objectFit: 'contain' }}
+                        />
                       </div>
                     )}
 
-                    {settings.showSocialMedia && (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 1, marginTop: 3, fontSize: 9.5, fontWeight: 600 }}>
-                        {settings.facebookName && (
-                          <div>FB: {settings.facebookName.replace(/\n/g, ' / ')}</div>
-                        )}
-                        {settings.instagramName && (
-                          <div>IG: {settings.instagramName}</div>
-                        )}
-                        {settings.tiktokName && (
-                          <div>TikTok: {settings.tiktokName}</div>
-                        )}
+                    <div style={{ textAlign: 'center', marginBottom: 4 }}>
+                      <div style={{ fontWeight: 900, fontSize: settings.paperWidth === '80mm' ? '18px' : '16px', margin: '2px 0', letterSpacing: 0.5 }}>
+                        {settings.shopName || 'Kenzo'}
                       </div>
-                    )}
-                  </div>
+                      {settings.addressLine1 && <div style={{ fontSize: 9.5, color: '#111' }}>{settings.addressLine1}</div>}
+                      {settings.addressLine2 && <div style={{ fontSize: 9.5, color: '#111' }}>{settings.addressLine2}</div>}
 
-                  <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }}></div>
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, fontWeight: 600 }}>
-                    <span>26/10/2026 17:30</span>
-                    <span>#721</span>
-                  </div>
-                  <div style={{ fontSize: 10, fontWeight: 600 }}>Pembeli: Umum</div>
-                  <div style={{ fontSize: 10, fontWeight: 600 }}>No. Inv: INV/261026/0721</div>
-
-                  <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }}></div>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <div>
-                      <div style={{ fontWeight: 700, fontSize: 10.5 }}>1. TECNO SPARK 50 4/128G</div>
-                      {settings.showImei && (
-                        <div style={{ fontSize: 9, fontWeight: 600, paddingLeft: 8, color: '#111' }}>
-                          IMEI: 350008871828041
+                      {settings.whatsappNumber && (
+                        <div style={{ fontWeight: 700, fontSize: 10.5, marginTop: 2 }}>
+                          WA: {settings.whatsappNumber}
                         </div>
                       )}
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, paddingLeft: 8, fontWeight: 600 }}>
-                        <span>1x 2.799.000</span>
-                        <span>2.799.000</span>
+
+                      {settings.showSocialMedia && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 1, marginTop: 3, fontSize: 9.5, fontWeight: 600 }}>
+                          {settings.facebookName && (
+                            <div>FB: {settings.facebookName.replace(/\n/g, ' / ')}</div>
+                          )}
+                          {settings.instagramName && (
+                            <div>IG: {settings.instagramName}</div>
+                          )}
+                          {settings.tiktokName && (
+                            <div>TikTok: {settings.tiktokName}</div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }}></div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, fontWeight: 600 }}>
+                      <span>26/10/2026 17:30</span>
+                      <span>#721</span>
+                    </div>
+                    <div style={{ fontSize: 10, fontWeight: 600 }}>Pembeli: Umum</div>
+                    <div style={{ fontSize: 10, fontWeight: 600 }}>No. Inv: INV/261026/0721</div>
+
+                    <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }}></div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: 10.5 }}>1. TECNO SPARK 50 4/128G</div>
+                        {settings.showImei && (
+                          <div style={{ fontSize: 9, fontWeight: 600, paddingLeft: 8, color: '#111' }}>
+                            IMEI: 350008871828041
+                          </div>
+                        )}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, paddingLeft: 8, fontWeight: 600 }}>
+                          <span>1x 2.799.000</span>
+                          <span>2.799.000</span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: 10.5 }}>2. FOOMEEE CAS 12W MICRO</div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, paddingLeft: 8, fontWeight: 600 }}>
+                          <span>1x 70.000</span>
+                          <span>70.000</span>
+                        </div>
                       </div>
                     </div>
 
-                    <div>
-                      <div style={{ fontWeight: 700, fontSize: 10.5 }}>2. FOOMEEE CAS 12W MICRO</div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, paddingLeft: 8, fontWeight: 600 }}>
-                        <span>1x 70.000</span>
-                        <span>70.000</span>
+                    <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }}></div>
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, fontWeight: 600 }}>
+                      <span>Produk: 2</span>
+                      <span>Total Qty: 2</span>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 1, marginTop: 2 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 900, fontSize: 13, margin: '2px 0' }}>
+                        <span>TOTAL:</span>
+                        <span>Rp 2.869.000</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, fontWeight: 600 }}>
+                        <span>Bayar:</span>
+                        <span>Rp 2.869.000</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, fontWeight: 600 }}>
+                        <span>Metode:</span>
+                        <span>Tunai</span>
                       </div>
                     </div>
+
+                    <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }}></div>
+
+                    {settings.warningNote && (
+                      <div style={{
+                        textAlign: 'center',
+                        fontWeight: 600,
+                        fontSize: 9.5,
+                        marginTop: 4,
+                        lineHeight: 1.25,
+                        whiteSpace: 'pre-line'
+                      }}>
+                        {settings.warningNote}
+                      </div>
+                    )}
+
+                    {settings.footerNote && (
+                      <div style={{
+                        textAlign: 'center',
+                        fontWeight: 800,
+                        marginTop: 4,
+                        fontSize: 10.5
+                      }}>
+                        {settings.footerNote}
+                      </div>
+                    )}
                   </div>
 
-                  <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }}></div>
-
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, fontWeight: 600 }}>
-                    <span>Produk: 2</span>
-                    <span>Total Qty: 2</span>
+                  <div style={{ marginTop: 20, width: '100%', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    <button
+                      type="button"
+                      className="btn btn-primary"
+                      onClick={() => handleTestPrint()}
+                      style={{ width: '100%', height: 42, fontSize: 14, fontWeight: 700, background: '#e53935' }}
+                    >
+                      🖨️ Test Cetak Struk Fisik
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-secondary receipt-mobile-only-btn"
+                      onClick={() => {
+                        setReceiptMobileTab('form');
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      style={{ width: '100%', height: 38, fontSize: 13, fontWeight: 600, justifyContent: 'center' }}
+                    >
+                      ← Kembali ke Edit Format
+                    </button>
                   </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 1, marginTop: 2 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 900, fontSize: 13, margin: '2px 0' }}>
-                      <span>TOTAL:</span>
-                      <span>Rp 2.869.000</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, fontWeight: 600 }}>
-                      <span>Bayar:</span>
-                      <span>Rp 2.869.000</span>
-                    </div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 10, fontWeight: 600 }}>
-                      <span>Metode:</span>
-                      <span>Tunai</span>
-                    </div>
-                  </div>
-
-                  <div style={{ borderTop: '1px dashed #000', margin: '5px 0' }}></div>
-
-                  {settings.warningNote && (
-                    <div style={{
-                      textAlign: 'center',
-                      fontWeight: 600,
-                      fontSize: 9.5,
-                      marginTop: 4,
-                      lineHeight: 1.25,
-                      whiteSpace: 'pre-line'
-                    }}>
-                      {settings.warningNote}
-                    </div>
-                  )}
-
-                  {settings.footerNote && (
-                    <div style={{
-                      textAlign: 'center',
-                      fontWeight: 800,
-                      marginTop: 4,
-                      fontSize: 10.5
-                    }}>
-                      {settings.footerNote}
-                    </div>
-                  )}
                 </div>
-
-                <div style={{ marginTop: 20, width: '100%', display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  <button
-                    type="button"
-                    className="btn btn-primary"
-                    onClick={() => handleTestPrint()}
-                    style={{ width: '100%', height: 42, fontSize: 14, fontWeight: 700, background: '#e53935' }}
-                  >
-                    🖨️ Test Cetak Struk Fisik
-                  </button>
-                </div>
-
               </div>
             </div>
           </div>
