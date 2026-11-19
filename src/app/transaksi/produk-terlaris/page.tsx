@@ -327,89 +327,187 @@ export default function BestSellingProductPage() {
       {/* Filter Section Card */}
       <div
         className="card no-print"
-        style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 14 }}
+        style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Calendar size={18} style={{ color: '#3b82f6' }} />
-            <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>
-              Periode Penjualan:
-            </span>
+        {/* Section 1: Periode Penjualan */}
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10, marginBottom: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Calendar size={18} style={{ color: '#3b82f6' }} />
+              <span style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>
+                Periode Penjualan:
+              </span>
+            </div>
+
+            {/* Preset Buttons */}
+            <DateRangeToggle
+              currentFrom={fromDate}
+              currentTo={toDate}
+              onSelect={handlePresetSelect}
+            />
           </div>
 
-          {/* Preset Buttons */}
-          <DateRangeToggle
-            currentFrom={fromDate}
-            currentTo={toDate}
-            onSelect={handlePresetSelect}
-          />
+          {/* Custom Date Inputs (Grid 2 kolom yang rapi berdampingan di mobile & desktop) */}
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(135px, 1fr))',
+              gap: 10,
+              alignItems: 'end',
+            }}
+          >
+            <div>
+              <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4, display: 'block' }}>
+                Dari Tanggal
+              </label>
+              <input
+                type="date"
+                className="form-control"
+                value={tempFrom}
+                onChange={e => setTempFrom(e.target.value)}
+                style={{ width: '100%', height: 38, fontSize: 13 }}
+              />
+            </div>
+
+            <div>
+              <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4, display: 'block' }}>
+                Sampai Tanggal
+              </label>
+              <input
+                type="date"
+                className="form-control"
+                value={tempTo}
+                onChange={e => setTempTo(e.target.value)}
+                style={{ width: '100%', height: 38, fontSize: 13 }}
+              />
+            </div>
+
+            <div style={{ minWidth: 130 }}>
+              <button
+                type="button"
+                className="btn btn-primary"
+                onClick={handleApplyCustomFilter}
+                style={{ width: '100%', height: 38, fontWeight: 600, fontSize: 13 }}
+              >
+                Terapkan Tanggal
+              </button>
+            </div>
+          </div>
         </div>
 
-        {/* Custom Date + Category Filter Row */}
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-            gap: 12,
-            paddingTop: 12,
-            borderTop: '1px solid var(--border-light, #2a2a32)',
-            alignItems: 'end',
-          }}
-        >
-          <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4, display: 'block' }}>
-              Dari Tanggal
-            </label>
-            <input
-              type="date"
-              className="form-control"
-              value={tempFrom}
-              onChange={e => setTempFrom(e.target.value)}
-              style={{ width: '100%' }}
-            />
+        {/* Section 2: Pemilihan Kategori (Dedicated, Responsive & Flexible Mobile Section) */}
+        <div style={{ paddingTop: 14, borderTop: '1px solid var(--border-light, #2a2a32)' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: 10,
+              flexWrap: 'wrap',
+              gap: 8,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Filter size={16} style={{ color: '#3b82f6' }} />
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-primary)' }}>
+                Filter Kategori Produk:
+              </span>
+              <span
+                className="badge badge-info"
+                style={{ fontSize: 11, padding: '2px 8px' }}
+              >
+                {kategoriFilter === 'semua' ? 'Semua Kategori' : kategoriFilter}
+              </span>
+            </div>
+
+            {/* Quick Dropdown Selector (Compact on desktop & mobile) */}
+            <div style={{ minWidth: 160 }}>
+              <select
+                className="form-control"
+                value={kategoriFilter}
+                onChange={e => setKategoriFilter(e.target.value)}
+                style={{ height: 34, fontSize: 12, padding: '4px 8px' }}
+                aria-label="Pilih Kategori"
+              >
+                <option value="semua">Semua Kategori ({categories.length})</option>
+                {categories.map(k => (
+                  <option key={k.id} value={k.nama}>
+                    {k.nama}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
-          <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4, display: 'block' }}>
-              Sampai Tanggal
-            </label>
-            <input
-              type="date"
-              className="form-control"
-              value={tempTo}
-              onChange={e => setTempTo(e.target.value)}
-              style={{ width: '100%' }}
-            />
-          </div>
-
-          <div>
-            <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-secondary)', marginBottom: 4, display: 'block' }}>
-              Filter Kategori
-            </label>
-            <select
-              className="form-control"
-              value={kategoriFilter}
-              onChange={e => setKategoriFilter(e.target.value)}
-              style={{ width: '100%' }}
-            >
-              <option value="semua">Semua Kategori</option>
-              {categories.map(k => (
-                <option key={k.id} value={k.nama}>
-                  {k.nama}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div>
+          {/* Flexible & Responsive Horizontal Scrollable Category Chips/Pills */}
+          <div
+            style={{
+              display: 'flex',
+              gap: 8,
+              overflowX: 'auto',
+              paddingBottom: 6,
+              paddingTop: 2,
+              WebkitOverflowScrolling: 'touch',
+              scrollbarWidth: 'thin',
+            }}
+          >
             <button
               type="button"
-              className="btn btn-primary"
-              onClick={handleApplyCustomFilter}
-              style={{ width: '100%', height: 38, fontWeight: 600 }}
+              onClick={() => setKategoriFilter('semua')}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+                padding: '6px 14px',
+                borderRadius: 20,
+                fontSize: 12,
+                fontWeight: 600,
+                whiteSpace: 'nowrap',
+                border: '1px solid',
+                cursor: 'pointer',
+                background: kategoriFilter === 'semua' ? '#2563eb' : 'var(--bg-card, #1e293b)',
+                borderColor: kategoriFilter === 'semua' ? '#3b82f6' : 'var(--border-color, #334155)',
+                color: kategoriFilter === 'semua' ? '#ffffff' : 'var(--text-secondary, #94a3b8)',
+                boxShadow: kategoriFilter === 'semua' ? '0 2px 8px rgba(37, 99, 235, 0.35)' : 'none',
+                transition: 'all 0.15s ease',
+                flexShrink: 0,
+              }}
             >
-              Terapkan Periode
+              <span>🏷️</span>
+              <span>Semua Kategori</span>
             </button>
+
+            {categories.map(k => {
+              const isSelected = kategoriFilter === k.nama;
+              return (
+                <button
+                  key={k.id}
+                  type="button"
+                  onClick={() => setKategoriFilter(k.nama)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 5,
+                    padding: '6px 14px',
+                    borderRadius: 20,
+                    fontSize: 12,
+                    fontWeight: 600,
+                    whiteSpace: 'nowrap',
+                    border: '1px solid',
+                    cursor: 'pointer',
+                    background: isSelected ? '#2563eb' : 'var(--bg-card, #1e293b)',
+                    borderColor: isSelected ? '#3b82f6' : 'var(--border-color, #334155)',
+                    color: isSelected ? '#ffffff' : 'var(--text-secondary, #94a3b8)',
+                    boxShadow: isSelected ? '0 2px 8px rgba(37, 99, 235, 0.35)' : 'none',
+                    transition: 'all 0.15s ease',
+                    flexShrink: 0,
+                  }}
+                >
+                  <span>{isSelected ? '✓' : '•'}</span>
+                  <span>{k.nama}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
       </div>
